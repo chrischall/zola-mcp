@@ -50,6 +50,7 @@ export class ZolaClient {
 
   async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     await this.ensureSession();
+    if (method !== 'GET') await this.ensureCsrf();
     return this.doRequest<T>(method, path, body);
   }
 
@@ -66,6 +67,9 @@ export class ZolaClient {
       cookie: this.buildCookieHeader(),
     };
     if (body !== undefined) headers['content-type'] = 'application/json';
+    if (method !== 'GET' && this.csrfToken) {
+      headers['x-csrf-token'] = this.csrfToken;
+    }
 
     const response = await fetch(`${BASE_URL}${path}`, {
       method,
@@ -131,22 +135,23 @@ export class ZolaClient {
     await this.refresh(refreshToken);
   }
 
-  private async refresh(refreshToken: string): Promise<void> {
-    // Step 1: Get fresh CSRF tokens
+  private async ensureCsrf(): Promise<void> {
+    if (this.csrfToken) return; // already have one
     try {
-      const navResp = await fetch(`${BASE_URL}/web-api/v1/nav/get`, {
-        headers: {
-          accept: 'application/json',
-          'user-agent': USER_AGENT,
-          cookie: `usr=${refreshToken}`,
-        },
+      const resp = await fetch(`${BASE_URL}/`, {
+        headers: { 'user-agent': USER_AGENT },
       });
-      const cookies = parseCookies(navResp.headers);
+      const cookies = parseCookies(resp.headers);
       if (cookies['_csrf']) this.csrfSecret = cookies['_csrf'];
       if (cookies['CSRF-TOKEN']) this.csrfToken = cookies['CSRF-TOKEN'];
     } catch {
-      // Non-fatal: proceed without CSRF (refresh may still work)
+      // non-fatal: proceed without CSRF
     }
+  }
+
+  private async refresh(refreshToken: string): Promise<void> {
+    // Step 1: Get fresh CSRF tokens
+    await this.ensureCsrf();
 
     // Step 2: Attempt session refresh
     const cookieParts = [`usr=${refreshToken}`];
@@ -154,16 +159,19 @@ export class ZolaClient {
     if (this.csrfToken) cookieParts.push(`CSRF-TOKEN=${this.csrfToken}`);
 
     try {
+      const refreshHeaders: Record<string, string> = {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'user-agent': USER_AGENT,
+        referer: `${BASE_URL}/`,
+        origin: BASE_URL,
+        cookie: cookieParts.join('; '),
+      };
+      if (this.csrfToken) refreshHeaders['x-csrf-token'] = this.csrfToken;
+
       const refreshResp = await fetch(`${BASE_URL}/web-api/v1/user/refresh`, {
         method: 'POST',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-          'user-agent': USER_AGENT,
-          referer: `${BASE_URL}/`,
-          origin: BASE_URL,
-          cookie: cookieParts.join('; '),
-        },
+        headers: refreshHeaders,
       });
 
       if (refreshResp.ok) {
