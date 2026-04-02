@@ -14,10 +14,14 @@ const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
 
 function decodeJwtExp(token: string): number {
-  const payloadB64 = token.split('.')[1];
-  const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as {
-    exp: number;
-  };
+  const parts = token.split('.');
+  if (parts.length < 3 || !parts[1]) {
+    throw new Error(`Invalid JWT structure: expected 3 dot-separated parts, got ${parts.length}`);
+  }
+  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as { exp: number };
+  if (typeof payload.exp !== 'number') {
+    throw new Error('JWT payload missing numeric "exp" claim');
+  }
   return payload.exp;
 }
 
@@ -26,7 +30,10 @@ function parseCookies(headers: Headers): Record<string, string> {
   const setCookieValues: string[] =
     typeof (headers as unknown as { getSetCookie?: () => string[] }).getSetCookie === 'function'
       ? (headers as unknown as { getSetCookie: () => string[] }).getSetCookie()
-      : (headers.get('set-cookie') ?? '').split(/,(?=[^ ])/).filter(Boolean);
+      : // Fallback for environments without getSetCookie(). The comma-split heuristic
+        // can misparse cookies whose values contain commas not preceded by a space,
+        // but this branch is never reached on Node 18.14+ which is our target runtime.
+        (headers.get('set-cookie') ?? '').split(/,(?=[^ ])/).filter(Boolean);
 
   for (const raw of setCookieValues) {
     const match = raw.match(/^([^=]+)=([^;]*)/);
@@ -101,7 +108,8 @@ export class ZolaClient {
       if (this.sessionExpiry.getTime() - Date.now() > 5 * 60 * 1000) return;
     }
 
-    // Try ZOLA_SESSION_TOKEN from env if we haven't loaded it yet
+    // Note: ZOLA_SESSION_TOKEN is read from env only on first load (sessionToken === null).
+    // If the env value is rotated mid-run, restart the server to pick up the new token.
     if (this.sessionToken === null) {
       const envSession = process.env.ZOLA_SESSION_TOKEN;
       if (envSession) {
