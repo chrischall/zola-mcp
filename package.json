@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Zola wedding MCP server for Claude",
   "author": "Claude Sonnet 4.6 (AI) <https://www.anthropic.com/claude>",
+  "engines": {
+    "node": ">=20.6.0"
+  },
   "type": "module",
   "bin": {
     "zola-mcp": "dist/index.js"

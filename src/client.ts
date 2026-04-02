@@ -50,14 +50,15 @@ export class ZolaClient {
 
   async request<T>(method: string, path: string, body?: unknown): Promise<T> {
     await this.ensureSession();
-    return this.doRequest<T>(method, path, body, false);
+    return this.doRequest<T>(method, path, body);
   }
 
   private async doRequest<T>(
     method: string,
     path: string,
     body: unknown,
-    isRetry: boolean
+    isAuthRetry = false,
+    isRateRetry = false
   ): Promise<T> {
     const headers: Record<string, string> = {
       accept: 'application/json',
@@ -72,19 +73,19 @@ export class ZolaClient {
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
 
-    if (response.status === 401 && !isRetry) {
+    if (response.status === 401 && !isAuthRetry) {
       this.sessionToken = null;
       this.sessionExpiry = null;
       const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
       if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
       await this.refresh(refreshToken);
-      return this.doRequest<T>(method, path, body, true);
+      return this.doRequest<T>(method, path, body, true, isRateRetry);
     }
 
     if (response.status === 429) {
-      if (!isRetry) {
+      if (!isRateRetry) {
         await new Promise<void>((r) => setTimeout(r, 2000));
-        return this.doRequest<T>(method, path, body, true);
+        return this.doRequest<T>(method, path, body, isAuthRetry, true);
       }
       throw new Error('Rate limited by Zola API');
     }
