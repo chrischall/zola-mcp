@@ -154,6 +154,7 @@ describe('vendor tools', () => {
         '/v2/account/vendor/slot-flor-1',
         expect.objectContaining({
           priceCents: 350000,
+          eventDate: new Date('2026-10-16').getTime(),
           referenceVendorRequest: expect.objectContaining({
             email: 'hello@petalbloom.com',
           }),
