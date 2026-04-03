@@ -213,9 +213,10 @@ describe('ZolaClient', () => {
     await client.requestMarketplace<unknown[]>('POST', '/v1/account/get-or-create-vendors');
 
     // calls[0] is the CSRF fetch; calls[1] is the marketplace call
-    const [url] = fetchMock.mock.calls[1] as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(url).toBe(
       'https://www.zola.com/web-marketplace-api/v1/account/get-or-create-vendors'
     );
+    expect((init.headers as Record<string, string>)['x-csrf-token']).toBe('test-csrf-token');
   });
 });
