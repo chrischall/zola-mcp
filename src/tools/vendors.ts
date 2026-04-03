@@ -166,7 +166,7 @@ export async function removeVendor(args: { uuid: string }): Promise<ToolResult> 
 }
 
 export function registerVendorTools(server: McpServer): void {
-  server.tool('list_vendors', 'List all booked vendor slots and their details', {}, listVendors);
+  server.tool('list_vendors', 'List all vendor slots (booked and unbooked) and their details', {}, listVendors);
 
   server.tool(
     'search_vendors',
