@@ -117,15 +117,7 @@ export async function assignSeat(args: {
     table_uuid: args.table_uuid,
     seating_chart_uuid: args.seating_chart_uuid,
   });
-  const table = chart.tables.find((t) => t.uuid === args.table_uuid);
-  return {
-    content: [
-      {
-        type: 'text',
-        text: `Assigned guest ${args.guest_uuid} to seat ${args.seat_uuid} at ${table?.name ?? args.table_uuid}`,
-      },
-    ],
-  };
+  return { content: [{ type: 'text', text: JSON.stringify(chart, null, 2) }] };
 }
 
 export function registerSeatingTools(server: McpServer): void {
