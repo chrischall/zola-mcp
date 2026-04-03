@@ -103,14 +103,14 @@ export async function updateBudgetItem(args: {
     uuid: args.uuid,
     actual_cost_cents: args.actual_cost_cents ?? current.actual_cost_cents,
     note: args.note ?? current.note,
-    payments: [] as BudgetPayment[],
+    payments: [] as BudgetPayment[], // payments managed separately; send empty array per API spec
   };
   await client.request<unknown>('PUT', '/web-api/v1/budgets/items/update', body);
   return {
     content: [
       {
         type: 'text',
-        text: `Updated ${current.title}: actual_cost_cents=${body.actual_cost_cents}`,
+        text: `Updated ${current.title}: actual_cost_cents=${body.actual_cost_cents}, note=${body.note}`,
       },
     ],
   };
