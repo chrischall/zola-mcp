@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
-import { listVendors, searchVendors, addVendor } from '../src/tools/vendors.js';
+import { listVendors, searchVendors, addVendor, updateVendor, removeVendor } from '../src/tools/vendors.js';
 
 describe('vendor tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMarketplace'>>;
@@ -181,6 +181,104 @@ describe('vendor tools', () => {
       await expect(
         addVendor({ vendorType: 'PHOTOGRAPHER', name: 'Smith Photos', city: 'Charlotte', stateProvince: 'NC' })
       ).rejects.toThrow('No unbooked slot found for vendor type "PHOTOGRAPHER"');
+    });
+  });
+
+  describe('updateVendor', () => {
+    it('merges new fields with current values and PUTs', async () => {
+      const current = {
+        uuid: 'slot-ven-1',
+        vendorType: 'VENUE',
+        vendorName: 'Old Venue Name',
+        booked: true,
+        bookedAt: 1769000000000,
+        priceCents: 100000,
+        eventDate: null,
+        priority: 0,
+        referenceVendorId: null,
+        referenceVendorUuid: null,
+        vendorCard: { city: 'Charlotte', stateProvince: 'NC', email: null },
+      };
+      const updated = { ...current, vendorName: 'New Venue Name' };
+      reqSpy
+        .mockResolvedValueOnce([current] as never)
+        .mockResolvedValueOnce({ accountVendor: updated } as never);
+
+      const result = await updateVendor({ uuid: 'slot-ven-1', name: 'New Venue Name' });
+
+      expect(reqSpy).toHaveBeenNthCalledWith(
+        2,
+        'PUT',
+        '/v2/account/vendor/slot-ven-1',
+        expect.objectContaining({
+          vendorType: 'VENUE',
+          booked: true,
+          referenceVendorRequest: expect.objectContaining({
+            name: 'New Venue Name',
+            address: { city: 'Charlotte', stateProvince: 'NC' },
+          }),
+          priceCents: 100000,
+        })
+      );
+      expect(JSON.parse(result.content[0].text)).toEqual(updated);
+    });
+
+    it('throws when UUID is not found', async () => {
+      reqSpy.mockResolvedValueOnce([] as never);
+
+      await expect(updateVendor({ uuid: 'nonexistent' })).rejects.toThrow(
+        'Vendor with UUID "nonexistent" not found'
+      );
+    });
+  });
+
+  describe('removeVendor', () => {
+    it('PUTs with booked: false and all fields cleared', async () => {
+      const current = {
+        uuid: 'slot-dj-1',
+        vendorType: 'MUSICIAN_DJ',
+        vendorName: 'AAM Entertainment',
+        booked: true,
+        bookedAt: 1774801839050,
+        priceCents: null,
+        eventDate: 1792195200000,
+        priority: 5,
+        referenceVendorId: 348351,
+        referenceVendorUuid: '9c1d8633',
+        vendorCard: { city: 'Charlotte', stateProvince: 'NC', email: 'aament@gmail.com' },
+      };
+      const cleared = { ...current, booked: false, vendorName: null, bookedAt: null };
+      reqSpy
+        .mockResolvedValueOnce([current] as never)
+        .mockResolvedValueOnce({ accountVendor: cleared } as never);
+
+      const result = await removeVendor({ uuid: 'slot-dj-1' });
+
+      expect(reqSpy).toHaveBeenNthCalledWith(
+        2,
+        'PUT',
+        '/v2/account/vendor/slot-dj-1',
+        expect.objectContaining({
+          vendorType: 'MUSICIAN_DJ',
+          booked: false,
+          referenceVendorRequest: expect.objectContaining({
+            name: null,
+            email: null,
+            address: { city: null, stateProvince: null },
+          }),
+          priceCents: null,
+          eventDate: null,
+        })
+      );
+      expect(JSON.parse(result.content[0].text)).toEqual(cleared);
+    });
+
+    it('throws when UUID is not found', async () => {
+      reqSpy.mockResolvedValueOnce([] as never);
+
+      await expect(removeVendor({ uuid: 'nonexistent' })).rejects.toThrow(
+        'Vendor with UUID "nonexistent" not found'
+      );
     });
   });
 });

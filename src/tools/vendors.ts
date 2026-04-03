@@ -111,6 +111,59 @@ export async function addVendor(args: {
   return { content: [{ type: 'text', text: JSON.stringify(result.accountVendor, null, 2) }] };
 }
 
+export async function updateVendor(args: {
+  uuid: string;
+  name?: string;
+  city?: string;
+  stateProvince?: string;
+  email?: string;
+  priceCents?: number;
+  eventDate?: string;
+}): Promise<ToolResult> {
+  const vendors = await client.requestMarketplace<AccountVendor[]>(
+    'POST',
+    '/v1/account/get-or-create-vendors'
+  );
+  const current = vendors.find((v) => v.uuid === args.uuid);
+  if (!current) {
+    throw new Error(`Vendor with UUID "${args.uuid}" not found`);
+  }
+  const body = vendorPutBody(
+    current.vendorType,
+    current.booked,
+    args.name ?? current.vendorName,
+    args.email ?? current.vendorCard?.email ?? null,
+    args.city ?? current.vendorCard?.city ?? null,
+    args.stateProvince ?? current.vendorCard?.stateProvince ?? null,
+    args.priceCents ?? current.priceCents,
+    args.eventDate ? new Date(args.eventDate).getTime() : current.eventDate
+  );
+  const result = await client.requestMarketplace<{ accountVendor: AccountVendor }>(
+    'PUT',
+    `/v2/account/vendor/${args.uuid}`,
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(result.accountVendor, null, 2) }] };
+}
+
+export async function removeVendor(args: { uuid: string }): Promise<ToolResult> {
+  const vendors = await client.requestMarketplace<AccountVendor[]>(
+    'POST',
+    '/v1/account/get-or-create-vendors'
+  );
+  const current = vendors.find((v) => v.uuid === args.uuid);
+  if (!current) {
+    throw new Error(`Vendor with UUID "${args.uuid}" not found`);
+  }
+  const body = vendorPutBody(current.vendorType, false, null, null, null, null, null, null);
+  const result = await client.requestMarketplace<{ accountVendor: AccountVendor }>(
+    'PUT',
+    `/v2/account/vendor/${args.uuid}`,
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(result.accountVendor, null, 2) }] };
+}
+
 export function registerVendorTools(_server: McpServer): void {
   // Filled in Task 5
 }
