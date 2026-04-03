@@ -196,4 +196,26 @@ describe('ZolaClient', () => {
       'Rate limited by Zola API'
     );
   });
+
+  it('requestMarketplace hits marketplace base URL', async () => {
+    const validUs = makeMockJwt(FUTURE_EXP);
+    process.env.ZOLA_SESSION_TOKEN = validUs;
+
+    // CSRF fetch (GET /)
+    fetchMock.mockResolvedValueOnce(makeResponse({}, 200, [
+      '_csrf=test-secret; Path=/; HttpOnly',
+      'CSRF-TOKEN=test-csrf-token; Path=/',
+    ]));
+    // Actual marketplace call
+    fetchMock.mockResolvedValueOnce(makeResponse([{ uuid: 'v1' }]));
+
+    const client = new ZolaClient();
+    await client.requestMarketplace<unknown[]>('POST', '/v1/account/get-or-create-vendors');
+
+    // calls[0] is the CSRF fetch; calls[1] is the marketplace call
+    const [url] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(url).toBe(
+      'https://www.zola.com/web-marketplace-api/v1/account/get-or-create-vendors'
+    );
+  });
 });

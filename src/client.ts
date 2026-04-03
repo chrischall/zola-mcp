@@ -10,6 +10,7 @@ try {
 }
 
 const BASE_URL = 'https://www.zola.com';
+const MARKETPLACE_BASE_URL = 'https://www.zola.com/web-marketplace-api';
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
 
@@ -54,12 +55,19 @@ export class ZolaClient {
     return this.doRequest<T>(method, path, body);
   }
 
+  async requestMarketplace<T>(method: string, path: string, body?: unknown): Promise<T> {
+    await this.ensureSession();
+    if (method !== 'GET') await this.ensureCsrf();
+    return this.doRequest<T>(method, path, body, false, false, MARKETPLACE_BASE_URL);
+  }
+
   private async doRequest<T>(
     method: string,
     path: string,
     body: unknown,
     isAuthRetry = false,
-    isRateRetry = false
+    isRateRetry = false,
+    baseUrl = BASE_URL
   ): Promise<T> {
     const headers: Record<string, string> = {
       accept: 'application/json',
@@ -71,7 +79,7 @@ export class ZolaClient {
       headers['x-csrf-token'] = this.csrfToken;
     }
 
-    const response = await fetch(`${BASE_URL}${path}`, {
+    const response = await fetch(`${baseUrl}${path}`, {
       method,
       headers,
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -83,13 +91,13 @@ export class ZolaClient {
       const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
       if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
       await this.refresh(refreshToken);
-      return this.doRequest<T>(method, path, body, true, isRateRetry);
+      return this.doRequest<T>(method, path, body, true, isRateRetry, baseUrl);
     }
 
     if (response.status === 429) {
       if (!isRateRetry) {
         await new Promise<void>((r) => setTimeout(r, 2000));
-        return this.doRequest<T>(method, path, body, isAuthRetry, true);
+        return this.doRequest<T>(method, path, body, isAuthRetry, true, baseUrl);
       }
       throw new Error('Rate limited by Zola API');
     }
