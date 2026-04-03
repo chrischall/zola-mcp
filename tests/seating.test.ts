@@ -151,6 +151,7 @@ describe('seating tools', () => {
       table_uuid: 'table-uuid-1',
       seating_chart_uuid: 'chart-uuid-1',
     });
-    expect(result.content[0].text).toContain('guest-uuid-2');
+    expect(result.content[0].text).toContain('chart-uuid-1');
+    expect(result.content[0].text).toContain('Reception');
   });
 });
