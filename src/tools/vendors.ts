@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 import { client } from '../client.js';
 
 interface AccountVendor {
@@ -164,6 +165,54 @@ export async function removeVendor(args: { uuid: string }): Promise<ToolResult> 
   return { content: [{ type: 'text', text: JSON.stringify(result.accountVendor, null, 2) }] };
 }
 
-export function registerVendorTools(_server: McpServer): void {
-  // Filled in Task 5
+export function registerVendorTools(server: McpServer): void {
+  server.tool('list_vendors', 'List all booked vendor slots and their details', {}, listVendors);
+
+  server.tool(
+    'search_vendors',
+    'Search Zola marketplace vendors by name prefix',
+    { prefix: z.string().describe('Vendor name prefix to search for') },
+    searchVendors
+  );
+
+  server.tool(
+    'add_vendor',
+    'Mark an unbooked vendor slot as booked with vendor details',
+    {
+      vendorType: z
+        .string()
+        .describe(
+          'Vendor category (VENUE, PHOTOGRAPHER, FLORIST, MUSICIAN_DJ, PLANNER, VIDEOGRAPHER, HAIR_MAKEUP, CAKES_DESSERTS)'
+        ),
+      name: z.string().describe('Vendor business name'),
+      city: z.string().describe('City where vendor is based'),
+      stateProvince: z.string().describe('State abbreviation (e.g. NC)'),
+      email: z.string().optional().describe('Vendor contact email'),
+      priceCents: z.number().optional().describe('Total price in cents'),
+      eventDate: z.string().optional().describe('Event date in ISO 8601 format (e.g. 2026-10-16)'),
+    },
+    addVendor
+  );
+
+  server.tool(
+    'update_vendor',
+    'Update details of an existing booked vendor slot',
+    {
+      uuid: z.string().describe('Vendor slot UUID (from list_vendors)'),
+      name: z.string().optional(),
+      city: z.string().optional(),
+      stateProvince: z.string().optional(),
+      email: z.string().optional(),
+      priceCents: z.number().optional(),
+      eventDate: z.string().optional().describe('ISO 8601 date'),
+    },
+    updateVendor
+  );
+
+  server.tool(
+    'remove_vendor',
+    'Unbook a vendor slot, clearing all its details',
+    { uuid: z.string().describe('Vendor slot UUID (from list_vendors)') },
+    removeVendor
+  );
 }
