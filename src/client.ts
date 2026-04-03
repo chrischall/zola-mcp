@@ -249,17 +249,19 @@ export class ZolaClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`${response.status} ${method} ${path}: ${text}`);
+      throw new Error(`Zola API error: ${response.status} ${response.statusText} for ${method} ${path}: ${text}`);
     }
 
     const text = await response.text();
-    return text ? JSON.parse(text) : (undefined as T);
+    return (text ? JSON.parse(text) : null) as T;
   }
 
   private extractSessionId(): string | null {
     if (!this.sessionToken) return null;
     try {
-      const payload = JSON.parse(Buffer.from(this.sessionToken.split('.')[1], 'base64url').toString());
+      const parts = this.sessionToken.split('.');
+      if (parts.length < 3 || !parts[1]) return null;
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
       return payload.session_id ?? null;
     } catch {
       return null;
