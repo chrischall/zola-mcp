@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
-import { listVendors, searchVendors } from '../src/tools/vendors.js';
+import { listVendors, searchVendors, addVendor } from '../src/tools/vendors.js';
 
 describe('vendor tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMarketplace'>>;
@@ -68,6 +68,119 @@ describe('vendor tools', () => {
         { prefix: 'AAM' }
       );
       expect(JSON.parse(result.content[0].text)).toEqual(mockResults);
+    });
+  });
+
+  describe('addVendor', () => {
+    it('finds the first unbooked slot of the given type and PUTs with booked: true', async () => {
+      const slots = [
+        {
+          uuid: 'slot-phot-1',
+          vendorType: 'PHOTOGRAPHER',
+          vendorName: null,
+          booked: false,
+          bookedAt: null,
+          priceCents: null,
+          eventDate: null,
+          priority: 1,
+          referenceVendorId: null,
+          referenceVendorUuid: null,
+          vendorCard: null,
+        },
+      ];
+      const updated = { ...slots[0], vendorName: 'Smith Photos', booked: true, bookedAt: Date.now() };
+      reqSpy
+        .mockResolvedValueOnce(slots as never)
+        .mockResolvedValueOnce({ accountVendor: updated } as never);
+
+      const result = await addVendor({
+        vendorType: 'PHOTOGRAPHER',
+        name: 'Smith Photos',
+        city: 'Charlotte',
+        stateProvince: 'NC',
+      });
+
+      expect(reqSpy).toHaveBeenNthCalledWith(
+        2,
+        'PUT',
+        '/v2/account/vendor/slot-phot-1',
+        expect.objectContaining({
+          vendorType: 'PHOTOGRAPHER',
+          booked: true,
+          bookingSource: 'BOOKED_VENDORS',
+          referenceVendorRequest: expect.objectContaining({
+            name: 'Smith Photos',
+            address: { city: 'Charlotte', stateProvince: 'NC' },
+          }),
+          priceCents: null,
+          facetKeys: [],
+        })
+      );
+      expect(JSON.parse(result.content[0].text)).toEqual(updated);
+    });
+
+    it('passes optional fields when provided', async () => {
+      const slot = {
+        uuid: 'slot-flor-1',
+        vendorType: 'FLORIST',
+        vendorName: null,
+        booked: false,
+        bookedAt: null,
+        priceCents: null,
+        eventDate: null,
+        priority: 2,
+        referenceVendorId: null,
+        referenceVendorUuid: null,
+        vendorCard: null,
+      };
+      const updated = { ...slot, booked: true };
+      reqSpy
+        .mockResolvedValueOnce([slot] as never)
+        .mockResolvedValueOnce({ accountVendor: updated } as never);
+
+      await addVendor({
+        vendorType: 'FLORIST',
+        name: 'Petal & Bloom',
+        city: 'Raleigh',
+        stateProvince: 'NC',
+        email: 'hello@petalbloom.com',
+        priceCents: 350000,
+        eventDate: '2026-10-16',
+      });
+
+      expect(reqSpy).toHaveBeenNthCalledWith(
+        2,
+        'PUT',
+        '/v2/account/vendor/slot-flor-1',
+        expect.objectContaining({
+          priceCents: 350000,
+          referenceVendorRequest: expect.objectContaining({
+            email: 'hello@petalbloom.com',
+          }),
+        })
+      );
+    });
+
+    it('throws when no unbooked slot exists for the given type', async () => {
+      reqSpy.mockResolvedValueOnce([
+        {
+          uuid: 'slot-phot-1',
+          vendorType: 'PHOTOGRAPHER',
+          vendorName: 'Already Booked',
+          booked: true,
+          bookedAt: 1234567890,
+          priceCents: null,
+          eventDate: null,
+          priority: 1,
+          referenceVendorId: null,
+          referenceVendorUuid: null,
+          vendorCard: null,
+        },
+      ] as never);
+
+      await expect(
+        addVendor({ vendorType: 'PHOTOGRAPHER', name: 'Smith Photos', city: 'Charlotte', stateProvince: 'NC' })
+      ).rejects.toThrow('No unbooked slot found for vendor type "PHOTOGRAPHER"');
     });
   });
 });
