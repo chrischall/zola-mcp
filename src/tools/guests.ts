@@ -92,7 +92,7 @@ export async function addGuest(args: {
     guests.push({
       first_name: args.plus_one_first_name,
       family_name: args.plus_one_last_name,
-      relationship_type: 'CHILD',
+      relationship_type: 'CHILD', // Zola API term for any non-primary household member
     });
   }
   const body = {
