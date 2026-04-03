@@ -219,4 +219,36 @@ describe('ZolaClient', () => {
     );
     expect((init.headers as Record<string, string>)['x-csrf-token']).toBe('test-csrf-token');
   });
+
+  it('requestMobile uses Bearer auth and mobile base URL', async () => {
+    const validUs = makeMockJwt(FUTURE_EXP);
+    process.env.ZOLA_SESSION_TOKEN = validUs;
+
+    fetchMock.mockResolvedValueOnce(makeResponse([{ uuid: 'chart-1', name: 'Reception' }]));
+
+    const client = new ZolaClient();
+    const result = await client.requestMobile<unknown[]>('GET', '/v3/seating-charts/summaries');
+
+    expect(result).toHaveLength(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://mobile-api.zola.com/v3/seating-charts/summaries');
+    const headers = init.headers as Record<string, string>;
+    expect(headers['authorization']).toBe(`Bearer ${validUs}`);
+    expect(headers['x-zola-platform-type']).toBe('iphone_app');
+    expect(headers['cookie']).toBeUndefined();
+  });
+
+  it('requestMobile sends body as JSON', async () => {
+    const validUs = makeMockJwt(FUTURE_EXP);
+    process.env.ZOLA_SESSION_TOKEN = validUs;
+
+    fetchMock.mockResolvedValueOnce(makeResponse({ data: { guest_groups: [] } }));
+
+    const client = new ZolaClient();
+    await client.requestMobile('POST', '/v3/guestlists/directory/wedding-accounts/123', { sort_by_name_asc: true });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>)['content-type']).toBe('application/json');
+    expect(init.body).toBe(JSON.stringify({ sort_by_name_asc: true }));
+  });
 });

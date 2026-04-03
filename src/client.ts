@@ -11,6 +11,7 @@ try {
 
 const BASE_URL = 'https://www.zola.com';
 const MARKETPLACE_BASE_URL = 'https://www.zola.com/web-marketplace-api';
+const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
 
@@ -59,6 +60,11 @@ export class ZolaClient {
     await this.ensureSession();
     if (method !== 'GET') await this.ensureCsrf();
     return this.doRequest<T>(method, path, body, false, false, MARKETPLACE_BASE_URL);
+  }
+
+  async requestMobile<T>(method: string, path: string, body?: unknown): Promise<T> {
+    await this.ensureSession();
+    return this.doMobileRequest<T>(method, path, body);
   }
 
   private async doRequest<T>(
@@ -200,6 +206,64 @@ export class ZolaClient {
         'To fix: open Zola in Chrome → DevTools → Application → Cookies → www.zola.com → ' +
         'copy the "us" cookie value → update ZOLA_SESSION_TOKEN in .env'
     );
+  }
+
+  private async doMobileRequest<T>(
+    method: string,
+    path: string,
+    body: unknown,
+    isAuthRetry = false,
+    isRateRetry = false
+  ): Promise<T> {
+    const sessionId = this.extractSessionId();
+    const headers: Record<string, string> = {
+      accept: 'application/json',
+      authorization: `Bearer ${this.sessionToken}`,
+      'x-zola-platform-type': 'iphone_app',
+      ...(sessionId ? { 'x-zola-user-session-id': sessionId } : {}),
+    };
+    if (body !== undefined) headers['content-type'] = 'application/json';
+
+    const response = await fetch(`${MOBILE_BASE_URL}${path}`, {
+      method,
+      headers,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+
+    if (response.status === 401 && !isAuthRetry) {
+      this.sessionToken = null;
+      this.sessionExpiry = null;
+      const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
+      if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
+      await this.refresh(refreshToken);
+      return this.doMobileRequest<T>(method, path, body, true, isRateRetry);
+    }
+
+    if (response.status === 429) {
+      if (!isRateRetry) {
+        await new Promise<void>((r) => setTimeout(r, 2000));
+        return this.doMobileRequest<T>(method, path, body, isAuthRetry, true);
+      }
+      throw new Error('Rate limited by Zola API');
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`${response.status} ${method} ${path}: ${text}`);
+    }
+
+    const text = await response.text();
+    return text ? JSON.parse(text) : (undefined as T);
+  }
+
+  private extractSessionId(): string | null {
+    if (!this.sessionToken) return null;
+    try {
+      const payload = JSON.parse(Buffer.from(this.sessionToken.split('.')[1], 'base64url').toString());
+      return payload.session_id ?? null;
+    } catch {
+      return null;
+    }
   }
 
   private buildCookieHeader(): string {
