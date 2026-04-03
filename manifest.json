@@ -1,0 +1,56 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/dxt/main/dist/mcpb-manifest.schema.json",
+  "manifest_version": "0.3",
+  "name": "zola-mcp",
+  "display_name": "Zola",
+  "version": "0.1.0",
+  "description": "Zola wedding planning tools for Claude — registry, guest list, checklist, and budget",
+  "author": {
+    "name": "Chris Chall",
+    "email": "chris.c.hall@gmail.com",
+    "url": "https://github.com/chrischall"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chrischall/zola-mcp"
+  },
+  "homepage": "https://github.com/chrischall/zola-mcp",
+  "support": "https://github.com/chrischall/zola-mcp/issues",
+  "license": "MIT",
+  "keywords": ["zola", "wedding", "registry", "planning"],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/bundle.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/bundle.js"],
+      "env": {
+        "ZOLA_REFRESH_TOKEN": "${user_config.zola_refresh_token}",
+        "ZOLA_GUID": "${user_config.zola_guid}"
+      }
+    }
+  },
+  "user_config": {
+    "zola_refresh_token": {
+      "type": "string",
+      "title": "Zola Refresh Token",
+      "description": "Value of the 'usr' cookie from www.zola.com (copy from Chrome DevTools → Application → Cookies)",
+      "required": true,
+      "sensitive": true
+    },
+    "zola_guid": {
+      "type": "string",
+      "title": "Zola GUID",
+      "description": "Value of the 'guid' cookie from www.zola.com",
+      "required": true,
+      "sensitive": true
+    }
+  },
+  "tools": [],
+  "compatibility": {
+    "platforms": ["darwin", "win32"],
+    "runtimes": {
+      "node": ">=20.6.0"
+    }
+  }
+}

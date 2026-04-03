@@ -1,0 +1,15 @@
+{
+  "name": "zola",
+  "displayName": "Zola",
+  "version": "0.1.0",
+  "description": "Zola wedding planning tools for Claude — registry, guest list, checklist, and budget via MCP",
+  "author": {
+    "name": "Chris Chall"
+  },
+  "homepage": "https://github.com/chrischall/zola-mcp",
+  "repository": "https://github.com/chrischall/zola-mcp",
+  "license": "MIT",
+  "keywords": ["zola", "wedding", "registry", "planning", "mcp"],
+  "skills": "./skills/",
+  "mcp": "./.mcp.json"
+}

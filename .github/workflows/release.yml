@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: sed -i '/always-auth/d' "$NPM_CONFIG_USERCONFIG"
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Extract version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Package skill
+        run: |
+          python3 - <<'EOF'
+          import zipfile, pathlib, os
+
+          version = os.environ["VERSION"]
+          skill_name = "zola-mcp"
+          out = pathlib.Path(f"{skill_name}-{version}.skill")
+
+          with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+              zf.write(pathlib.Path("SKILL.md"), f"{skill_name}/SKILL.md")
+
+          print(f"Packaged {out} ({out.stat().st_size} bytes)")
+          EOF
+
+      - name: Build .mcpb bundle
+        run: |
+          node -e "
+            const fs = require('fs');
+            const m = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+            m.version = '$VERSION';
+            fs.writeFileSync('manifest.json', JSON.stringify(m, null, 2) + '\n');
+          "
+          npx @anthropic-ai/mcpb pack
+          mv zola-mcp.mcpb "zola-mcp-${VERSION}.mcpb"
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            zola-mcp-${{ env.VERSION }}.skill
+            zola-mcp-${{ env.VERSION }}.mcpb
+          generate_release_notes: true

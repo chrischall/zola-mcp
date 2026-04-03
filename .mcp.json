@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "zola": {
+      "command": "npx",
+      "args": ["-y", "zola-mcp"],
+      "env": {
+        "ZOLA_REFRESH_TOKEN": "${ZOLA_REFRESH_TOKEN}",
+        "ZOLA_GUID": "${ZOLA_GUID}"
+      }
+    }
+  }
+}

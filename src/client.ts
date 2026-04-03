@@ -13,6 +13,10 @@ const BASE_URL = 'https://www.zola.com';
 const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
 
+// Session refresh: GET this endpoint with usr+guid cookies to obtain a fresh us
+// token plus CSRF tokens in one round-trip. Zola auto-refreshes on this path.
+const REFRESH_PATH = '/website-nav/web-api/v1/user/get';
+
 function decodeJwtExp(token: string): number {
   const parts = token.split('.');
   if (parts.length < 3 || !parts[1]) {
@@ -41,6 +45,10 @@ function parseCookies(headers: Headers): Record<string, string> {
   }
   return cookies;
 }
+
+const SETUP_HINT =
+  'To fix: open Zola in Chrome → DevTools → Application → Cookies → www.zola.com → ' +
+  'copy "usr" → ZOLA_REFRESH_TOKEN and "guid" → ZOLA_GUID in .env';
 
 export class ZolaClient {
   private sessionToken: string | null = null;
@@ -80,9 +88,7 @@ export class ZolaClient {
     if (response.status === 401 && !isAuthRetry) {
       this.sessionToken = null;
       this.sessionExpiry = null;
-      const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
-      if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
-      await this.refresh(refreshToken);
+      await this.refresh();
       return this.doRequest<T>(method, path, body, true, isRateRetry);
     }
 
@@ -105,9 +111,6 @@ export class ZolaClient {
   }
 
   private async ensureSession(): Promise<void> {
-    const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
-    if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
-
     // Session still valid with comfortable margin
     if (this.sessionToken && this.sessionExpiry) {
       if (this.sessionExpiry.getTime() - Date.now() > 5 * 60 * 1000) return;
@@ -131,12 +134,13 @@ export class ZolaClient {
       }
     }
 
-    // Attempt auto-refresh
-    await this.refresh(refreshToken);
+    await this.refresh();
   }
 
   private async ensureCsrf(): Promise<void> {
-    if (this.csrfToken) return; // already have one
+    if (this.csrfToken) return;
+    // CSRF tokens are normally obtained during refresh(). This fallback handles
+    // the case where a valid ZOLA_SESSION_TOKEN was used and refresh() was skipped.
     try {
       const resp = await fetch(`${BASE_URL}/`, {
         headers: { 'user-agent': USER_AGENT },
@@ -149,49 +153,53 @@ export class ZolaClient {
     }
   }
 
-  private async refresh(refreshToken: string): Promise<void> {
-    // Step 1: Get fresh CSRF tokens
-    await this.ensureCsrf();
+  private async refresh(): Promise<void> {
+    const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
+    if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
 
-    // Step 2: Attempt session refresh
-    const cookieParts = [`usr=${refreshToken}`];
-    if (this.csrfSecret) cookieParts.push(`_csrf=${this.csrfSecret}`);
-    if (this.csrfToken) cookieParts.push(`CSRF-TOKEN=${this.csrfToken}`);
+    const guid = process.env.ZOLA_GUID;
+    if (!guid) throw new Error('ZOLA_GUID must be set');
 
+    // GET /website-nav/web-api/v1/user/get with usr+guid — Zola auto-issues a
+    // fresh us token and CSRF cookies in the Set-Cookie response headers.
+    const cookieParts = [`usr=${refreshToken}`, `guid=${guid}`];
+    if (this.sessionToken) cookieParts.push(`us=${this.sessionToken}`);
+
+    let resp: Response;
     try {
-      const refreshHeaders: Record<string, string> = {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        'user-agent': USER_AGENT,
-        referer: `${BASE_URL}/`,
-        origin: BASE_URL,
-        cookie: cookieParts.join('; '),
-      };
-      if (this.csrfToken) refreshHeaders['x-csrf-token'] = this.csrfToken;
-
-      const refreshResp = await fetch(`${BASE_URL}/web-api/v1/user/refresh`, {
-        method: 'POST',
-        headers: refreshHeaders,
+      resp = await fetch(`${BASE_URL}${REFRESH_PATH}`, {
+        headers: {
+          accept: 'application/json',
+          'user-agent': USER_AGENT,
+          cookie: cookieParts.join('; '),
+        },
       });
-
-      if (refreshResp.ok) {
-        const cookies = parseCookies(refreshResp.headers);
-        if (cookies['us']) {
-          const exp = decodeJwtExp(cookies['us']);
-          this.sessionToken = cookies['us'];
-          this.sessionExpiry = new Date(exp * 1000);
-          return;
-        }
-      }
-    } catch {
-      // fall through to error
+    } catch (err) {
+      throw new Error(`Zola session refresh network error: ${String(err)}\n${SETUP_HINT}`);
     }
 
-    throw new Error(
-      'Zola session expired and auto-refresh failed.\n' +
-        'To fix: open Zola in Chrome → DevTools → Application → Cookies → www.zola.com → ' +
-        'copy the "us" cookie value → update ZOLA_SESSION_TOKEN in .env'
-    );
+    if (!resp.ok) {
+      throw new Error(
+        `Zola session refresh failed: ${resp.status} ${resp.statusText}\n${SETUP_HINT}`
+      );
+    }
+
+    const cookies = parseCookies(resp.headers);
+
+    if (!cookies['us']) {
+      throw new Error(
+        'Zola session refresh returned no session token — ZOLA_REFRESH_TOKEN or ZOLA_GUID may be expired.\n' +
+          SETUP_HINT
+      );
+    }
+
+    const exp = decodeJwtExp(cookies['us']);
+    this.sessionToken = cookies['us'];
+    this.sessionExpiry = new Date(exp * 1000);
+
+    // Capture CSRF tokens from the same response to avoid a separate GET /
+    if (cookies['_csrf']) this.csrfSecret = cookies['_csrf'];
+    if (cookies['CSRF-TOKEN']) this.csrfToken = cookies['CSRF-TOKEN'];
   }
 
   private buildCookieHeader(): string {
@@ -199,6 +207,8 @@ export class ZolaClient {
     if (this.sessionToken) parts.push(`us=${this.sessionToken}`);
     const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
     if (refreshToken) parts.push(`usr=${refreshToken}`);
+    const guid = process.env.ZOLA_GUID;
+    if (guid) parts.push(`guid=${guid}`);
     if (this.csrfSecret) parts.push(`_csrf=${this.csrfSecret}`);
     if (this.csrfToken) parts.push(`CSRF-TOKEN=${this.csrfToken}`);
     return parts.join('; ');

@@ -32,6 +32,7 @@ describe('ZolaClient', () => {
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     process.env.ZOLA_REFRESH_TOKEN = 'mock-usr-token';
+    process.env.ZOLA_GUID = 'mock-guid-value';
     delete process.env.ZOLA_SESSION_TOKEN;
   });
 
@@ -39,6 +40,7 @@ describe('ZolaClient', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     delete process.env.ZOLA_REFRESH_TOKEN;
+    delete process.env.ZOLA_GUID;
     delete process.env.ZOLA_SESSION_TOKEN;
   });
 
@@ -47,6 +49,14 @@ describe('ZolaClient', () => {
     const client = new ZolaClient();
     await expect(client.request('GET', '/web-api/v1/test')).rejects.toThrow(
       'ZOLA_REFRESH_TOKEN must be set'
+    );
+  });
+
+  it('throws when ZOLA_GUID is missing', async () => {
+    delete process.env.ZOLA_GUID;
+    const client = new ZolaClient();
+    await expect(client.request('GET', '/web-api/v1/test')).rejects.toThrow(
+      'ZOLA_GUID must be set'
     );
   });
 
@@ -65,40 +75,37 @@ describe('ZolaClient', () => {
     expect(url).toBe('https://www.zola.com/web-api/v1/test');
     expect((init.headers as Record<string, string>)['cookie']).toContain(`us=${validUs}`);
     expect((init.headers as Record<string, string>)['cookie']).toContain('usr=mock-usr-token');
+    expect((init.headers as Record<string, string>)['cookie']).toContain('guid=mock-guid-value');
     expect((init.headers as Record<string, string>)['x-csrf-token']).toBeUndefined();
   });
 
-  it('skips ZOLA_SESSION_TOKEN if expired and attempts refresh', async () => {
+  it('skips ZOLA_SESSION_TOKEN if expired and attempts refresh via user/get', async () => {
     process.env.ZOLA_SESSION_TOKEN = makeMockJwt(PAST_EXP);
 
-    // Refresh flow: GET / for CSRF → POST /user/refresh (fails) → error
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({}, 200, [
-        '_csrf=test-secret; Path=/; HttpOnly',
-        'CSRF-TOKEN=test-csrf-token; Path=/',
-      ])
-    );
-    fetchMock.mockResolvedValueOnce(makeResponse({ error: 'failed' }, 403));
+    // Refresh via GET /website-nav/web-api/v1/user/get fails
+    fetchMock.mockResolvedValueOnce(makeResponse({ error: 'unauthorized' }, 401));
 
     const client = new ZolaClient();
     await expect(client.request('GET', '/web-api/v1/test')).rejects.toThrow(
-      'Zola session expired'
+      'Zola session refresh failed'
+    );
+
+    // Confirm the refresh call went to the right endpoint
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://www.zola.com/website-nav/web-api/v1/user/get'
     );
   });
 
-  it('uses new session token from successful refresh', async () => {
+  it('uses new session token from successful refresh via user/get', async () => {
     const newUs = makeMockJwt(FUTURE_EXP);
 
-    // GET / for CSRF
+    // GET /website-nav/web-api/v1/user/get → returns new us + CSRF cookies
     fetchMock.mockResolvedValueOnce(
-      makeResponse({}, 200, [
+      makeResponse({ object_id: 'test-user' }, 200, [
+        `us=${newUs}; Path=/; HttpOnly`,
         '_csrf=test-secret; Path=/; HttpOnly',
         'CSRF-TOKEN=test-csrf-token; Path=/',
       ])
-    );
-    // POST /user/refresh → returns new us cookie
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({}, 200, [`us=${newUs}; Path=/; HttpOnly`])
     );
     // The actual API request
     fetchMock.mockResolvedValueOnce(makeResponse({ data: 'ok' }));
@@ -107,10 +114,30 @@ describe('ZolaClient', () => {
     const result = await client.request<{ data: string }>('GET', '/web-api/v1/test');
 
     expect(result.data).toBe('ok');
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    const [, , [apiUrl, apiInit]] = fetchMock.mock.calls as [[string, RequestInit], [string, RequestInit], [string, RequestInit]];
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    // First call was the refresh
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://www.zola.com/website-nav/web-api/v1/user/get'
+    );
+    const refreshInit = fetchMock.mock.calls[0][1] as RequestInit;
+    expect((refreshInit.headers as Record<string, string>)['cookie']).toContain('usr=mock-usr-token');
+    expect((refreshInit.headers as Record<string, string>)['cookie']).toContain('guid=mock-guid-value');
+
+    // Second call was the actual API request with new session token
+    const [apiUrl, apiInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(apiUrl).toBe('https://www.zola.com/web-api/v1/test');
     expect((apiInit.headers as Record<string, string>)['cookie']).toContain(`us=${newUs}`);
+  });
+
+  it('throws when refresh response contains no us cookie', async () => {
+    // Refresh endpoint returns 200 but no us cookie
+    fetchMock.mockResolvedValueOnce(makeResponse({ is_guest: true }, 200));
+
+    const client = new ZolaClient();
+    await expect(client.request('GET', '/web-api/v1/test')).rejects.toThrow(
+      'Zola session refresh returned no session token'
+    );
   });
 
   it('re-authenticates on 401 and retries', async () => {
@@ -120,16 +147,13 @@ describe('ZolaClient', () => {
 
     // First request → 401
     fetchMock.mockResolvedValueOnce(makeResponse({}, 401));
-    // GET / for CSRF (refresh flow)
+    // Refresh via user/get → new us + CSRF
     fetchMock.mockResolvedValueOnce(
-      makeResponse({}, 200, [
+      makeResponse({ object_id: 'test-user' }, 200, [
+        `us=${newUs}; Path=/; HttpOnly`,
         '_csrf=test-secret; Path=/; HttpOnly',
         'CSRF-TOKEN=test-csrf-token; Path=/',
       ])
-    );
-    // POST /user/refresh → new us
-    fetchMock.mockResolvedValueOnce(
-      makeResponse({}, 200, [`us=${newUs}; Path=/; HttpOnly`])
     );
     // Retry request → success
     fetchMock.mockResolvedValueOnce(makeResponse({ data: 'ok' }));
@@ -137,7 +161,7 @@ describe('ZolaClient', () => {
     const client = new ZolaClient();
     const result = await client.request<{ data: string }>('GET', '/web-api/v1/test');
     expect(result.data).toBe('ok');
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('throws with helpful message when refresh fails after 401', async () => {
@@ -145,14 +169,12 @@ describe('ZolaClient', () => {
 
     // First request → 401
     fetchMock.mockResolvedValueOnce(makeResponse({}, 401));
-    // GET / for CSRF
-    fetchMock.mockResolvedValueOnce(makeResponse({}, 200, ['_csrf=s; Path=/; HttpOnly', 'CSRF-TOKEN=t; Path=/']));
-    // POST /user/refresh → fails
+    // Refresh via user/get → fails
     fetchMock.mockResolvedValueOnce(makeResponse({ error: 'bad' }, 403));
 
     const client = new ZolaClient();
     await expect(client.request('GET', '/web-api/v1/test')).rejects.toThrow(
-      'Zola session expired'
+      'Zola session refresh failed'
     );
   });
 
@@ -160,24 +182,51 @@ describe('ZolaClient', () => {
     const validUs = makeMockJwt(FUTURE_EXP);
     process.env.ZOLA_SESSION_TOKEN = validUs;
 
-    // First call is GET / for CSRF
+    // CSRF fallback: GET / (session is valid, no refresh needed)
     fetchMock.mockResolvedValueOnce(
       makeResponse({}, 200, [
         '_csrf=test-secret; Path=/; HttpOnly',
         'CSRF-TOKEN=test-csrf-token; Path=/',
       ])
     );
-    // Second call is the actual POST
+    // The actual POST
     fetchMock.mockResolvedValueOnce(makeResponse({ id: '123' }));
 
     const client = new ZolaClient();
     await client.request('POST', '/web-api/v1/test', { foo: 'bar' });
 
-    // First call was CSRF fetch (GET /)
+    // First call was CSRF fallback (GET /)
     expect(fetchMock.mock.calls[0][0]).toBe('https://www.zola.com/');
     // Second call was the POST with x-csrf-token
     const [, postInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect((postInit.headers as Record<string, string>)['x-csrf-token']).toBe('test-csrf-token');
+  });
+
+  it('x-csrf-token comes from refresh response when refresh was needed', async () => {
+    const newUs = makeMockJwt(FUTURE_EXP);
+
+    // Refresh via user/get → new us + CSRF
+    fetchMock.mockResolvedValueOnce(
+      makeResponse({ object_id: 'test-user' }, 200, [
+        `us=${newUs}; Path=/; HttpOnly`,
+        '_csrf=refresh-secret; Path=/; HttpOnly',
+        'CSRF-TOKEN=refresh-csrf-token; Path=/',
+      ])
+    );
+    // The actual POST (no extra CSRF fetch needed)
+    fetchMock.mockResolvedValueOnce(makeResponse({ id: '456' }));
+
+    const client = new ZolaClient();
+    await client.request('POST', '/web-api/v1/test', { foo: 'bar' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    // First call was refresh
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://www.zola.com/website-nav/web-api/v1/user/get'
+    );
+    // Second call was POST with CSRF from refresh
+    const [, postInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect((postInit.headers as Record<string, string>)['x-csrf-token']).toBe('refresh-csrf-token');
   });
 
   it('throws on 429 after one retry', async () => {

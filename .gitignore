@@ -1,6 +1,10 @@
 node_modules/
 dist/
-.env
 coverage/
+.env
+*.skill
+*.mcpb
+*.dxt
 .DS_Store
-*.log
+.claude/
+curls.log
