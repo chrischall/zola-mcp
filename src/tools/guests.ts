@@ -2,77 +2,66 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
 
-interface Guest {
-  id: number;
-  guest_group_id: number;
-  relationship_type: string;
-  prefix: string | null;
-  first_name: string;
-  middle_name: string | null;
-  family_name: string;
-  suffix: string | null;
-  printed_name: string | null;
-  source: string;
-  rsvp: string | null;
-  email_address: string | null;
-  phone_number: string | null;
-  event_invitations: unknown[];
+interface MobileEnvelope<T> {
+  data: T;
+}
+
+interface GuestEntry {
+  guest: {
+    guest_id: number;
+    uuid: string;
+    first_name: string;
+    middle_name: string | null;
+    family_name: string;
+    relationship_type: string;
+    email_address: string | null;
+    mobile_phone: string | null;
+    address1: string | null;
+    address2: string | null;
+    city: string | null;
+    state_province: string | null;
+    postal_code: string | null;
+    country_code: string | null;
+    affiliation: string;
+    tier: string;
+    rsvp: string;
+  };
+  seating_chart_seat: unknown;
 }
 
 interface GuestGroup {
-  id: number;
-  uuid: string;
+  guest_group_id: number;
+  guest_group_uuid: string;
   wedding_account_id: number;
-  email_address: string | null;
-  home_phone: string | null;
-  mobile_phone: string | null;
-  address_1: string | null;
-  address_2: string | null;
-  city: string | null;
-  state_province: string | null;
-  postal_code: string | null;
-  country_code: string | null;
-  affiliation: string | null;
-  tier: string | null;
+  envelope_recipient: string | null;
+  addressing_style: string;
+  guest_group_affiliation: string;
+  guest_group_tier: string;
   invited: boolean;
   invitation_sent: boolean;
   save_the_date_sent: boolean;
-  envelope_recipient: string | null;
-  envelope_recipient_override: string | null;
-  addressing_style: string | null;
-  guests: Guest[];
-  rsvp_question_answers: unknown[];
+  guests: GuestEntry[];
 }
 
-interface GlobalStat {
-  key: string;
-  label: string;
-  value: number;
-}
-
-interface ListResponse {
+interface DirectoryResponse {
+  num_invited_guests: number;
+  num_guests: number;
+  num_addresses_missing: number;
   guest_groups: GuestGroup[];
-  facets: unknown[];
-  selected_facet_bucket_keys: unknown[];
-  global_stats: GlobalStat[];
 }
 
 type ToolResult = { content: [{ type: 'text'; text: string }] };
 
 export async function listGuests(): Promise<ToolResult> {
-  const response = await client.request<ListResponse>(
+  const { weddingAccountId } = await client.getContext();
+  const response = await client.requestMobile<MobileEnvelope<DirectoryResponse>>(
     'POST',
-    '/web-api/v1/guestgroup/list/all',
-    {}
+    `/v3/guestlists/directory/wedding-accounts/${weddingAccountId}`,
+    { sort_by_name_asc: true }
   );
-  const stats = Object.fromEntries(response.global_stats.map((s) => [s.key, s.value]));
+  const { guest_groups, ...stats } = response.data;
   return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify({ stats, guest_groups: response.guest_groups }, null, 2),
-      },
-    ],
+    content: [{ type: 'text', text: JSON.stringify({ stats, guest_groups }, null, 2) }],
   };
 }
 
@@ -85,79 +74,153 @@ export async function addGuest(args: {
   phone?: string;
   affiliation?: string;
 }): Promise<ToolResult> {
-  const guests: { first_name: string; family_name: string; relationship_type: string }[] = [
-    { first_name: args.first_name, family_name: args.last_name, relationship_type: 'PRIMARY' },
+  const { weddingAccountId } = await client.getContext();
+  const guests: Record<string, unknown>[] = [
+    {
+      first_name: args.first_name,
+      family_name: args.last_name,
+      relationship_type: 'PRIMARY',
+      source: 'IOS',
+      email_address: args.email ?? '',
+      mobile_phone: args.phone ?? '',
+      affiliation: args.affiliation ?? 'PRIMARY_FRIEND',
+      tier: 'A',
+      country_code: 'US',
+      prefix: '',
+      middle_name: '',
+      suffix: '',
+      home_phone: '',
+      address1: '',
+      address2: '',
+      city: '',
+      state_province: '',
+      postal_code: '',
+      event_invitations: [],
+      tags: [],
+    },
   ];
   if (args.plus_one_first_name && args.plus_one_last_name) {
     guests.push({
       first_name: args.plus_one_first_name,
       family_name: args.plus_one_last_name,
-      relationship_type: 'CHILD', // Zola API term for any non-primary household member
+      relationship_type: 'PARTNER',
+      source: 'IOS',
+      email_address: '',
+      mobile_phone: '',
+      affiliation: args.affiliation ?? 'PRIMARY_FRIEND',
+      tier: 'A',
+      country_code: 'US',
+      prefix: '',
+      middle_name: '',
+      suffix: '',
+      home_phone: '',
+      address1: '',
+      address2: '',
+      city: '',
+      state_province: '',
+      postal_code: '',
+      event_invitations: [],
+      tags: [],
     });
   }
   const body = {
+    wedding_account_id: weddingAccountId,
     guests,
-    email_address: args.email ?? null,
-    mobile_phone: args.phone ?? null,
-    affiliation: args.affiliation ?? 'PRIMARY_FRIEND',
+    guest_group_affiliation: args.affiliation ?? 'PRIMARY_FRIEND',
+    guest_group_tier: 'A',
+    guest_group_uuid: '',
+    envelope_recipient: '',
     invited: true,
+    invitation_sent: false,
+    save_the_date_sent: false,
+    rsvp_question_answers: [],
+    gift_count: 0,
   };
-  const created = await client.request<GuestGroup>('POST', '/web-api/v1/guestgroup', body);
-  return { content: [{ type: 'text', text: JSON.stringify(created, null, 2) }] };
+  const result = await client.requestMobile<MobileEnvelope<unknown>>(
+    'POST',
+    '/v3/guestlists/groups',
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
 }
 
 export async function updateGuestAddress(args: {
-  id: number;
-  address_1?: string;
-  address_2?: string;
+  guest_group_id: number;
+  address1?: string;
+  address2?: string;
   city?: string;
   state_province?: string;
   postal_code?: string;
   country_code?: string;
 }): Promise<ToolResult> {
-  const response = await client.request<ListResponse>(
+  const { weddingAccountId } = await client.getContext();
+  const dirResponse = await client.requestMobile<MobileEnvelope<DirectoryResponse>>(
     'POST',
-    '/web-api/v1/guestgroup/list/all',
-    {}
+    `/v3/guestlists/directory/wedding-accounts/${weddingAccountId}`,
+    { sort_by_name_asc: true }
   );
-  const current = response.guest_groups.find((g) => g.id === args.id);
-  if (!current) {
-    throw new Error(`Guest group with ID ${args.id} not found`);
+  const group = dirResponse.data.guest_groups.find(
+    (g) => g.guest_group_id === args.guest_group_id
+  );
+  if (!group) {
+    throw new Error(`Guest group with ID ${args.guest_group_id} not found`);
   }
-  const addressBody = {
-    address_1: args.address_1 ?? current.address_1,
-    address_2: args.address_2 !== undefined ? args.address_2 : current.address_2,
-    city: args.city ?? current.city,
-    state_province: args.state_province ?? current.state_province,
-    postal_code: args.postal_code ?? current.postal_code,
-    country_code: args.country_code ?? current.country_code ?? 'US',
+
+  const updatedGuests = group.guests.map((entry) => ({
+    ...entry.guest,
+    guest_id: entry.guest.guest_id,
+    address1: args.address1 ?? entry.guest.address1 ?? '',
+    address2: args.address2 !== undefined ? args.address2 : entry.guest.address2 ?? '',
+    city: args.city ?? entry.guest.city ?? '',
+    state_province: args.state_province ?? entry.guest.state_province ?? '',
+    postal_code: args.postal_code ?? entry.guest.postal_code ?? '',
+    country_code: args.country_code ?? entry.guest.country_code ?? 'US',
+    event_invitations: [],
+    tags: [],
+  }));
+
+  const body = {
+    guest_group_request: {
+      wedding_account_id: weddingAccountId,
+      guest_group_id: args.guest_group_id,
+      guest_group_uuid: group.guest_group_uuid,
+      guest_group_affiliation: group.guest_group_affiliation,
+      guest_group_tier: group.guest_group_tier,
+      invited: group.invited,
+      invitation_sent: group.invitation_sent,
+      save_the_date_sent: group.save_the_date_sent,
+      envelope_recipient: group.envelope_recipient ?? '',
+      addressing_style: group.addressing_style,
+      guests: updatedGuests,
+      gift_count: 0,
+    },
   };
-  const updated = await client.request<GuestGroup>(
+
+  const result = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
-    `/web-api/v2/guestgroup/${args.id}/address`,
-    addressBody
+    `/v3/guestlists/groups/wedding-accounts/id/${weddingAccountId}/suite`,
+    body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(updated, null, 2) }] };
+  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
 }
 
-export async function removeGuest(args: { id: number }): Promise<ToolResult> {
-  const response = await client.request<ListResponse>(
-    'POST',
-    '/web-api/v1/guestgroup/list/all',
-    {}
+export async function removeGuest(args: { guest_group_id: number }): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  await client.requestMobile(
+    'PUT',
+    `/v3/guestlists/groups/wedding-accounts/${weddingAccountId}/delete`,
+    {
+      wedding_account_id: weddingAccountId,
+      guest_group_ids: [args.guest_group_id],
+    }
   );
-  const current = response.guest_groups.find((g) => g.id === args.id);
-  if (!current) {
-    throw new Error(`Guest group with ID ${args.id} not found`);
-  }
-  await client.request('POST', '/web-api/v1/guestgroup/delete', { ids: [args.id] });
   return {
-    content: [{ type: 'text', text: `Deleted guest group ${args.id} (${current.envelope_recipient ?? 'unknown'})` }],
+    content: [{ type: 'text', text: `Deleted guest group ${args.guest_group_id}` }],
   };
 }
 
 export function registerGuestTools(server: McpServer): void {
-  server.tool('list_guests', 'List all guest groups with stats (total, adults, children, missing addresses)', {}, listGuests);
+  server.tool('list_guests', 'List all guest groups with stats (total, invited, missing addresses)', {}, listGuests);
 
   server.tool(
     'add_guest',
@@ -176,11 +239,11 @@ export function registerGuestTools(server: McpServer): void {
 
   server.tool(
     'update_guest_address',
-    "Update a guest group's mailing address by numeric ID",
+    "Update a guest group's mailing address",
     {
-      id: z.number().describe('Guest group numeric ID (from list_guests)'),
-      address_1: z.string().optional(),
-      address_2: z.string().optional(),
+      guest_group_id: z.number().describe('Guest group ID from list_guests'),
+      address1: z.string().optional(),
+      address2: z.string().optional(),
       city: z.string().optional(),
       state_province: z.string().optional(),
       postal_code: z.string().optional(),
@@ -191,8 +254,8 @@ export function registerGuestTools(server: McpServer): void {
 
   server.tool(
     'remove_guest',
-    'Remove a guest group from the guest list by numeric ID',
-    { id: z.number().describe('Guest group numeric ID (from list_guests)') },
+    'Remove a guest group from the guest list',
+    { guest_group_id: z.number().describe('Guest group ID from list_guests') },
     removeGuest
   );
 }

@@ -9,8 +9,6 @@ try {
   // bundled mode — rely on process.env
 }
 
-const BASE_URL = 'https://www.zola.com';
-const MARKETPLACE_BASE_URL = 'https://www.zola.com/web-marketplace-api';
 const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
 
 function decodeJwtExp(token: string): number {
@@ -52,30 +50,12 @@ export class ZolaClient {
   private readonly deviceSessionId = crypto.randomUUID().toUpperCase();
 
   /**
-   * Make a request to the Zola web API (www.zola.com).
-   * Uses Bearer auth via the mobile session token — the web API accepts it
-   * on most endpoints. Falls back to cookie auth for compatibility.
-   */
-  async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    await this.ensureSession();
-    return this.doRequest<T>(method, path, body, false, false, BASE_URL);
-  }
-
-  /**
-   * Make a request to the Zola marketplace API.
-   */
-  async requestMarketplace<T>(method: string, path: string, body?: unknown): Promise<T> {
-    await this.ensureSession();
-    return this.doRequest<T>(method, path, body, false, false, MARKETPLACE_BASE_URL);
-  }
-
-  /**
    * Make a request to the Zola mobile API (mobile-api.zola.com).
-   * Uses Bearer JWT auth, no cookies or CSRF needed.
+   * Uses Bearer JWT auth with x-zola-session-id header.
    */
   async requestMobile<T>(method: string, path: string, body?: unknown): Promise<T> {
     await this.ensureSession();
-    return this.doRequest<T>(method, path, body, false, false, MOBILE_BASE_URL);
+    return this.doRequest<T>(method, path, body);
   }
 
   /**
@@ -126,10 +106,8 @@ export class ZolaClient {
     path: string,
     body: unknown,
     isAuthRetry = false,
-    isRateRetry = false,
-    baseUrl = BASE_URL
+    isRateRetry = false
   ): Promise<T> {
-    const isMobile = baseUrl === MOBILE_BASE_URL;
     const sessionId = decodeJwtSessionId(this.sessionToken!);
     const headers: Record<string, string> = {
       accept: 'application/json',
@@ -138,15 +116,9 @@ export class ZolaClient {
       'x-zola-session-id': this.deviceSessionId,
       ...(sessionId ? { 'x-zola-user-session-id': sessionId } : {}),
     };
-    // Web/marketplace endpoints also need cookie auth for compatibility
-    if (!isMobile) {
-      headers['cookie'] = `us=${this.sessionToken}`;
-      headers['user-agent'] =
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
-    }
     if (body !== undefined) headers['content-type'] = 'application/json';
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetch(`${MOBILE_BASE_URL}${path}`, {
       method,
       headers,
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -156,13 +128,13 @@ export class ZolaClient {
       this.sessionToken = null;
       this.sessionExpiry = null;
       await this.refresh();
-      return this.doRequest<T>(method, path, body, true, isRateRetry, baseUrl);
+      return this.doRequest<T>(method, path, body, true, isRateRetry);
     }
 
     if (response.status === 429) {
       if (!isRateRetry) {
         await new Promise<void>((r) => setTimeout(r, 2000));
-        return this.doRequest<T>(method, path, body, isAuthRetry, true, baseUrl);
+        return this.doRequest<T>(method, path, body, isAuthRetry, true);
       }
       throw new Error('Rate limited by Zola API');
     }
