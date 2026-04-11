@@ -6,6 +6,7 @@ import { registerGuestTools } from './tools/guests.js';
 import { registerSeatingTools } from './tools/seating.js';
 import { registerInquiryTools } from './tools/inquiries.js';
 import { registerEventTools } from './tools/events.js';
+import { registerDiscoverTools } from './tools/discover.js';
 
 const server = new McpServer({
   name: 'zola-mcp',
@@ -18,6 +19,7 @@ registerGuestTools(server);
 registerSeatingTools(server);
 registerInquiryTools(server);
 registerEventTools(server);
+registerDiscoverTools(server);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
