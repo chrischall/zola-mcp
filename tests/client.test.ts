@@ -213,6 +213,7 @@ describe('ZolaClient', () => {
     const headers = init.headers as Record<string, string>;
     expect(headers['authorization']).toBe(`Bearer ${validUs}`);
     expect(headers['x-zola-platform-type']).toBe('iphone_app');
+    expect(headers['x-zola-session-id']).toBeDefined();
     expect(headers['cookie']).toBeUndefined();
   });
 
