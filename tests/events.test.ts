@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
-import { listEvents, trackRsvps, getGiftTracker, getRegistry } from '../src/tools/events.js';
+import { listEvents, trackRsvps, getGiftTracker, getRegistry, updateEvent } from '../src/tools/events.js';
 
 const MOCK_EVENT = {
   event_entity_id: 5108495,
@@ -153,5 +153,30 @@ describe('events & wedding tools', () => {
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v4/shop/registry?registry_id=registry-id-1&updated_modules=true');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed).toBeDefined();
+  });
+
+  it('updateEvent: loads current event, merges fields, PUTs update', async () => {
+    // First call: list events to get current data
+    reqSpy.mockResolvedValueOnce(MOCK_EVENTS_RESPONSE as never);
+    // Second call: PUT update
+    const updatedEvent = { ...MOCK_EVENT, name: 'Updated Reception' };
+    reqSpy.mockResolvedValueOnce({ data: updatedEvent } as never);
+
+    const result = await updateEvent({ event_id: 5108495, name: 'Updated Reception' });
+
+    expect(reqSpy).toHaveBeenCalledTimes(2);
+    expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/websites/events/wedding-accounts/4664323/groups');
+    expect(reqSpy).toHaveBeenNthCalledWith(
+      2,
+      'PUT',
+      '/v3/websites/events/5108495',
+      expect.objectContaining({
+        event_entity_id: 5108495,
+        name: 'Updated Reception',
+        start_at: '2026-10-17T18:30:00Z',
+      })
+    );
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.name).toBe('Updated Reception');
   });
 });
