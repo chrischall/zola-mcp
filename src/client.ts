@@ -39,6 +39,8 @@ function decodeJwtSessionId(token: string): string | null {
 export class ZolaClient {
   private sessionToken: string | null = null;
   private sessionExpiry: Date | null = null;
+  // WAF requires x-zola-session-id on all mobile-api.zola.com requests
+  private readonly deviceSessionId = crypto.randomUUID().toUpperCase();
 
   /**
    * Make a request to the Zola web API (www.zola.com).
@@ -81,6 +83,7 @@ export class ZolaClient {
       accept: 'application/json',
       authorization: `Bearer ${this.sessionToken}`,
       'x-zola-platform-type': 'iphone_app',
+      'x-zola-session-id': this.deviceSessionId,
       ...(sessionId ? { 'x-zola-user-session-id': sessionId } : {}),
     };
     // Web/marketplace endpoints also need cookie auth for compatibility
@@ -162,6 +165,7 @@ export class ZolaClient {
         'content-type': 'application/json',
         accept: 'application/json',
         'x-zola-platform-type': 'iphone_app',
+        'x-zola-session-id': this.deviceSessionId,
       },
       body: JSON.stringify({ token: refreshToken }),
     });
