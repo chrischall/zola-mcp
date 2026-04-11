@@ -85,11 +85,10 @@ export async function getSeatingChart(args: { uuid: string }): Promise<ToolResul
 }
 
 export async function listUnseatedGuests(): Promise<ToolResult> {
-  const accountId = process.env.ZOLA_ACCOUNT_ID;
-  if (!accountId) throw new Error('ZOLA_ACCOUNT_ID must be set');
+  const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<DirectoryResponse>(
     'POST',
-    `/v3/guestlists/directory/wedding-accounts/${accountId}`,
+    `/v3/guestlists/directory/wedding-accounts/${weddingAccountId}`,
     { sort_by_name_asc: true }
   );
   const unseated = response.data.guest_groups

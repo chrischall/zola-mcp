@@ -36,9 +36,18 @@ function decodeJwtSessionId(token: string): string | null {
   }
 }
 
+export interface UserContext {
+  weddingAccountId: number;
+  registryId: string;
+  userId: string;
+  weddingDate: string | null;
+  weddingSlug: string | null;
+}
+
 export class ZolaClient {
   private sessionToken: string | null = null;
   private sessionExpiry: Date | null = null;
+  private cachedContext: UserContext | null = null;
   // WAF requires x-zola-session-id on all mobile-api.zola.com requests
   private readonly deviceSessionId = crypto.randomUUID().toUpperCase();
 
@@ -67,6 +76,49 @@ export class ZolaClient {
   async requestMobile<T>(method: string, path: string, body?: unknown): Promise<T> {
     await this.ensureSession();
     return this.doRequest<T>(method, path, body, false, false, MOBILE_BASE_URL);
+  }
+
+  /**
+   * Get user context (wedding account ID, registry ID, etc.).
+   * Uses env vars as overrides; falls back to GET /v3/users/me/context.
+   * Cached for the lifetime of the client instance.
+   */
+  async getContext(): Promise<UserContext> {
+    if (this.cachedContext) return this.cachedContext;
+
+    const envAccountId = process.env.ZOLA_ACCOUNT_ID;
+    const envRegistryId = process.env.ZOLA_REGISTRY_ID;
+
+    // If both env vars are set, skip the API call
+    if (envAccountId && envRegistryId) {
+      this.cachedContext = {
+        weddingAccountId: Number(envAccountId),
+        registryId: envRegistryId,
+        userId: '',
+        weddingDate: null,
+        weddingSlug: null,
+      };
+      return this.cachedContext;
+    }
+
+    // Fetch from API
+    const response = await this.requestMobile<{
+      data: {
+        user: { id: string };
+        wedding_account: { wedding_account_id: number };
+        wedding: { wedding_date: string | null; slug: string | null };
+        registry: { id: string };
+      };
+    }>('GET', '/v3/users/me/context');
+
+    this.cachedContext = {
+      weddingAccountId: Number(envAccountId) || response.data.wedding_account.wedding_account_id,
+      registryId: envRegistryId || response.data.registry.id,
+      userId: response.data.user.id,
+      weddingDate: response.data.wedding.wedding_date,
+      weddingSlug: response.data.wedding.slug,
+    };
+    return this.cachedContext;
   }
 
   private async doRequest<T>(
