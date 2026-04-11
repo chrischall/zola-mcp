@@ -1,65 +1,66 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
-import { getBudget, listBudgetItemTypes, updateBudgetItem } from '../src/tools/budget.js';
+import { getBudget, updateBudgetItem } from '../src/tools/budget.js';
 
-const MOCK_BUDGET = {
-  uuid: 'budget-uuid-1',
-  account_id: 4664323,
-  budgeted_cents: 3000000,
+const MOCK_BUDGET_ITEM = {
+  uuid: '8b90d700-c891-46f9-87c5-f0f8b786b457',
+  taxonomy_node_uuid: 'node-uuid-1',
+  title: 'Venue',
+  cost_cents: 2456900,
+  estimate: false,
+  estimated_cost_cents: 441411,
   actual_cost_cents: 2456900,
+  item_type: { key: 'VENUE', display_name: 'Venue' },
   paid_cents: 75000,
-  balance_due_cents: 2381900,
-  taxonomy_nodes: [
+  note: 'Original note',
+  account_vendor_uuid: 'vendor-uuid-1',
+  payments: [
     {
-      title: 'Essential vendors',
-      items: [
-        {
-          uuid: '8b90d700-c891-46f9-87c5-f0f8b786b457',
-          taxonomy_node_uuid: 'node-uuid-1',
-          title: 'Venue',
-          cost_cents: 2456900,
-          estimate: false,
-          estimated_cost_cents: 441411,
-          actual_cost_cents: 2456900,
-          item_type: 'VENUE',
-          vendor_type: 'VENUE',
-          paid_cents: 75000,
-          note: 'Original note',
-          payments: [
-            {
-              uuid: 'payment-uuid-1',
-              budget_item_uuid: '8b90d700-c891-46f9-87c5-f0f8b786b457',
-              payment_type: 'DEPOSIT',
-              amount_cents: 75000,
-              note: null,
-              paid_at: 1743019200000,
-              due_at: 1737676800000,
-              remind_at: null,
-            },
-          ],
-        },
-      ],
+      uuid: 'payment-uuid-1',
+      budget_item_uuid: '8b90d700-c891-46f9-87c5-f0f8b786b457',
+      payment_type: 'DEPOSIT',
+      amount_cents: 75000,
+      note: null,
+      paid_at: 1743019200000,
+      due_at: 1737676800000,
+      remind_at: null,
     },
   ],
 };
 
+const MOCK_BUDGET_RESPONSE = {
+  data: {
+    uuid: 'budget-uuid-1',
+    budgeted_cents: 3000000,
+    cost_cents: 5015490,
+    paid_cents: 75000,
+    balance_due_cents: 2381900,
+    taxonomy_nodes: [
+      {
+        title: 'Essential vendors',
+        items: [MOCK_BUDGET_ITEM],
+      },
+    ],
+  },
+};
+
 describe('budget tools', () => {
-  let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'request'>>;
+  let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'request');
+    reqSpy = vi.spyOn(client, 'requestMobile');
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('getBudget: calls by-account and returns flat summary with items', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_BUDGET as never);
+  it('getBudget: calls mobile API and returns flat summary with items', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_BUDGET_RESPONSE as never);
 
     const result = await getBudget();
 
-    expect(reqSpy).toHaveBeenCalledWith('GET', '/web-api/v1/budgets/by-account');
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/budgets');
     expect(result.content[0].type).toBe('text');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.budgeted_cents).toBe(3000000);
@@ -68,28 +69,15 @@ describe('budget tools', () => {
     expect(parsed.items[0].title).toBe('Venue');
     expect(parsed.items[0].item_type).toBe('VENUE');
     expect(parsed.items[0].payment_count).toBe(1);
+    expect(parsed.items[0].taxonomy_node_uuid).toBe('node-uuid-1');
+    expect(parsed.items[0].account_vendor_uuid).toBe('vendor-uuid-1');
   });
 
-  it('listBudgetItemTypes: calls items/types and returns simplified array', async () => {
-    const mockTypes = [
-      { budget_item_type: 'VENUE', display_name: 'Venue', vendor_type: 'VENUE', searchable_vendor_type: 'VENUE', display_order: 1 },
-      { budget_item_type: 'PHOTOGRAPHER', display_name: 'Photographer', vendor_type: 'PHOTOGRAPHER', searchable_vendor_type: 'PHOTOGRAPHER', display_order: 2 },
-    ];
-    reqSpy.mockResolvedValueOnce(mockTypes as never);
-
-    const result = await listBudgetItemTypes();
-
-    expect(reqSpy).toHaveBeenCalledWith('GET', '/web-api/v1/budgets/items/types');
-    const parsed = JSON.parse(result.content[0].text);
-    expect(parsed).toHaveLength(2);
-    expect(parsed[0].budget_item_type).toBe('VENUE');
-    expect(parsed[0].display_order).toBe(1);
-  });
-
-  it('updateBudgetItem: GETs budget, merges fields, PUTs correct body', async () => {
+  it('updateBudgetItem: GETs budget via mobile, PUTs with correct body format', async () => {
+    const updatedItem = { ...MOCK_BUDGET_ITEM, actual_cost_cents: 2600000, note: 'Updated note' };
     reqSpy
-      .mockResolvedValueOnce(MOCK_BUDGET as never)
-      .mockResolvedValueOnce(undefined as never);
+      .mockResolvedValueOnce(MOCK_BUDGET_RESPONSE as never)
+      .mockResolvedValueOnce({ data: updatedItem } as never);
 
     const result = await updateBudgetItem({
       uuid: '8b90d700-c891-46f9-87c5-f0f8b786b457',
@@ -98,19 +86,23 @@ describe('budget tools', () => {
     });
 
     expect(reqSpy).toHaveBeenCalledTimes(2);
-    expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/web-api/v1/budgets/by-account');
-    expect(reqSpy).toHaveBeenNthCalledWith(2, 'PUT', '/web-api/v1/budgets/items/update', {
-      uuid: '8b90d700-c891-46f9-87c5-f0f8b786b457',
+    expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/budgets');
+    expect(reqSpy).toHaveBeenNthCalledWith(2, 'PUT', '/v3/budgets/items', {
+      item_uuid: '8b90d700-c891-46f9-87c5-f0f8b786b457',
+      taxonomy_node_uuid: 'node-uuid-1',
+      estimated_cost_cents: 441411,
       actual_cost_cents: 2600000,
       note: 'Updated note',
-      payments: [],
+      item_type: 'VENUE',
+      title: 'Venue',
+      account_vendor_uuid: 'vendor-uuid-1',
     });
     expect(result.content[0].text).toContain('Venue');
-    expect(result.content[0].text).toContain('actual_cost_cents=2600000');
+    expect(result.content[0].text).toContain('2600000');
   });
 
   it('updateBudgetItem: throws descriptive error when uuid not found', async () => {
-    const emptyBudget = { ...MOCK_BUDGET, taxonomy_nodes: [] };
+    const emptyBudget = { data: { ...MOCK_BUDGET_RESPONSE.data, taxonomy_nodes: [] } };
     reqSpy.mockResolvedValueOnce(emptyBudget as never);
 
     await expect(
