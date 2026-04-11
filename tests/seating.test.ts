@@ -92,12 +92,17 @@ describe('seating tools', () => {
 
   beforeEach(() => {
     reqSpy = vi.spyOn(client, 'requestMobile');
-    process.env.ZOLA_ACCOUNT_ID = '1000001';
+    vi.spyOn(client, 'getContext').mockResolvedValue({
+      weddingAccountId: 1000001,
+      registryId: 'registry-id-1',
+      userId: 'user-id-1',
+      weddingDate: '2026-10-17',
+      weddingSlug: 'alexjordan2026',
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    delete process.env.ZOLA_ACCOUNT_ID;
   });
 
   it('listSeatingCharts: GETs summaries and returns array', async () => {

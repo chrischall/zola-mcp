@@ -65,17 +65,11 @@ interface MobileEnvelope<T> {
 
 type ToolResult = { content: [{ type: 'text'; text: string }] };
 
-function requireEnv(name: string): string {
-  const val = process.env[name];
-  if (!val) throw new Error(`${name} must be set`);
-  return val;
-}
-
 export async function listEvents(): Promise<ToolResult> {
-  const accountId = requireEnv('ZOLA_ACCOUNT_ID');
+  const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<EventGroup[]>>(
     'GET',
-    `/v3/websites/events/wedding-accounts/${accountId}/groups`
+    `/v3/websites/events/wedding-accounts/${weddingAccountId}/groups`
   );
   const events = response.data.flatMap((group) => group.events);
   return { content: [{ type: 'text', text: JSON.stringify(events, null, 2) }] };
@@ -90,7 +84,7 @@ export async function trackRsvps(): Promise<ToolResult> {
 }
 
 export async function getGiftTracker(): Promise<ToolResult> {
-  const registryId = requireEnv('ZOLA_REGISTRY_ID');
+  const { registryId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<GiftTracker>>(
     'GET',
     `/v3/gift_tracker/${registryId}`
@@ -100,7 +94,7 @@ export async function getGiftTracker(): Promise<ToolResult> {
 }
 
 export async function getRegistry(): Promise<ToolResult> {
-  const registryId = requireEnv('ZOLA_REGISTRY_ID');
+  const { registryId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     `/v4/shop/registry?registry_id=${registryId}&updated_modules=true`

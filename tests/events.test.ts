@@ -94,14 +94,17 @@ describe('events & wedding tools', () => {
 
   beforeEach(() => {
     reqSpy = vi.spyOn(client, 'requestMobile');
-    process.env.ZOLA_ACCOUNT_ID = '1000001';
-    process.env.ZOLA_REGISTRY_ID = 'registry-id-1';
+    vi.spyOn(client, 'getContext').mockResolvedValue({
+      weddingAccountId: 1000001,
+      registryId: 'registry-id-1',
+      userId: 'user-id-1',
+      weddingDate: '2026-10-17',
+      weddingSlug: 'alexjordan2026',
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    delete process.env.ZOLA_ACCOUNT_ID;
-    delete process.env.ZOLA_REGISTRY_ID;
   });
 
   it('listEvents: GETs event groups and flattens to event list', async () => {
