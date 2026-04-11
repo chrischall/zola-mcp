@@ -2,217 +2,239 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
 
-interface AccountVendor {
-  uuid: string;
-  vendorType: string;
-  vendorName: string | null;
-  booked: boolean;
-  bookedAt: number | null;
-  priceCents: number | null;
-  eventDate: number | null;
-  priority: number;
-  referenceVendorId: number | null;
-  referenceVendorUuid: string | null;
-  vendorCard: {
-    city: string | null;
-    stateProvince: string | null;
-    email: string | null;
-  } | null;
+interface MobileEnvelope<T> {
+  data: T;
 }
 
-interface VendorSearchResult {
-  id: string;
-  uuid: string;
-  name: string;
+interface VendorCard {
+  id: number | null;
+  storefront_id: number | null;
+  storefront_uuid: string | null;
+  vendor_name: string;
+  taxonomy_node: { key: string; label: string; singular_name: string } | null;
+  city: string | null;
+  state_province: string | null;
   email: string | null;
-  address: { city: string | null; stateProvince: string | null } | null;
-  storefrontUuid: string | null;
-  taxonomyNodeId: string | null;
-  websiteUrl: string | null;
+  starting_price_cents: number | null;
+}
+
+interface BookedVendor {
+  id: number;
+  uuid: string;
+  account_id: number;
+  vendor_type: string;
+  vendor_name: string;
+  vendor_card: VendorCard | null;
+  booked: boolean;
+  price_cents: number | null;
+  event_date: number | null;
+}
+
+interface BookedListResponse {
+  booked_vendors: BookedVendor[];
+}
+
+interface TypeaheadResult {
+  id: number;
+  name: string;
   phone: string | null;
+  email: string | null;
+  address: { city: string | null; state_province_region: string | null } | null;
 }
 
 type ToolResult = { content: [{ type: 'text'; text: string }] };
 
-function vendorPutBody(
-  vendorType: string,
-  booked: boolean,
-  name: string | null,
-  email: string | null,
-  city: string | null,
-  stateProvince: string | null,
-  priceCents: number | null,
-  eventDate: number | null
-) {
-  return {
-    vendorType,
-    booked,
-    bookingSource: 'BOOKED_VENDORS',
-    eventDate,
-    referenceVendorRequest: {
-      id: null,
-      name,
-      email,
-      address: { city, stateProvince },
-    },
-    priceCents,
-    facetKeys: [] as string[],
-  };
-}
-
 export async function listVendors(): Promise<ToolResult> {
-  const vendors = await client.requestMarketplace<AccountVendor[]>(
+  const response = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
-    '/v1/account/get-or-create-vendors'
+    '/v3/account-vendors/booked-list',
+    {}
   );
-  return { content: [{ type: 'text', text: JSON.stringify(vendors, null, 2) }] };
+  return { content: [{ type: 'text', text: JSON.stringify(response.data.booked_vendors, null, 2) }] };
 }
 
-export async function searchVendors(args: { prefix: string }): Promise<ToolResult> {
-  const results = await client.requestMarketplace<VendorSearchResult[]>(
+export async function searchVendors(args: {
+  query: string;
+  taxonomy_key?: string;
+}): Promise<ToolResult> {
+  const results = await client.requestMobile<MobileEnvelope<TypeaheadResult[]>>(
     'POST',
-    '/v1/vendor-search/name-prefix-query',
-    { prefix: args.prefix }
+    '/v3/reference-vendors/typeahead-taxonomy',
+    {
+      query: args.query,
+      taxonomy_key: args.taxonomy_key ?? 'wedding-venues',
+    }
   );
-  return { content: [{ type: 'text', text: JSON.stringify(results, null, 2) }] };
+  return { content: [{ type: 'text', text: JSON.stringify(results.data, null, 2) }] };
 }
 
 export async function addVendor(args: {
-  vendorType: string;
+  vendor_type: string;
   name: string;
   city: string;
-  stateProvince: string;
+  state: string;
   email?: string;
-  priceCents?: number;
-  eventDate?: string;
+  phone?: string;
+  price_cents?: number;
+  event_date?: string;
+  reference_vendor_id?: number;
 }): Promise<ToolResult> {
-  const vendors = await client.requestMarketplace<AccountVendor[]>(
+  // Find an unbooked slot for this vendor type
+  const listResponse = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
-    '/v1/account/get-or-create-vendors'
+    '/v3/account-vendors/booked-list',
+    {}
   );
-  const slot = vendors.find((v) => v.vendorType === args.vendorType && !v.booked);
+  const slot = listResponse.data.booked_vendors.find(
+    (v) => v.vendor_type === args.vendor_type && !v.booked
+  );
   if (!slot) {
-    throw new Error(`No unbooked slot found for vendor type "${args.vendorType}"`);
+    throw new Error(`No unbooked slot for vendor type "${args.vendor_type}"`);
   }
-  const body = vendorPutBody(
-    args.vendorType,
-    true,
-    args.name,
-    args.email ?? null,
-    args.city,
-    args.stateProvince,
-    args.priceCents ?? null,
-    args.eventDate ? new Date(args.eventDate).getTime() : null
-  );
-  const result = await client.requestMarketplace<{ accountVendor: AccountVendor }>(
+
+  const body = {
+    uuid: slot.uuid,
+    id: 0,
+    vendor_type: args.vendor_type,
+    booked: true,
+    booking_source: 'BOOKED_VENDORS',
+    price_cents: args.price_cents ?? 0,
+    event_date: args.event_date ? new Date(args.event_date).getTime() : null,
+    sync_with_budget_tool_enabled: true,
+    facet_keys: [],
+    reference_vendor_request: {
+      id: args.reference_vendor_id ?? null,
+      name: args.name,
+      email: args.email ?? null,
+      phone: args.phone ?? null,
+      address: {
+        city: args.city,
+        state_province_region: args.state,
+      },
+    },
+  };
+
+  const result = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
-    `/v2/account/vendor/${slot.uuid}`,
+    '/v5/account-vendors/vendor',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.accountVendor, null, 2) }] };
+  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
 }
 
 export async function updateVendor(args: {
   uuid: string;
   name?: string;
   city?: string;
-  stateProvince?: string;
+  state?: string;
   email?: string;
-  priceCents?: number;
-  eventDate?: string;
+  price_cents?: number;
+  event_date?: string;
 }): Promise<ToolResult> {
-  const vendors = await client.requestMarketplace<AccountVendor[]>(
+  const listResponse = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
-    '/v1/account/get-or-create-vendors'
+    '/v3/account-vendors/booked-list',
+    {}
   );
-  const current = vendors.find((v) => v.uuid === args.uuid);
+  const current = listResponse.data.booked_vendors.find((v) => v.uuid === args.uuid);
   if (!current) {
     throw new Error(`Vendor with UUID "${args.uuid}" not found`);
   }
-  const body = vendorPutBody(
-    current.vendorType,
-    current.booked,
-    args.name ?? current.vendorName,
-    args.email ?? current.vendorCard?.email ?? null,
-    args.city ?? current.vendorCard?.city ?? null,
-    args.stateProvince ?? current.vendorCard?.stateProvince ?? null,
-    args.priceCents ?? current.priceCents,
-    args.eventDate ? new Date(args.eventDate).getTime() : current.eventDate
-  );
-  const result = await client.requestMarketplace<{ accountVendor: AccountVendor }>(
+
+  const body = {
+    uuid: args.uuid,
+    id: current.id,
+    vendor_type: current.vendor_type,
+    booked: true,
+    booking_source: 'BOOKED_VENDORS',
+    price_cents: args.price_cents ?? current.price_cents ?? 0,
+    event_date: args.event_date
+      ? new Date(args.event_date).getTime()
+      : current.event_date,
+    sync_with_budget_tool_enabled: true,
+    facet_keys: [],
+    reference_vendor_request: {
+      id: current.vendor_card?.id ?? null,
+      name: args.name ?? current.vendor_name,
+      email: args.email ?? current.vendor_card?.email ?? null,
+      address: {
+        city: args.city ?? current.vendor_card?.city ?? null,
+        state_province_region: args.state ?? current.vendor_card?.state_province ?? null,
+      },
+    },
+  };
+
+  const result = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
-    `/v2/account/vendor/${args.uuid}`,
+    '/v5/account-vendors/vendor',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.accountVendor, null, 2) }] };
+  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
 }
 
 export async function removeVendor(args: { uuid: string }): Promise<ToolResult> {
-  const vendors = await client.requestMarketplace<AccountVendor[]>(
+  const result = await client.requestMobile<MobileEnvelope<unknown>>(
     'POST',
-    '/v1/account/get-or-create-vendors'
+    '/v3/account-vendors/vendor/unbook',
+    { uuid: args.uuid }
   );
-  const current = vendors.find((v) => v.uuid === args.uuid);
-  if (!current) {
-    throw new Error(`Vendor with UUID "${args.uuid}" not found`);
-  }
-  const body = vendorPutBody(current.vendorType, false, null, null, null, null, null, null);
-  const result = await client.requestMarketplace<{ accountVendor: AccountVendor }>(
-    'PUT',
-    `/v2/account/vendor/${args.uuid}`,
-    body
-  );
-  return { content: [{ type: 'text', text: JSON.stringify(result.accountVendor, null, 2) }] };
+  return { content: [{ type: 'text', text: `Unbooked vendor ${args.uuid}` }] };
 }
 
 export function registerVendorTools(server: McpServer): void {
-  server.tool('list_vendors', 'List all vendor slots (booked and unbooked) and their details', {}, listVendors);
+  server.tool(
+    'list_vendors',
+    'List all booked vendors with details',
+    {},
+    listVendors
+  );
 
   server.tool(
     'search_vendors',
-    'Search Zola marketplace vendors by name prefix',
-    { prefix: z.string().describe('Vendor name prefix to search for') },
+    'Search for vendors by name (typeahead) within a vendor category',
+    {
+      query: z.string().describe('Vendor name to search for'),
+      taxonomy_key: z.string().optional().describe('Vendor category key (e.g. wedding-venues, wedding-photographers, wedding-planners, wedding-bands-djs). Default: wedding-venues'),
+    },
     searchVendors
   );
 
   server.tool(
     'add_vendor',
-    'Mark an unbooked vendor slot as booked with vendor details',
+    'Book a new vendor',
     {
-      vendorType: z
-        .string()
-        .describe(
-          'Vendor category (VENUE, PHOTOGRAPHER, FLORIST, MUSICIAN_DJ, PLANNER, VIDEOGRAPHER, HAIR_MAKEUP, CAKES_DESSERTS)'
-        ),
+      vendor_type: z.string().describe('Vendor type (VENUE, PHOTOGRAPHER, FLORIST, MUSICIAN_DJ, PLANNER, VIDEOGRAPHER, HAIR_MAKEUP, CAKES_DESSERTS)'),
       name: z.string().describe('Vendor business name'),
-      city: z.string().describe('City where vendor is based'),
-      stateProvince: z.string().describe('State abbreviation (e.g. NC)'),
-      email: z.string().optional().describe('Vendor contact email'),
-      priceCents: z.number().optional().describe('Total price in cents'),
-      eventDate: z.string().optional().describe('Event date in ISO 8601 format (e.g. 2026-10-16)'),
+      city: z.string().describe('City'),
+      state: z.string().describe('State abbreviation (e.g. NC)'),
+      email: z.string().optional().describe('Vendor email'),
+      phone: z.string().optional().describe('Vendor phone'),
+      price_cents: z.number().optional().describe('Total price in cents'),
+      event_date: z.string().optional().describe('Event date ISO 8601'),
+      reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
     },
     addVendor
   );
 
   server.tool(
     'update_vendor',
-    'Update details of an existing booked vendor slot',
+    'Update a booked vendor\'s details',
     {
-      uuid: z.string().describe('Vendor slot UUID (from list_vendors)'),
+      uuid: z.string().describe('Vendor UUID from list_vendors'),
       name: z.string().optional(),
       city: z.string().optional(),
-      stateProvince: z.string().optional(),
+      state: z.string().optional(),
       email: z.string().optional(),
-      priceCents: z.number().optional(),
-      eventDate: z.string().optional().describe('ISO 8601 date'),
+      price_cents: z.number().optional(),
+      event_date: z.string().optional().describe('ISO 8601 date'),
     },
     updateVendor
   );
 
   server.tool(
     'remove_vendor',
-    'Unbook a vendor slot, clearing all its details',
-    { uuid: z.string().describe('Vendor slot UUID (from list_vendors)') },
+    'Unbook a vendor',
+    { uuid: z.string().describe('Vendor UUID from list_vendors') },
     removeVendor
   );
 }
