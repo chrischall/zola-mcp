@@ -1,4 +1,5 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "chrischall",
   "owner": {
     "name": "Chris Chall",
@@ -6,22 +7,22 @@
   },
   "metadata": {
     "description": "Zola wedding planning tools for Claude Code",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "plugins": [
     {
       "name": "zola",
       "displayName": "Zola",
       "source": "./",
-      "description": "Zola wedding planning tools for Claude — registry, guest list, checklist, and budget via MCP",
-      "version": "0.1.0",
+      "description": "Zola wedding planning tools for Claude — vendors, budget, guests, seating, events, registry, inquiries, and more via MCP",
+      "version": "0.2.0",
       "author": {
         "name": "Chris Chall"
       },
       "homepage": "https://github.com/chrischall/zola-mcp",
       "repository": "https://github.com/chrischall/zola-mcp",
       "license": "MIT",
-      "keywords": ["zola", "wedding", "registry", "planning", "mcp"],
+      "keywords": ["zola", "wedding", "vendors", "guests", "budget", "seating", "registry", "mcp"],
       "category": "productivity"
     }
   ]
