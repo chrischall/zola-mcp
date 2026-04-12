@@ -9,13 +9,7 @@ try {
   // bundled mode — rely on process.env
 }
 
-const BASE_URL = 'https://www.zola.com';
-const USER_AGENT =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36';
-
-// Session refresh: GET this endpoint with usr+guid cookies to obtain a fresh us
-// token plus CSRF tokens in one round-trip. Zola auto-refreshes on this path.
-const REFRESH_PATH = '/website-nav/web-api/v1/user/get';
+const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
 
 function decodeJwtExp(token: string): number {
   const parts = token.split('.');
@@ -29,37 +23,82 @@ function decodeJwtExp(token: string): number {
   return payload.exp;
 }
 
-function parseCookies(headers: Headers): Record<string, string> {
-  const cookies: Record<string, string> = {};
-  const setCookieValues: string[] =
-    typeof (headers as unknown as { getSetCookie?: () => string[] }).getSetCookie === 'function'
-      ? (headers as unknown as { getSetCookie: () => string[] }).getSetCookie()
-      : // Fallback for environments without getSetCookie(). The comma-split heuristic
-        // can misparse cookies whose values contain commas not preceded by a space,
-        // but this branch is never reached on Node 18.14+ which is our target runtime.
-        (headers.get('set-cookie') ?? '').split(/,(?=[^ ])/).filter(Boolean);
-
-  for (const raw of setCookieValues) {
-    const match = raw.match(/^([^=]+)=([^;]*)/);
-    if (match) cookies[match[1].trim()] = match[2].trim();
+function decodeJwtSessionId(token: string): string | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 3 || !parts[1]) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    return payload.session_id ?? null;
+  } catch {
+    return null;
   }
-  return cookies;
 }
 
-const SETUP_HINT =
-  'To fix: open Zola in Chrome → DevTools → Application → Cookies → www.zola.com → ' +
-  'copy "usr" → ZOLA_REFRESH_TOKEN and "guid" → ZOLA_GUID in .env';
+export interface UserContext {
+  weddingAccountId: number;
+  registryId: string;
+  userId: string;
+  weddingDate: string | null;
+  weddingSlug: string | null;
+}
 
 export class ZolaClient {
   private sessionToken: string | null = null;
   private sessionExpiry: Date | null = null;
-  private csrfSecret: string | null = null;
-  private csrfToken: string | null = null;
+  private cachedContext: UserContext | null = null;
+  // WAF requires x-zola-session-id on all mobile-api.zola.com requests
+  private readonly deviceSessionId = crypto.randomUUID().toUpperCase();
 
-  async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  /**
+   * Make a request to the Zola mobile API (mobile-api.zola.com).
+   * Uses Bearer JWT auth with x-zola-session-id header.
+   */
+  async requestMobile<T>(method: string, path: string, body?: unknown): Promise<T> {
     await this.ensureSession();
-    if (method !== 'GET') await this.ensureCsrf();
     return this.doRequest<T>(method, path, body);
+  }
+
+  /**
+   * Get user context (wedding account ID, registry ID, etc.).
+   * Uses env vars as overrides; falls back to GET /v3/users/me/context.
+   * Cached for the lifetime of the client instance.
+   */
+  async getContext(): Promise<UserContext> {
+    if (this.cachedContext) return this.cachedContext;
+
+    const envAccountId = process.env.ZOLA_ACCOUNT_ID;
+    const envRegistryId = process.env.ZOLA_REGISTRY_ID;
+
+    // If both env vars are set, skip the API call
+    if (envAccountId && envRegistryId) {
+      this.cachedContext = {
+        weddingAccountId: Number(envAccountId),
+        registryId: envRegistryId,
+        userId: '',
+        weddingDate: null,
+        weddingSlug: null,
+      };
+      return this.cachedContext;
+    }
+
+    // Fetch from API
+    const response = await this.requestMobile<{
+      data: {
+        user: { id: string };
+        wedding_account: { wedding_account_id: number };
+        wedding: { wedding_date: string | null; slug: string | null };
+        registry: { id: string };
+      };
+    }>('GET', '/v3/users/me/context');
+
+    this.cachedContext = {
+      weddingAccountId: Number(envAccountId) || response.data.wedding_account.wedding_account_id,
+      registryId: envRegistryId || response.data.registry.id,
+      userId: response.data.user.id,
+      weddingDate: response.data.wedding.wedding_date,
+      weddingSlug: response.data.wedding.slug,
+    };
+    return this.cachedContext;
   }
 
   private async doRequest<T>(
@@ -69,17 +108,17 @@ export class ZolaClient {
     isAuthRetry = false,
     isRateRetry = false
   ): Promise<T> {
+    const sessionId = decodeJwtSessionId(this.sessionToken!);
     const headers: Record<string, string> = {
       accept: 'application/json',
-      'user-agent': USER_AGENT,
-      cookie: this.buildCookieHeader(),
+      authorization: `Bearer ${this.sessionToken}`,
+      'x-zola-platform-type': 'iphone_app',
+      'x-zola-session-id': this.deviceSessionId,
+      ...(sessionId ? { 'x-zola-user-session-id': sessionId } : {}),
     };
     if (body !== undefined) headers['content-type'] = 'application/json';
-    if (method !== 'GET' && this.csrfToken) {
-      headers['x-csrf-token'] = this.csrfToken;
-    }
 
-    const response = await fetch(`${BASE_URL}${path}`, {
+    const response = await fetch(`${MOBILE_BASE_URL}${path}`, {
       method,
       headers,
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -101,9 +140,8 @@ export class ZolaClient {
     }
 
     if (!response.ok) {
-      throw new Error(
-        `Zola API error: ${response.status} ${response.statusText} for ${method} ${path}`
-      );
+      const text = await response.text();
+      throw new Error(`Zola API error: ${response.status} ${response.statusText} for ${method} ${path}: ${text}`);
     }
 
     const text = await response.text();
@@ -116,8 +154,7 @@ export class ZolaClient {
       if (this.sessionExpiry.getTime() - Date.now() > 5 * 60 * 1000) return;
     }
 
-    // Note: ZOLA_SESSION_TOKEN is read from env only on first load (sessionToken === null).
-    // If the env value is rotated mid-run, restart the server to pick up the new token.
+    // Check for session token in env (first load only)
     if (this.sessionToken === null) {
       const envSession = process.env.ZOLA_SESSION_TOKEN;
       if (envSession) {
@@ -137,81 +174,42 @@ export class ZolaClient {
     await this.refresh();
   }
 
-  private async ensureCsrf(): Promise<void> {
-    if (this.csrfToken) return;
-    // CSRF tokens are normally obtained during refresh(). This fallback handles
-    // the case where a valid ZOLA_SESSION_TOKEN was used and refresh() was skipped.
-    try {
-      const resp = await fetch(`${BASE_URL}/`, {
-        headers: { 'user-agent': USER_AGENT },
-      });
-      const cookies = parseCookies(resp.headers);
-      if (cookies['_csrf']) this.csrfSecret = cookies['_csrf'];
-      if (cookies['CSRF-TOKEN']) this.csrfToken = cookies['CSRF-TOKEN'];
-    } catch {
-      // non-fatal: proceed without CSRF
-    }
-  }
-
+  /**
+   * Refresh the session using the mobile API endpoint.
+   * POST /v3/sessions/refresh with the refresh token JWT.
+   * Returns a new session_token (30-min) and optionally a new refresh_token.
+   */
   private async refresh(): Promise<void> {
     const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
     if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
 
-    const guid = process.env.ZOLA_GUID;
-    if (!guid) throw new Error('ZOLA_GUID must be set');
+    const response = await fetch(`${MOBILE_BASE_URL}/v3/sessions/refresh`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json',
+        'x-zola-platform-type': 'iphone_app',
+        'x-zola-session-id': this.deviceSessionId,
+      },
+      body: JSON.stringify({ token: refreshToken }),
+    });
 
-    // GET /website-nav/web-api/v1/user/get with usr+guid — Zola auto-issues a
-    // fresh us token and CSRF cookies in the Set-Cookie response headers.
-    const cookieParts = [`usr=${refreshToken}`, `guid=${guid}`];
-    if (this.sessionToken) cookieParts.push(`us=${this.sessionToken}`);
-
-    let resp: Response;
-    try {
-      resp = await fetch(`${BASE_URL}${REFRESH_PATH}`, {
-        headers: {
-          accept: 'application/json',
-          'user-agent': USER_AGENT,
-          cookie: cookieParts.join('; '),
-        },
-      });
-    } catch (err) {
-      throw new Error(`Zola session refresh network error: ${String(err)}\n${SETUP_HINT}`);
-    }
-
-    if (!resp.ok) {
+    if (!response.ok) {
+      const text = await response.text();
       throw new Error(
-        `Zola session refresh failed: ${resp.status} ${resp.statusText}\n${SETUP_HINT}`
+        `Zola session refresh failed (${response.status}): ${text}\n` +
+          'To fix: log into the Zola iOS app → capture refresh token via mitmproxy → update ZOLA_REFRESH_TOKEN'
       );
     }
 
-    const cookies = parseCookies(resp.headers);
+    const result = (await response.json()) as {
+      data: { session_token: string; refresh_token: string; session_id: string };
+    };
 
-    if (!cookies['us']) {
-      throw new Error(
-        'Zola session refresh returned no session token — ZOLA_REFRESH_TOKEN or ZOLA_GUID may be expired.\n' +
-          SETUP_HINT
-      );
-    }
-
-    const exp = decodeJwtExp(cookies['us']);
-    this.sessionToken = cookies['us'];
+    const { session_token } = result.data;
+    const exp = decodeJwtExp(session_token);
+    this.sessionToken = session_token;
     this.sessionExpiry = new Date(exp * 1000);
-
-    // Capture CSRF tokens from the same response to avoid a separate GET /
-    if (cookies['_csrf']) this.csrfSecret = cookies['_csrf'];
-    if (cookies['CSRF-TOKEN']) this.csrfToken = cookies['CSRF-TOKEN'];
-  }
-
-  private buildCookieHeader(): string {
-    const parts: string[] = [];
-    if (this.sessionToken) parts.push(`us=${this.sessionToken}`);
-    const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
-    if (refreshToken) parts.push(`usr=${refreshToken}`);
-    const guid = process.env.ZOLA_GUID;
-    if (guid) parts.push(`guid=${guid}`);
-    if (this.csrfSecret) parts.push(`_csrf=${this.csrfSecret}`);
-    if (this.csrfToken) parts.push(`CSRF-TOKEN=${this.csrfToken}`);
-    return parts.join('; ');
   }
 }
 
