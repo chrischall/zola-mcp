@@ -106,6 +106,7 @@ export function registerBudgetTools(server: McpServer): void {
     'get_budget',
     'Get the wedding budget summary including total budgeted, actual cost, paid, and all budget items',
     {},
+    { readOnlyHint: true },
     getBudget
   );
 
@@ -117,6 +118,7 @@ export function registerBudgetTools(server: McpServer): void {
       actual_cost_cents: z.number().optional().describe('Actual cost in cents'),
       note: z.string().optional().describe('Note for the budget item'),
     },
+    { destructiveHint: false },
     updateBudgetItem
   );
 }

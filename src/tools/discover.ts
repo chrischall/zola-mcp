@@ -62,6 +62,7 @@ export function registerDiscoverTools(server: McpServer): void {
     'get_wedding_dashboard',
     'Get the wedding planning dashboard overview (invites, paper, planning progress)',
     {},
+    { readOnlyHint: true },
     getWeddingDashboard
   );
 
@@ -75,6 +76,7 @@ export function registerDiscoverTools(server: McpServer): void {
       limit: z.number().optional().describe('Results per page (default 24)'),
       offset: z.number().optional().describe('Pagination offset (default 0)'),
     },
+    { readOnlyHint: true },
     searchStorefronts
   );
 
@@ -82,6 +84,7 @@ export function registerDiscoverTools(server: McpServer): void {
     'get_storefront',
     'Get full details for a vendor storefront (pricing, reviews, photos, about, FAQs)',
     { uuid: z.string().describe('Storefront UUID from search_storefronts or list_favorites') },
+    { readOnlyHint: true },
     getStorefront
   );
 
@@ -89,6 +92,7 @@ export function registerDiscoverTools(server: McpServer): void {
     'list_favorites',
     'List all favorited/saved vendors',
     {},
+    { readOnlyHint: true },
     listFavorites
   );
 }
