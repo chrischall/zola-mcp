@@ -115,6 +115,7 @@ export function registerInquiryTools(server: McpServer): void {
     'list_inquiries',
     'List all vendor inquiries with status, vendor name, and unread flag',
     {},
+    { readOnlyHint: true },
     listInquiries
   );
 
@@ -122,6 +123,7 @@ export function registerInquiryTools(server: McpServer): void {
     'get_inquiry_conversation',
     'Get full conversation for a vendor inquiry including messages and inquiry details',
     { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    { readOnlyHint: true },
     getInquiryConversation
   );
 
@@ -129,6 +131,7 @@ export function registerInquiryTools(server: McpServer): void {
     'mark_inquiry_read',
     'Mark a vendor inquiry conversation as read',
     { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    { destructiveHint: false },
     markInquiryRead
   );
 }

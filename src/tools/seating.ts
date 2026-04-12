@@ -121,6 +121,7 @@ export function registerSeatingTools(server: McpServer): void {
     'list_seating_charts',
     'List all seating charts with their UUID and event name',
     {},
+    { readOnlyHint: true },
     listSeatingCharts
   );
 
@@ -128,6 +129,7 @@ export function registerSeatingTools(server: McpServer): void {
     'get_seating_chart',
     'Get full seating chart with all tables, seats, and current occupants',
     { uuid: z.string().describe('Seating chart UUID from list_seating_charts') },
+    { readOnlyHint: true },
     getSeatingChart
   );
 
@@ -135,6 +137,7 @@ export function registerSeatingTools(server: McpServer): void {
     'list_unseated_guests',
     'List all guests who have not yet been assigned a seat',
     {},
+    { readOnlyHint: true },
     listUnseatedGuests
   );
 
@@ -147,6 +150,7 @@ export function registerSeatingTools(server: McpServer): void {
       table_uuid: z.string().describe('Table UUID from get_seating_chart'),
       seating_chart_uuid: z.string().describe('Seating chart UUID from list_seating_charts'),
     },
+    { destructiveHint: false },
     assignSeat
   );
 }

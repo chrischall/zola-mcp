@@ -216,7 +216,7 @@ export async function removeGuest(args: { guest_group_id: number }): Promise<Too
 }
 
 export function registerGuestTools(server: McpServer): void {
-  server.tool('list_guests', 'List all guest groups with stats (total, invited, missing addresses)', {}, listGuests);
+  server.tool('list_guests', 'List all guest groups with stats (total, invited, missing addresses)', {}, { readOnlyHint: true }, listGuests);
 
   server.tool(
     'add_guest',
@@ -230,6 +230,7 @@ export function registerGuestTools(server: McpServer): void {
       phone: z.string().optional().describe('Guest phone number'),
       affiliation: z.string().optional().describe('Affiliation (default: PRIMARY_FRIEND)'),
     },
+    { destructiveHint: false },
     addGuest
   );
 
@@ -245,6 +246,7 @@ export function registerGuestTools(server: McpServer): void {
       postal_code: z.string().optional(),
       country_code: z.string().optional().describe('Default: US'),
     },
+    { destructiveHint: false },
     updateGuestAddress
   );
 
@@ -252,6 +254,7 @@ export function registerGuestTools(server: McpServer): void {
     'remove_guest',
     'Remove a guest group from the guest list',
     { guest_group_id: z.number().describe('Guest group ID from list_guests') },
+    { destructiveHint: true },
     removeGuest
   );
 }

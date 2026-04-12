@@ -168,6 +168,7 @@ export function registerEventTools(server: McpServer): void {
     'list_events',
     'List all wedding events (ceremony, reception, rehearsal dinner, etc.) with RSVP counts',
     {},
+    { readOnlyHint: true },
     listEvents
   );
 
@@ -175,6 +176,7 @@ export function registerEventTools(server: McpServer): void {
     'track_rsvps',
     'Get RSVP tracking summary per event (attending, declined, not responded)',
     {},
+    { readOnlyHint: true },
     trackRsvps
   );
 
@@ -182,6 +184,7 @@ export function registerEventTools(server: McpServer): void {
     'get_gift_tracker',
     'View gift tracking: total gifts received, values, thank-you note status',
     {},
+    { readOnlyHint: true },
     getGiftTracker
   );
 
@@ -189,6 +192,7 @@ export function registerEventTools(server: McpServer): void {
     'get_registry',
     'View the wedding registry with categories and items',
     {},
+    { readOnlyHint: true },
     getRegistry
   );
 
@@ -210,6 +214,7 @@ export function registerEventTools(server: McpServer): void {
       attire: z.string().optional().describe('Dress code'),
       collect_rsvps: z.boolean().optional().describe('Whether to collect RSVPs for this event'),
     },
+    { destructiveHint: false },
     updateEvent
   );
 }

@@ -181,6 +181,7 @@ export function registerVendorTools(server: McpServer): void {
     'list_vendors',
     'List all booked vendors with details',
     {},
+    { readOnlyHint: true },
     listVendors
   );
 
@@ -191,6 +192,7 @@ export function registerVendorTools(server: McpServer): void {
       query: z.string().describe('Vendor name to search for'),
       taxonomy_key: z.string().optional().describe('Vendor category key (e.g. wedding-venues, wedding-photographers, wedding-planners, wedding-bands-djs). Default: wedding-venues'),
     },
+    { readOnlyHint: true },
     searchVendors
   );
 
@@ -208,6 +210,7 @@ export function registerVendorTools(server: McpServer): void {
       event_date: z.string().optional().describe('Event date ISO 8601'),
       reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
     },
+    { destructiveHint: false },
     addVendor
   );
 
@@ -223,6 +226,7 @@ export function registerVendorTools(server: McpServer): void {
       price_cents: z.number().optional(),
       event_date: z.string().optional().describe('ISO 8601 date'),
     },
+    { destructiveHint: false },
     updateVendor
   );
 
@@ -230,6 +234,7 @@ export function registerVendorTools(server: McpServer): void {
     'remove_vendor',
     'Unbook a vendor',
     { uuid: z.string().describe('Vendor UUID from list_vendors') },
+    { destructiveHint: true },
     removeVendor
   );
 }
