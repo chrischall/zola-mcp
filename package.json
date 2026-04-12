@@ -1,6 +1,6 @@
 {
   "name": "zola-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Zola wedding MCP server for Claude",
   "author": "Claude Sonnet 4.6 (AI) <https://www.anthropic.com/claude>",
   "repository": {

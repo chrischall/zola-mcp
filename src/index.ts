@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 const server = new McpServer({
   name: 'zola-mcp',
-  version: '0.2.0',
+  version: '0.3.0',
 });
 
 // Domain tool registrations are added here as each domain is built.
