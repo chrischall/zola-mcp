@@ -216,12 +216,12 @@ export async function removeGuest(args: { guest_group_id: number }): Promise<Too
 }
 
 export function registerGuestTools(server: McpServer): void {
-  server.registerTool('list_guests', {
+  server.registerTool('zola_list_guests', {
     description: 'List all guest groups with stats (total, invited, missing addresses)',
     annotations: { readOnlyHint: true },
   }, listGuests);
 
-  server.registerTool('add_guest', {
+  server.registerTool('zola_add_guest', {
     description: 'Add a new guest group (household) to the guest list',
     inputSchema: {
       first_name: z.string().describe('Primary guest first name'),
@@ -235,10 +235,10 @@ export function registerGuestTools(server: McpServer): void {
     annotations: { destructiveHint: false },
   }, addGuest);
 
-  server.registerTool('update_guest_address', {
+  server.registerTool('zola_update_guest_address', {
     description: "Update a guest group's mailing address",
     inputSchema: {
-      guest_group_id: z.number().describe('Guest group ID from list_guests'),
+      guest_group_id: z.number().describe('Guest group ID from zola_list_guests'),
       address1: z.string().optional(),
       address2: z.string().optional(),
       city: z.string().optional(),
@@ -249,9 +249,9 @@ export function registerGuestTools(server: McpServer): void {
     annotations: { destructiveHint: false },
   }, updateGuestAddress);
 
-  server.registerTool('remove_guest', {
+  server.registerTool('zola_remove_guest', {
     description: 'Remove a guest group from the guest list',
-    inputSchema: { guest_group_id: z.number().describe('Guest group ID from list_guests') },
+    inputSchema: { guest_group_id: z.number().describe('Guest group ID from zola_list_guests') },
     annotations: { destructiveHint: true },
   }, removeGuest);
 }
