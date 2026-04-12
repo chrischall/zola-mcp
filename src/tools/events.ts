@@ -164,30 +164,30 @@ export async function updateEvent(args: {
 }
 
 export function registerEventTools(server: McpServer): void {
-  server.registerTool('list_events', {
+  server.registerTool('zola_list_events', {
     description: 'List all wedding events (ceremony, reception, rehearsal dinner, etc.) with RSVP counts',
     annotations: { readOnlyHint: true },
   }, listEvents);
 
-  server.registerTool('track_rsvps', {
+  server.registerTool('zola_track_rsvps', {
     description: 'Get RSVP tracking summary per event (attending, declined, not responded)',
     annotations: { readOnlyHint: true },
   }, trackRsvps);
 
-  server.registerTool('get_gift_tracker', {
+  server.registerTool('zola_get_gift_tracker', {
     description: 'View gift tracking: total gifts received, values, thank-you note status',
     annotations: { readOnlyHint: true },
   }, getGiftTracker);
 
-  server.registerTool('get_registry', {
+  server.registerTool('zola_get_registry', {
     description: 'View the wedding registry with categories and items',
     annotations: { readOnlyHint: true },
   }, getRegistry);
 
-  server.registerTool('update_event', {
+  server.registerTool('zola_update_event', {
     description: 'Update a wedding event (name, time, venue, location, dress code, RSVP settings)',
     inputSchema: {
-      event_id: z.number().describe('Event entity ID from list_events'),
+      event_id: z.number().describe('Event entity ID from zola_list_events'),
       name: z.string().optional().describe('Event name'),
       start_at: z.string().optional().describe('Start time ISO 8601 (e.g. 2026-10-17T18:30:00Z)'),
       end_at: z.string().optional().describe('End time ISO 8601'),

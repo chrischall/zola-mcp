@@ -51,111 +51,111 @@
   },
   "tools": [
     {
-      "name": "list_vendors",
+      "name": "zola_list_vendors",
       "description": "List all booked vendors with details"
     },
     {
-      "name": "search_vendors",
+      "name": "zola_search_vendors",
       "description": "Search for vendors by name within a category"
     },
     {
-      "name": "add_vendor",
+      "name": "zola_add_vendor",
       "description": "Book a new vendor"
     },
     {
-      "name": "update_vendor",
+      "name": "zola_update_vendor",
       "description": "Update a booked vendor's details"
     },
     {
-      "name": "remove_vendor",
+      "name": "zola_remove_vendor",
       "description": "Unbook a vendor"
     },
     {
-      "name": "get_budget",
+      "name": "zola_get_budget",
       "description": "Get wedding budget summary with all items"
     },
     {
-      "name": "update_budget_item",
+      "name": "zola_update_budget_item",
       "description": "Update a budget item's cost or note"
     },
     {
-      "name": "list_guests",
+      "name": "zola_list_guests",
       "description": "List all guest groups with stats"
     },
     {
-      "name": "add_guest",
+      "name": "zola_add_guest",
       "description": "Add a new guest group"
     },
     {
-      "name": "update_guest_address",
+      "name": "zola_update_guest_address",
       "description": "Update a guest group's mailing address"
     },
     {
-      "name": "remove_guest",
+      "name": "zola_remove_guest",
       "description": "Remove a guest group"
     },
     {
-      "name": "list_seating_charts",
+      "name": "zola_list_seating_charts",
       "description": "List all seating charts"
     },
     {
-      "name": "get_seating_chart",
+      "name": "zola_get_seating_chart",
       "description": "Get seating chart with tables and seats"
     },
     {
-      "name": "list_unseated_guests",
+      "name": "zola_list_unseated_guests",
       "description": "List guests not yet assigned a seat"
     },
     {
-      "name": "assign_seat",
+      "name": "zola_assign_seat",
       "description": "Assign a guest to a seat"
     },
     {
-      "name": "list_inquiries",
+      "name": "zola_list_inquiries",
       "description": "List all vendor inquiries"
     },
     {
-      "name": "get_inquiry_conversation",
+      "name": "zola_get_inquiry_conversation",
       "description": "Get conversation for a vendor inquiry"
     },
     {
-      "name": "mark_inquiry_read",
+      "name": "zola_mark_inquiry_read",
       "description": "Mark an inquiry as read"
     },
     {
-      "name": "list_events",
+      "name": "zola_list_events",
       "description": "List all wedding events with RSVP counts"
     },
     {
-      "name": "track_rsvps",
+      "name": "zola_track_rsvps",
       "description": "Get RSVP tracking per event"
     },
     {
-      "name": "update_event",
+      "name": "zola_update_event",
       "description": "Update a wedding event"
     },
     {
-      "name": "get_gift_tracker",
+      "name": "zola_get_gift_tracker",
       "description": "View gift tracking and thank-you note status"
     },
     {
-      "name": "get_registry",
+      "name": "zola_get_registry",
       "description": "View the wedding registry"
     },
     {
-      "name": "get_wedding_dashboard",
+      "name": "zola_get_wedding_dashboard",
       "description": "Get wedding planning dashboard overview"
     },
     {
-      "name": "search_storefronts",
+      "name": "zola_search_storefronts",
       "description": "Search vendor marketplace by category and location"
     },
     {
-      "name": "get_storefront",
+      "name": "zola_get_storefront",
       "description": "Get full vendor storefront details"
     },
     {
-      "name": "list_favorites",
+      "name": "zola_list_favorites",
       "description": "List favorited vendors"
     }
   ],

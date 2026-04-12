@@ -111,20 +111,20 @@ export async function markInquiryRead(args: { uuid: string }): Promise<ToolResul
 }
 
 export function registerInquiryTools(server: McpServer): void {
-  server.registerTool('list_inquiries', {
+  server.registerTool('zola_list_inquiries', {
     description: 'List all vendor inquiries with status, vendor name, and unread flag',
     annotations: { readOnlyHint: true },
   }, listInquiries);
 
-  server.registerTool('get_inquiry_conversation', {
+  server.registerTool('zola_get_inquiry_conversation', {
     description: 'Get full conversation for a vendor inquiry including messages and inquiry details',
-    inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    inputSchema: { uuid: z.string().describe('Inquiry UUID from zola_list_inquiries') },
     annotations: { readOnlyHint: true },
   }, getInquiryConversation);
 
-  server.registerTool('mark_inquiry_read', {
+  server.registerTool('zola_mark_inquiry_read', {
     description: 'Mark a vendor inquiry conversation as read',
-    inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    inputSchema: { uuid: z.string().describe('Inquiry UUID from zola_list_inquiries') },
     annotations: { destructiveHint: false },
   }, markInquiryRead);
 }
