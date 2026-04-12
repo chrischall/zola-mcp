@@ -9,7 +9,7 @@ import { registerEventTools } from './tools/events.js';
 import { registerDiscoverTools } from './tools/discover.js';
 
 const server = new McpServer({
-  name: 'Zola',
+  name: 'zola-mcp',
   version: '1.0.1',
 });
 
