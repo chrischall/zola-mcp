@@ -36,7 +36,7 @@
         "${__dirname}/dist/bundle.js"
       ],
       "env": {
-        "ZOLA_REFRESH_TOKEN": "${user_config.zola_refresh_token}"
+        "ZOLA_REFRESH_TOKEN": "${user_config.refresh_token}"
       }
     }
   },
