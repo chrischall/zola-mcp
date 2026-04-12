@@ -3,7 +3,7 @@
   "manifest_version": "0.3",
   "name": "zola-mcp",
   "display_name": "Zola",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Zola wedding planning tools for Claude — vendors, budget, guests, seating, events, registry, inquiries, and more",
   "author": {
     "name": "Chris Chall",
@@ -17,13 +17,24 @@
   "homepage": "https://github.com/chrischall/zola-mcp",
   "support": "https://github.com/chrischall/zola-mcp/issues",
   "license": "MIT",
-  "keywords": ["zola", "wedding", "vendors", "guests", "budget", "seating", "registry", "rsvp"],
+  "keywords": [
+    "zola",
+    "wedding",
+    "vendors",
+    "guests",
+    "budget",
+    "seating",
+    "registry",
+    "rsvp"
+  ],
   "server": {
     "type": "node",
     "entry_point": "dist/bundle.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/dist/bundle.js"],
+      "args": [
+        "${__dirname}/dist/bundle.js"
+      ],
       "env": {
         "ZOLA_REFRESH_TOKEN": "${user_config.zola_refresh_token}"
       }
@@ -39,36 +50,120 @@
     }
   },
   "tools": [
-    { "name": "list_vendors", "description": "List all booked vendors with details" },
-    { "name": "search_vendors", "description": "Search for vendors by name within a category" },
-    { "name": "add_vendor", "description": "Book a new vendor" },
-    { "name": "update_vendor", "description": "Update a booked vendor's details" },
-    { "name": "remove_vendor", "description": "Unbook a vendor" },
-    { "name": "get_budget", "description": "Get wedding budget summary with all items" },
-    { "name": "update_budget_item", "description": "Update a budget item's cost or note" },
-    { "name": "list_guests", "description": "List all guest groups with stats" },
-    { "name": "add_guest", "description": "Add a new guest group" },
-    { "name": "update_guest_address", "description": "Update a guest group's mailing address" },
-    { "name": "remove_guest", "description": "Remove a guest group" },
-    { "name": "list_seating_charts", "description": "List all seating charts" },
-    { "name": "get_seating_chart", "description": "Get seating chart with tables and seats" },
-    { "name": "list_unseated_guests", "description": "List guests not yet assigned a seat" },
-    { "name": "assign_seat", "description": "Assign a guest to a seat" },
-    { "name": "list_inquiries", "description": "List all vendor inquiries" },
-    { "name": "get_inquiry_conversation", "description": "Get conversation for a vendor inquiry" },
-    { "name": "mark_inquiry_read", "description": "Mark an inquiry as read" },
-    { "name": "list_events", "description": "List all wedding events with RSVP counts" },
-    { "name": "track_rsvps", "description": "Get RSVP tracking per event" },
-    { "name": "update_event", "description": "Update a wedding event" },
-    { "name": "get_gift_tracker", "description": "View gift tracking and thank-you note status" },
-    { "name": "get_registry", "description": "View the wedding registry" },
-    { "name": "get_wedding_dashboard", "description": "Get wedding planning dashboard overview" },
-    { "name": "search_storefronts", "description": "Search vendor marketplace by category and location" },
-    { "name": "get_storefront", "description": "Get full vendor storefront details" },
-    { "name": "list_favorites", "description": "List favorited vendors" }
+    {
+      "name": "list_vendors",
+      "description": "List all booked vendors with details"
+    },
+    {
+      "name": "search_vendors",
+      "description": "Search for vendors by name within a category"
+    },
+    {
+      "name": "add_vendor",
+      "description": "Book a new vendor"
+    },
+    {
+      "name": "update_vendor",
+      "description": "Update a booked vendor's details"
+    },
+    {
+      "name": "remove_vendor",
+      "description": "Unbook a vendor"
+    },
+    {
+      "name": "get_budget",
+      "description": "Get wedding budget summary with all items"
+    },
+    {
+      "name": "update_budget_item",
+      "description": "Update a budget item's cost or note"
+    },
+    {
+      "name": "list_guests",
+      "description": "List all guest groups with stats"
+    },
+    {
+      "name": "add_guest",
+      "description": "Add a new guest group"
+    },
+    {
+      "name": "update_guest_address",
+      "description": "Update a guest group's mailing address"
+    },
+    {
+      "name": "remove_guest",
+      "description": "Remove a guest group"
+    },
+    {
+      "name": "list_seating_charts",
+      "description": "List all seating charts"
+    },
+    {
+      "name": "get_seating_chart",
+      "description": "Get seating chart with tables and seats"
+    },
+    {
+      "name": "list_unseated_guests",
+      "description": "List guests not yet assigned a seat"
+    },
+    {
+      "name": "assign_seat",
+      "description": "Assign a guest to a seat"
+    },
+    {
+      "name": "list_inquiries",
+      "description": "List all vendor inquiries"
+    },
+    {
+      "name": "get_inquiry_conversation",
+      "description": "Get conversation for a vendor inquiry"
+    },
+    {
+      "name": "mark_inquiry_read",
+      "description": "Mark an inquiry as read"
+    },
+    {
+      "name": "list_events",
+      "description": "List all wedding events with RSVP counts"
+    },
+    {
+      "name": "track_rsvps",
+      "description": "Get RSVP tracking per event"
+    },
+    {
+      "name": "update_event",
+      "description": "Update a wedding event"
+    },
+    {
+      "name": "get_gift_tracker",
+      "description": "View gift tracking and thank-you note status"
+    },
+    {
+      "name": "get_registry",
+      "description": "View the wedding registry"
+    },
+    {
+      "name": "get_wedding_dashboard",
+      "description": "Get wedding planning dashboard overview"
+    },
+    {
+      "name": "search_storefronts",
+      "description": "Search vendor marketplace by category and location"
+    },
+    {
+      "name": "get_storefront",
+      "description": "Get full vendor storefront details"
+    },
+    {
+      "name": "list_favorites",
+      "description": "List favorited vendors"
+    }
   ],
   "compatibility": {
-    "platforms": ["darwin", "win32"],
+    "platforms": [
+      "darwin",
+      "win32"
+    ],
     "runtimes": {
       "node": ">=20.6.0"
     }
