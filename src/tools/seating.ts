@@ -117,40 +117,30 @@ export async function assignSeat(args: {
 }
 
 export function registerSeatingTools(server: McpServer): void {
-  server.tool(
-    'list_seating_charts',
-    'List all seating charts with their UUID and event name',
-    {},
-    { readOnlyHint: true },
-    listSeatingCharts
-  );
+  server.registerTool('list_seating_charts', {
+    description: 'List all seating charts with their UUID and event name',
+    annotations: { readOnlyHint: true },
+  }, listSeatingCharts);
 
-  server.tool(
-    'get_seating_chart',
-    'Get full seating chart with all tables, seats, and current occupants',
-    { uuid: z.string().describe('Seating chart UUID from list_seating_charts') },
-    { readOnlyHint: true },
-    getSeatingChart
-  );
+  server.registerTool('get_seating_chart', {
+    description: 'Get full seating chart with all tables, seats, and current occupants',
+    inputSchema: { uuid: z.string().describe('Seating chart UUID from list_seating_charts') },
+    annotations: { readOnlyHint: true },
+  }, getSeatingChart);
 
-  server.tool(
-    'list_unseated_guests',
-    'List all guests who have not yet been assigned a seat',
-    {},
-    { readOnlyHint: true },
-    listUnseatedGuests
-  );
+  server.registerTool('list_unseated_guests', {
+    description: 'List all guests who have not yet been assigned a seat',
+    annotations: { readOnlyHint: true },
+  }, listUnseatedGuests);
 
-  server.tool(
-    'assign_seat',
-    'Assign a guest to a specific seat in a seating chart',
-    {
+  server.registerTool('assign_seat', {
+    description: 'Assign a guest to a specific seat in a seating chart',
+    inputSchema: {
       guest_uuid: z.string().describe('Guest UUID from list_unseated_guests'),
       seat_uuid: z.string().describe('Seat UUID from get_seating_chart'),
       table_uuid: z.string().describe('Table UUID from get_seating_chart'),
       seating_chart_uuid: z.string().describe('Seating chart UUID from list_seating_charts'),
     },
-    { destructiveHint: false },
-    assignSeat
-  );
+    annotations: { destructiveHint: false },
+  }, assignSeat);
 }

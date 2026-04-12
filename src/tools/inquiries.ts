@@ -111,27 +111,20 @@ export async function markInquiryRead(args: { uuid: string }): Promise<ToolResul
 }
 
 export function registerInquiryTools(server: McpServer): void {
-  server.tool(
-    'list_inquiries',
-    'List all vendor inquiries with status, vendor name, and unread flag',
-    {},
-    { readOnlyHint: true },
-    listInquiries
-  );
+  server.registerTool('list_inquiries', {
+    description: 'List all vendor inquiries with status, vendor name, and unread flag',
+    annotations: { readOnlyHint: true },
+  }, listInquiries);
 
-  server.tool(
-    'get_inquiry_conversation',
-    'Get full conversation for a vendor inquiry including messages and inquiry details',
-    { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
-    { readOnlyHint: true },
-    getInquiryConversation
-  );
+  server.registerTool('get_inquiry_conversation', {
+    description: 'Get full conversation for a vendor inquiry including messages and inquiry details',
+    inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    annotations: { readOnlyHint: true },
+  }, getInquiryConversation);
 
-  server.tool(
-    'mark_inquiry_read',
-    'Mark a vendor inquiry conversation as read',
-    { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
-    { destructiveHint: false },
-    markInquiryRead
-  );
+  server.registerTool('mark_inquiry_read', {
+    description: 'Mark a vendor inquiry conversation as read',
+    inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    annotations: { destructiveHint: false },
+  }, markInquiryRead);
 }

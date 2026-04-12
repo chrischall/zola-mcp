@@ -177,29 +177,23 @@ export async function removeVendor(args: { uuid: string }): Promise<ToolResult> 
 }
 
 export function registerVendorTools(server: McpServer): void {
-  server.tool(
-    'list_vendors',
-    'List all booked vendors with details',
-    {},
-    { readOnlyHint: true },
-    listVendors
-  );
+  server.registerTool('list_vendors', {
+    description: 'List all booked vendors with details',
+    annotations: { readOnlyHint: true },
+  }, listVendors);
 
-  server.tool(
-    'search_vendors',
-    'Search for vendors by name (typeahead) within a vendor category',
-    {
+  server.registerTool('search_vendors', {
+    description: 'Search for vendors by name (typeahead) within a vendor category',
+    inputSchema: {
       query: z.string().describe('Vendor name to search for'),
       taxonomy_key: z.string().optional().describe('Vendor category key (e.g. wedding-venues, wedding-photographers, wedding-planners, wedding-bands-djs). Default: wedding-venues'),
     },
-    { readOnlyHint: true },
-    searchVendors
-  );
+    annotations: { readOnlyHint: true },
+  }, searchVendors);
 
-  server.tool(
-    'add_vendor',
-    'Book a new vendor',
-    {
+  server.registerTool('add_vendor', {
+    description: 'Book a new vendor',
+    inputSchema: {
       vendor_type: z.string().describe('Vendor type (VENUE, PHOTOGRAPHER, FLORIST, MUSICIAN_DJ, PLANNER, VIDEOGRAPHER, HAIR_MAKEUP, CAKES_DESSERTS)'),
       name: z.string().describe('Vendor business name'),
       city: z.string().describe('City'),
@@ -210,14 +204,12 @@ export function registerVendorTools(server: McpServer): void {
       event_date: z.string().optional().describe('Event date ISO 8601'),
       reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
     },
-    { destructiveHint: false },
-    addVendor
-  );
+    annotations: { destructiveHint: false },
+  }, addVendor);
 
-  server.tool(
-    'update_vendor',
-    'Update a booked vendor\'s details',
-    {
+  server.registerTool('update_vendor', {
+    description: 'Update a booked vendor\'s details',
+    inputSchema: {
       uuid: z.string().describe('Vendor UUID from list_vendors'),
       name: z.string().optional(),
       city: z.string().optional(),
@@ -226,15 +218,12 @@ export function registerVendorTools(server: McpServer): void {
       price_cents: z.number().optional(),
       event_date: z.string().optional().describe('ISO 8601 date'),
     },
-    { destructiveHint: false },
-    updateVendor
-  );
+    annotations: { destructiveHint: false },
+  }, updateVendor);
 
-  server.tool(
-    'remove_vendor',
-    'Unbook a vendor',
-    { uuid: z.string().describe('Vendor UUID from list_vendors') },
-    { destructiveHint: true },
-    removeVendor
-  );
+  server.registerTool('remove_vendor', {
+    description: 'Unbook a vendor',
+    inputSchema: { uuid: z.string().describe('Vendor UUID from list_vendors') },
+    annotations: { destructiveHint: true },
+  }, removeVendor);
 }
