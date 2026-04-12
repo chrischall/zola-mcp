@@ -114,6 +114,7 @@ export class ZolaClient {
       authorization: `Bearer ${this.sessionToken}`,
       'x-zola-platform-type': 'iphone_app',
       'x-zola-session-id': this.deviceSessionId,
+      'user-agent': 'Zola/42.5.0 (iPad; iOS 26.4; Scale/2.0)',
       ...(sessionId ? { 'x-zola-user-session-id': sessionId } : {}),
     };
     if (body !== undefined) headers['content-type'] = 'application/json';
@@ -190,6 +191,7 @@ export class ZolaClient {
         accept: 'application/json',
         'x-zola-platform-type': 'iphone_app',
         'x-zola-session-id': this.deviceSessionId,
+        'user-agent': 'Zola/42.5.0 (iPad; iOS 26.4; Scale/2.0)',
       },
       body: JSON.stringify({ token: refreshToken }),
     });

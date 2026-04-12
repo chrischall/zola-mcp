@@ -102,23 +102,18 @@ export async function updateBudgetItem(args: {
 }
 
 export function registerBudgetTools(server: McpServer): void {
-  server.tool(
-    'get_budget',
-    'Get the wedding budget summary including total budgeted, actual cost, paid, and all budget items',
-    {},
-    { readOnlyHint: true },
-    getBudget
-  );
+  server.registerTool('get_budget', {
+    description: 'Get the wedding budget summary including total budgeted, actual cost, paid, and all budget items',
+    annotations: { readOnlyHint: true },
+  }, getBudget);
 
-  server.tool(
-    'update_budget_item',
-    "Update a budget item's actual cost and/or note by UUID",
-    {
+  server.registerTool('update_budget_item', {
+    description: "Update a budget item's actual cost and/or note by UUID",
+    inputSchema: {
       uuid: z.string().describe('Budget item UUID from get_budget'),
       actual_cost_cents: z.number().optional().describe('Actual cost in cents'),
       note: z.string().optional().describe('Note for the budget item'),
     },
-    { destructiveHint: false },
-    updateBudgetItem
-  );
+    annotations: { destructiveHint: false },
+  }, updateBudgetItem);
 }

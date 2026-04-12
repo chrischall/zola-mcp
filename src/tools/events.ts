@@ -164,42 +164,29 @@ export async function updateEvent(args: {
 }
 
 export function registerEventTools(server: McpServer): void {
-  server.tool(
-    'list_events',
-    'List all wedding events (ceremony, reception, rehearsal dinner, etc.) with RSVP counts',
-    {},
-    { readOnlyHint: true },
-    listEvents
-  );
+  server.registerTool('list_events', {
+    description: 'List all wedding events (ceremony, reception, rehearsal dinner, etc.) with RSVP counts',
+    annotations: { readOnlyHint: true },
+  }, listEvents);
 
-  server.tool(
-    'track_rsvps',
-    'Get RSVP tracking summary per event (attending, declined, not responded)',
-    {},
-    { readOnlyHint: true },
-    trackRsvps
-  );
+  server.registerTool('track_rsvps', {
+    description: 'Get RSVP tracking summary per event (attending, declined, not responded)',
+    annotations: { readOnlyHint: true },
+  }, trackRsvps);
 
-  server.tool(
-    'get_gift_tracker',
-    'View gift tracking: total gifts received, values, thank-you note status',
-    {},
-    { readOnlyHint: true },
-    getGiftTracker
-  );
+  server.registerTool('get_gift_tracker', {
+    description: 'View gift tracking: total gifts received, values, thank-you note status',
+    annotations: { readOnlyHint: true },
+  }, getGiftTracker);
 
-  server.tool(
-    'get_registry',
-    'View the wedding registry with categories and items',
-    {},
-    { readOnlyHint: true },
-    getRegistry
-  );
+  server.registerTool('get_registry', {
+    description: 'View the wedding registry with categories and items',
+    annotations: { readOnlyHint: true },
+  }, getRegistry);
 
-  server.tool(
-    'update_event',
-    'Update a wedding event (name, time, venue, location, dress code, RSVP settings)',
-    {
+  server.registerTool('update_event', {
+    description: 'Update a wedding event (name, time, venue, location, dress code, RSVP settings)',
+    inputSchema: {
       event_id: z.number().describe('Event entity ID from list_events'),
       name: z.string().optional().describe('Event name'),
       start_at: z.string().optional().describe('Start time ISO 8601 (e.g. 2026-10-17T18:30:00Z)'),
@@ -214,7 +201,6 @@ export function registerEventTools(server: McpServer): void {
       attire: z.string().optional().describe('Dress code'),
       collect_rsvps: z.boolean().optional().describe('Whether to collect RSVPs for this event'),
     },
-    { destructiveHint: false },
-    updateEvent
-  );
+    annotations: { destructiveHint: false },
+  }, updateEvent);
 }
