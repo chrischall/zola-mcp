@@ -3,9 +3,6 @@ name: Tag & Bump
 on:
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
@@ -17,11 +14,11 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v6.0.2
         with:
           token: ${{ secrets.RELEASE_PAT }}
 
-      - uses: actions/setup-node@v4.4.0
+      - uses: actions/setup-node@v6.3.0
         with:
           node-version: 22
           cache: npm
