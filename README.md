@@ -244,6 +244,28 @@ All tools use the Zola mobile API (`mobile-api.zola.com`) with Bearer JWT auth:
 3. On 401, auto-refreshes and retries once
 4. Session tokens are cached for their lifetime (30 min)
 
+### Building the MCPB bundle
+
+The `.mcpb` bundle is built automatically by the [Release workflow](.github/workflows/release.yml) when a version tag is pushed. To build locally:
+
+```bash
+npm run build
+npx @anthropic-ai/mcpb pack
+```
+
+This produces `zola-mcp.mcpb` using the configuration in `manifest.json`. The bundle includes the compiled `dist/bundle.js` and user config prompts for `ZOLA_REFRESH_TOKEN`.
+
+### Releasing
+
+Releases are automated via GitHub Actions:
+
+1. Run the **Cut & Bump** workflow (manual trigger) — tags the current version and bumps patch
+2. The tag push triggers the **Release** workflow which:
+   - Runs CI (build + test)
+   - Packages `.skill` and `.mcpb` bundles
+   - Publishes to [npm](https://www.npmjs.com/package/zola-mcp)
+   - Creates a [GitHub Release](https://github.com/chrischall/zola-mcp/releases) with the bundles
+
 ## License
 
 MIT
