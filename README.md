@@ -27,7 +27,39 @@ Ask Claude things like:
 
 ## Installation
 
-### 1. Clone and build
+### Option A — MCPB (recommended)
+
+Download the latest `.mcpb` bundle from [Releases](https://github.com/chrischall/zola-mcp/releases) and install:
+
+```bash
+claude mcp add-from-mcpb zola-mcp-x.y.z.mcpb
+```
+
+You'll be prompted for your `ZOLA_REFRESH_TOKEN` (see [Getting your refresh token](#getting-your-refresh-token) below).
+
+### Option B — npm
+
+```bash
+npx -y zola-mcp
+```
+
+Add to your Claude config (`.mcp.json` or Claude Desktop config):
+
+```json
+{
+  "mcpServers": {
+    "zola": {
+      "command": "npx",
+      "args": ["-y", "zola-mcp"],
+      "env": {
+        "ZOLA_REFRESH_TOKEN": "your-refresh-token-jwt"
+      }
+    }
+  }
+}
+```
+
+### Option C — from source
 
 ```bash
 git clone https://github.com/chrischall/zola-mcp.git
@@ -36,24 +68,10 @@ npm install
 npm run build
 ```
 
-### 2. Capture your auth token
-
-Run the setup script (one-time, token lasts ~1 year):
-
-```bash
-./scripts/setup-auth.sh
-```
-
-This starts mitmproxy, opens the Zola iOS app, captures the mobile API refresh token, and saves it to `.env`.
-
-### 3. Add to Claude Desktop
-
-Edit your Claude Desktop config file:
+Add to Claude Desktop config:
 
 - **Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-Add the `zola` entry inside `"mcpServers"`:
 
 ```json
 {
@@ -68,6 +86,16 @@ Add the `zola` entry inside `"mcpServers"`:
   }
 }
 ```
+
+### Getting your refresh token
+
+Run the setup script (one-time, token lasts ~1 year):
+
+```bash
+./scripts/setup-auth.sh
+```
+
+This starts [mitmproxy](https://mitmproxy.org) (`brew install mitmproxy`), opens the Zola iOS app, captures the mobile API refresh token, and saves it to `.env`.
 
 ### 4. Restart Claude Desktop
 
