@@ -1,4 +1,4 @@
-name: Cut & Bump
+name: Tag & Bump
 
 on:
   workflow_dispatch:
