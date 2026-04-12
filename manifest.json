@@ -41,7 +41,7 @@
     }
   },
   "user_config": {
-    "zola_refresh_token": {
+    "refresh_token": {
       "type": "string",
       "title": "Zola Refresh Token",
       "description": "Mobile API JWT refresh token (~1 year lifetime). Run ./scripts/setup-auth.sh to capture from the Zola iOS app via mitmproxy.",
@@ -51,111 +51,111 @@
   },
   "tools": [
     {
-      "name": "zola_list_vendors",
+      "name": "list_vendors",
       "description": "List all booked vendors with details"
     },
     {
-      "name": "zola_search_vendors",
+      "name": "search_vendors",
       "description": "Search for vendors by name within a category"
     },
     {
-      "name": "zola_add_vendor",
+      "name": "add_vendor",
       "description": "Book a new vendor"
     },
     {
-      "name": "zola_update_vendor",
+      "name": "update_vendor",
       "description": "Update a booked vendor's details"
     },
     {
-      "name": "zola_remove_vendor",
+      "name": "remove_vendor",
       "description": "Unbook a vendor"
     },
     {
-      "name": "zola_get_budget",
+      "name": "get_budget",
       "description": "Get wedding budget summary with all items"
     },
     {
-      "name": "zola_update_budget_item",
+      "name": "update_budget_item",
       "description": "Update a budget item's cost or note"
     },
     {
-      "name": "zola_list_guests",
+      "name": "list_guests",
       "description": "List all guest groups with stats"
     },
     {
-      "name": "zola_add_guest",
+      "name": "add_guest",
       "description": "Add a new guest group"
     },
     {
-      "name": "zola_update_guest_address",
+      "name": "update_guest_address",
       "description": "Update a guest group's mailing address"
     },
     {
-      "name": "zola_remove_guest",
+      "name": "remove_guest",
       "description": "Remove a guest group"
     },
     {
-      "name": "zola_list_seating_charts",
+      "name": "list_seating_charts",
       "description": "List all seating charts"
     },
     {
-      "name": "zola_get_seating_chart",
+      "name": "get_seating_chart",
       "description": "Get seating chart with tables and seats"
     },
     {
-      "name": "zola_list_unseated_guests",
+      "name": "list_unseated_guests",
       "description": "List guests not yet assigned a seat"
     },
     {
-      "name": "zola_assign_seat",
+      "name": "assign_seat",
       "description": "Assign a guest to a seat"
     },
     {
-      "name": "zola_list_inquiries",
+      "name": "list_inquiries",
       "description": "List all vendor inquiries"
     },
     {
-      "name": "zola_get_inquiry_conversation",
+      "name": "get_inquiry_conversation",
       "description": "Get conversation for a vendor inquiry"
     },
     {
-      "name": "zola_mark_inquiry_read",
+      "name": "mark_inquiry_read",
       "description": "Mark an inquiry as read"
     },
     {
-      "name": "zola_list_events",
+      "name": "list_events",
       "description": "List all wedding events with RSVP counts"
     },
     {
-      "name": "zola_track_rsvps",
+      "name": "track_rsvps",
       "description": "Get RSVP tracking per event"
     },
     {
-      "name": "zola_update_event",
+      "name": "update_event",
       "description": "Update a wedding event"
     },
     {
-      "name": "zola_get_gift_tracker",
+      "name": "get_gift_tracker",
       "description": "View gift tracking and thank-you note status"
     },
     {
-      "name": "zola_get_registry",
+      "name": "get_registry",
       "description": "View the wedding registry"
     },
     {
-      "name": "zola_get_wedding_dashboard",
+      "name": "get_wedding_dashboard",
       "description": "Get wedding planning dashboard overview"
     },
     {
-      "name": "zola_search_storefronts",
+      "name": "search_storefronts",
       "description": "Search vendor marketplace by category and location"
     },
     {
-      "name": "zola_get_storefront",
+      "name": "get_storefront",
       "description": "Get full vendor storefront details"
     },
     {
-      "name": "zola_list_favorites",
+      "name": "list_favorites",
       "description": "List favorited vendors"
     }
   ],

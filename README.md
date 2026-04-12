@@ -123,68 +123,68 @@ Only one credential is required:
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `zola_list_vendors` | List all booked vendors | Auto |
-| `zola_search_vendors` | Search vendors by name/category | Auto |
-| `zola_add_vendor` | Book a new vendor | Confirm |
-| `zola_update_vendor` | Update vendor details | Confirm |
-| `zola_remove_vendor` | Unbook a vendor | Confirm |
+| `list_vendors` | List all booked vendors | Auto |
+| `search_vendors` | Search vendors by name/category | Auto |
+| `add_vendor` | Book a new vendor | Confirm |
+| `update_vendor` | Update vendor details | Confirm |
+| `remove_vendor` | Unbook a vendor | Confirm |
 
 ### Budget
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `zola_get_budget` | Budget summary with all items | Auto |
-| `zola_update_budget_item` | Update cost or note | Confirm |
+| `get_budget` | Budget summary with all items | Auto |
+| `update_budget_item` | Update cost or note | Confirm |
 
 ### Guests
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `zola_list_guests` | List all guest groups with stats | Auto |
-| `zola_add_guest` | Add a guest group | Confirm |
-| `zola_update_guest_address` | Update mailing address | Confirm |
-| `zola_remove_guest` | Remove a guest group | Confirm |
+| `list_guests` | List all guest groups with stats | Auto |
+| `add_guest` | Add a guest group | Confirm |
+| `update_guest_address` | Update mailing address | Confirm |
+| `remove_guest` | Remove a guest group | Confirm |
 
 ### Seating
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `zola_list_seating_charts` | List seating charts | Auto |
-| `zola_get_seating_chart` | Chart with tables/seats/occupants | Auto |
-| `zola_list_unseated_guests` | Guests not yet seated | Auto |
-| `zola_assign_seat` | Assign guest to a seat | Confirm |
+| `list_seating_charts` | List seating charts | Auto |
+| `get_seating_chart` | Chart with tables/seats/occupants | Auto |
+| `list_unseated_guests` | Guests not yet seated | Auto |
+| `assign_seat` | Assign guest to a seat | Confirm |
 
 ### Inquiries
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `zola_list_inquiries` | All vendor inquiries with status | Auto |
-| `zola_get_inquiry_conversation` | Full conversation messages | Auto |
-| `zola_mark_inquiry_read` | Mark as read | Confirm |
+| `list_inquiries` | All vendor inquiries with status | Auto |
+| `get_inquiry_conversation` | Full conversation messages | Auto |
+| `mark_inquiry_read` | Mark as read | Confirm |
 
 ### Events & RSVPs
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `zola_list_events` | All events with RSVP counts | Auto |
-| `zola_track_rsvps` | RSVP tracking per event | Auto |
-| `zola_update_event` | Update event details | Confirm |
+| `list_events` | All events with RSVP counts | Auto |
+| `track_rsvps` | RSVP tracking per event | Auto |
+| `update_event` | Update event details | Confirm |
 
 ### Registry & Gifts
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `zola_get_registry` | Registry categories and items | Auto |
-| `zola_get_gift_tracker` | Gifts received, thank-you status | Auto |
+| `get_registry` | Registry categories and items | Auto |
+| `get_gift_tracker` | Gifts received, thank-you status | Auto |
 
 ### Discovery
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `zola_get_wedding_dashboard` | Planning dashboard overview | Auto |
-| `zola_search_storefronts` | Search marketplace by category/location | Auto |
-| `zola_get_storefront` | Full vendor storefront details | Auto |
-| `zola_list_favorites` | Favorited vendors | Auto |
+| `get_wedding_dashboard` | Planning dashboard overview | Auto |
+| `search_storefronts` | Search marketplace by category/location | Auto |
+| `get_storefront` | Full vendor storefront details | Auto |
+| `list_favorites` | Favorited vendors | Auto |
 
 ## Troubleshooting
 

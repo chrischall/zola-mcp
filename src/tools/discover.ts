@@ -58,12 +58,12 @@ export async function listFavorites(): Promise<ToolResult> {
 }
 
 export function registerDiscoverTools(server: McpServer): void {
-  server.registerTool('zola_get_wedding_dashboard', {
+  server.registerTool('get_wedding_dashboard', {
     description: 'Get the wedding planning dashboard overview (invites, paper, planning progress)',
     annotations: { readOnlyHint: true },
   }, getWeddingDashboard);
 
-  server.registerTool('zola_search_storefronts', {
+  server.registerTool('search_storefronts', {
     description: 'Search Zola vendor marketplace by category and location (1=Venues, 2=Photographers, 3=Florists, 7=Planners, 9=Bands/DJs)',
     inputSchema: {
       taxonomy_node_id: z.number().describe('Vendor category ID (1=Venues, 2=Photographers, 3=Florists, 7=Planners, 9=Bands/DJs)'),
@@ -75,13 +75,13 @@ export function registerDiscoverTools(server: McpServer): void {
     annotations: { readOnlyHint: true },
   }, searchStorefronts);
 
-  server.registerTool('zola_get_storefront', {
+  server.registerTool('get_storefront', {
     description: 'Get full details for a vendor storefront (pricing, reviews, photos, about, FAQs)',
-    inputSchema: { uuid: z.string().describe('Storefront UUID from zola_search_storefronts or zola_list_favorites') },
+    inputSchema: { uuid: z.string().describe('Storefront UUID from search_storefronts or list_favorites') },
     annotations: { readOnlyHint: true },
   }, getStorefront);
 
-  server.registerTool('zola_list_favorites', {
+  server.registerTool('list_favorites', {
     description: 'List all favorited/saved vendors',
     annotations: { readOnlyHint: true },
   }, listFavorites);

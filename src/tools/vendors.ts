@@ -177,12 +177,12 @@ export async function removeVendor(args: { uuid: string }): Promise<ToolResult> 
 }
 
 export function registerVendorTools(server: McpServer): void {
-  server.registerTool('zola_list_vendors', {
+  server.registerTool('list_vendors', {
     description: 'List all booked vendors with details',
     annotations: { readOnlyHint: true },
   }, listVendors);
 
-  server.registerTool('zola_search_vendors', {
+  server.registerTool('search_vendors', {
     description: 'Search for vendors by name (typeahead) within a vendor category',
     inputSchema: {
       query: z.string().describe('Vendor name to search for'),
@@ -191,7 +191,7 @@ export function registerVendorTools(server: McpServer): void {
     annotations: { readOnlyHint: true },
   }, searchVendors);
 
-  server.registerTool('zola_add_vendor', {
+  server.registerTool('add_vendor', {
     description: 'Book a new vendor',
     inputSchema: {
       vendor_type: z.string().describe('Vendor type (VENUE, PHOTOGRAPHER, FLORIST, MUSICIAN_DJ, PLANNER, VIDEOGRAPHER, HAIR_MAKEUP, CAKES_DESSERTS)'),
@@ -202,15 +202,15 @@ export function registerVendorTools(server: McpServer): void {
       phone: z.string().optional().describe('Vendor phone'),
       price_cents: z.number().optional().describe('Total price in cents'),
       event_date: z.string().optional().describe('Event date ISO 8601'),
-      reference_vendor_id: z.number().optional().describe('Reference vendor ID from zola_search_vendors'),
+      reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
     },
     annotations: { destructiveHint: false },
   }, addVendor);
 
-  server.registerTool('zola_update_vendor', {
+  server.registerTool('update_vendor', {
     description: 'Update a booked vendor\'s details',
     inputSchema: {
-      uuid: z.string().describe('Vendor UUID from zola_list_vendors'),
+      uuid: z.string().describe('Vendor UUID from list_vendors'),
       name: z.string().optional(),
       city: z.string().optional(),
       state_province: z.string().optional(),
@@ -221,9 +221,9 @@ export function registerVendorTools(server: McpServer): void {
     annotations: { destructiveHint: false },
   }, updateVendor);
 
-  server.registerTool('zola_remove_vendor', {
+  server.registerTool('remove_vendor', {
     description: 'Unbook a vendor',
-    inputSchema: { uuid: z.string().describe('Vendor UUID from zola_list_vendors') },
+    inputSchema: { uuid: z.string().describe('Vendor UUID from list_vendors') },
     annotations: { destructiveHint: true },
   }, removeVendor);
 }
