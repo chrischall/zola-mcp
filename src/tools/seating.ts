@@ -117,29 +117,29 @@ export async function assignSeat(args: {
 }
 
 export function registerSeatingTools(server: McpServer): void {
-  server.registerTool('zola_list_seating_charts', {
+  server.registerTool('list_seating_charts', {
     description: 'List all seating charts with their UUID and event name',
     annotations: { readOnlyHint: true },
   }, listSeatingCharts);
 
-  server.registerTool('zola_get_seating_chart', {
+  server.registerTool('get_seating_chart', {
     description: 'Get full seating chart with all tables, seats, and current occupants',
-    inputSchema: { uuid: z.string().describe('Seating chart UUID from zola_list_seating_charts') },
+    inputSchema: { uuid: z.string().describe('Seating chart UUID from list_seating_charts') },
     annotations: { readOnlyHint: true },
   }, getSeatingChart);
 
-  server.registerTool('zola_list_unseated_guests', {
+  server.registerTool('list_unseated_guests', {
     description: 'List all guests who have not yet been assigned a seat',
     annotations: { readOnlyHint: true },
   }, listUnseatedGuests);
 
-  server.registerTool('zola_assign_seat', {
+  server.registerTool('assign_seat', {
     description: 'Assign a guest to a specific seat in a seating chart',
     inputSchema: {
-      guest_uuid: z.string().describe('Guest UUID from zola_list_unseated_guests'),
-      seat_uuid: z.string().describe('Seat UUID from zola_get_seating_chart'),
-      table_uuid: z.string().describe('Table UUID from zola_get_seating_chart'),
-      seating_chart_uuid: z.string().describe('Seating chart UUID from zola_list_seating_charts'),
+      guest_uuid: z.string().describe('Guest UUID from list_unseated_guests'),
+      seat_uuid: z.string().describe('Seat UUID from get_seating_chart'),
+      table_uuid: z.string().describe('Table UUID from get_seating_chart'),
+      seating_chart_uuid: z.string().describe('Seating chart UUID from list_seating_charts'),
     },
     annotations: { destructiveHint: false },
   }, assignSeat);

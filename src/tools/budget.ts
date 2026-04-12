@@ -102,15 +102,15 @@ export async function updateBudgetItem(args: {
 }
 
 export function registerBudgetTools(server: McpServer): void {
-  server.registerTool('zola_get_budget', {
+  server.registerTool('get_budget', {
     description: 'Get the wedding budget summary including total budgeted, actual cost, paid, and all budget items',
     annotations: { readOnlyHint: true },
   }, getBudget);
 
-  server.registerTool('zola_update_budget_item', {
+  server.registerTool('update_budget_item', {
     description: "Update a budget item's actual cost and/or note by UUID",
     inputSchema: {
-      uuid: z.string().describe('Budget item UUID from zola_get_budget'),
+      uuid: z.string().describe('Budget item UUID from get_budget'),
       actual_cost_cents: z.number().optional().describe('Actual cost in cents'),
       note: z.string().optional().describe('Note for the budget item'),
     },
