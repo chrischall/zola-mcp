@@ -32,7 +32,7 @@ interface InquirySummary {
 
 interface UnifiedSection {
   title: string;
-  inquiries: InquirySummary[];
+  inquiry_summaries: InquirySummary[];
 }
 
 interface UnifiedResponse {
@@ -78,7 +78,7 @@ export async function listInquiries(): Promise<ToolResult> {
     {}
   );
   const inquiries = response.data.flatMap((section) =>
-    section.inquiries.map((inq) => ({
+    (section.inquiry_summaries ?? []).map((inq) => ({
       inquiry_uuid: inq.inquiry_uuid,
       vendor_name: inq.vendor_card.vendor_name,
       vendor_type: inq.vendor_card.taxonomy_node.singular_name,

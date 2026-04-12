@@ -34,7 +34,7 @@ const MOCK_UNIFIED_RESPONSE = {
       title: 'Inquiries',
       banner_text: 'Vendors typically respond within 2 business days.',
       taxonomy_nodes: [],
-      inquiries: [MOCK_INQUIRY],
+      inquiry_summaries: [MOCK_INQUIRY],
     },
   ],
 };
