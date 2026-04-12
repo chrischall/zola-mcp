@@ -3,7 +3,7 @@
   "manifest_version": "0.3",
   "name": "zola-mcp",
   "display_name": "Zola",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Zola wedding planning tools for Claude — vendors, budget, guests, seating, events, registry, inquiries, and more",
   "author": {
     "name": "Chris Chall",

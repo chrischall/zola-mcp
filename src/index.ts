@@ -10,7 +10,7 @@ import { registerDiscoverTools } from './tools/discover.js';
 
 const server = new McpServer({
   name: 'zola-mcp',
-  version: '1.0.3',
+  version: '1.0.4',
 });
 
 registerVendorTools(server);
