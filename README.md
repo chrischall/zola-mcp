@@ -3,7 +3,7 @@
 A [Model Context Protocol](https://modelcontextprotocol.io) server that connects Claude to [Zola](https://www.zola.com), giving you natural-language access to your wedding vendors, budget, guest list, seating chart, events, registry, inquiries, and more.
 
 > [!WARNING]
-> **AI-developed project.** This codebase was entirely built and is actively maintained by [Claude Sonnet 4.6](https://www.anthropic.com/claude). No human has audited the implementation. Review all code and tool permissions before use.
+> **AI-developed project.** This codebase was entirely built and is actively maintained by [Claude Code](https://www.anthropic.com/claude). No human has audited the implementation. Review all code and tool permissions before use.
 
 ## What you can do
 
@@ -22,8 +22,8 @@ Ask Claude things like:
 
 - [Claude Desktop](https://claude.ai/download) or [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - [Node.js](https://nodejs.org) 20.6 or later
-- A [Zola](https://www.zola.com) account with the Zola iOS app installed (for initial auth setup)
-- [mitmproxy](https://mitmproxy.org) (`brew install mitmproxy`) — used once for auth token capture
+- A [Zola](https://www.zola.com) account
+- [Google Chrome](https://www.google.com/chrome/) — used once for the scripted auth flow (optional; you can copy the cookie manually instead)
 
 ## Installation
 
@@ -89,19 +89,29 @@ Add to Claude Desktop config:
 
 ### Getting your refresh token
 
-Run the setup script (one-time, token lasts ~1 year):
+Sign in to zola.com and capture the `usr` cookie — a ~1-year JWT that doubles as the refresh token. The token lasts ~1 year; this is a one-time setup.
+
+#### Option A — scripted (recommended)
 
 ```bash
-./scripts/setup-auth.sh
+npm run auth               # prints the token to the console
+npm run auth -- .env       # writes ZOLA_REFRESH_TOKEN=<token> to .env
 ```
 
-This starts [mitmproxy](https://mitmproxy.org) (`brew install mitmproxy`), opens the Zola iOS app, captures the mobile API refresh token, and saves it to `.env`.
+Launches Chrome with a dedicated profile at `~/.zola-mcp/chrome-profile`, waits for you to sign in at `zola.com/account/login`, captures the `usr` cookie (a ~1-year JWT), and either prints it (for pasting into Claude Desktop / MCPB / any config that doesn't read `.env`) or writes it to the file you pass. Requires Google Chrome installed locally; the script will install `puppeteer-core` on first run (~1 MB).
 
-### 4. Restart Claude Desktop
+#### Option B — manual (DevTools)
+
+1. Sign in at [zola.com/account/login](https://www.zola.com/account/login) in any browser.
+2. Open DevTools → **Application** → **Cookies** → `https://www.zola.com`.
+3. Copy the value of the `usr` cookie.
+4. Paste it into `.env` as `ZOLA_REFRESH_TOKEN=<value>` (or into your Claude config `env` block).
+
+### Restart Claude Desktop
 
 Quit completely (Cmd+Q on Mac) and relaunch.
 
-### 5. Verify
+### Verify
 
 Ask Claude: *"How's wedding planning going?"* — it should show your wedding dashboard.
 
@@ -111,7 +121,7 @@ Only one credential is required:
 
 | Env var | Required | Notes |
 |---------|----------|-------|
-| `ZOLA_REFRESH_TOKEN` | Yes | Mobile API JWT (~1 year lifetime). Run `./scripts/setup-auth.sh` to capture. |
+| `ZOLA_REFRESH_TOKEN` | Yes | Refresh token JWT (~1 year lifetime). Run `npm run auth` to capture via browser login, or copy the `usr` cookie from DevTools. |
 | `ZOLA_ACCOUNT_ID` | No | Auto-resolved from API on first use |
 | `ZOLA_REGISTRY_ID` | No | Auto-resolved from API on first use |
 
@@ -188,9 +198,9 @@ Only one credential is required:
 
 ## Troubleshooting
 
-**"ZOLA_REFRESH_TOKEN must be set"** — run `./scripts/setup-auth.sh` to capture your token.
+**"ZOLA_REFRESH_TOKEN must be set"** — run `npm run auth` to capture your token.
 
-**"Zola session refresh failed"** — your refresh token has expired (~1 year). Re-run `./scripts/setup-auth.sh`.
+**"Zola session refresh failed"** — your refresh token has expired (~1 year). Re-run `npm run auth`.
 
 **403 from mobile API** — the `x-zola-session-id` header may be missing. Update to the latest version.
 

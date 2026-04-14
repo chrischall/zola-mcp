@@ -44,7 +44,7 @@
     "refresh_token": {
       "type": "string",
       "title": "Zola Refresh Token",
-      "description": "Mobile API JWT refresh token (~1 year lifetime). Run ./scripts/setup-auth.sh to capture from the Zola iOS app via mitmproxy.",
+      "description": "Zola refresh token JWT (~1 year lifetime). Run `npm run auth` (or ./scripts/setup-auth.sh) to capture via a browser login.",
       "required": true,
       "sensitive": true
     }
