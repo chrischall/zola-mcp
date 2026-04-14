@@ -2,12 +2,27 @@
   "name": "zola-mcp",
   "version": "1.0.6",
   "description": "Zola wedding MCP server for Claude",
-  "author": "Claude Sonnet 4.6 (AI) <https://www.anthropic.com/claude>",
+  "author": "Claude Code (AI) <https://www.anthropic.com/claude>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chrischall/zola-mcp.git"
   },
   "license": "MIT",
+  "keywords": [
+    "mcp",
+    "zola",
+    "wedding",
+    "wedding-planning",
+    "model-context-protocol",
+    "claude",
+    "ai",
+    "vendors",
+    "registry",
+    "guests",
+    "budget",
+    "seating",
+    "rsvp"
+  ],
   "files": [
     "dist",
     ".claude-plugin",
@@ -25,6 +40,7 @@
     "build": "tsc && npm run bundle",
     "bundle": "esbuild src/index.ts --bundle --platform=node --format=esm --external:dotenv --outfile=dist/bundle.js",
     "dev": "node --env-file=.env dist/index.js",
+    "auth": "node scripts/setup-auth.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -36,6 +52,7 @@
     "@types/node": "^25.5.0",
     "@vitest/coverage-v8": "^4.1.2",
     "esbuild": "^0.28.0",
+    "puppeteer-core": "^24.0.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.2"
   }

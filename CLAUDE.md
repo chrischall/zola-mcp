@@ -33,7 +33,7 @@ Each tool file exports handler functions and a `register*Tools(server)` function
 ## Environment
 
 ```
-ZOLA_REFRESH_TOKEN=<jwt>   # Required. Mobile API refresh token (~1 year). Run ./scripts/setup-auth.sh
+ZOLA_REFRESH_TOKEN=<jwt>   # Required. Refresh token (~1 year). Run `npm run auth -- .env` to capture via browser login.
 ZOLA_ACCOUNT_ID=<number>   # Optional. Auto-resolved from GET /v3/users/me/context
 ZOLA_REGISTRY_ID=<string>  # Optional. Auto-resolved from GET /v3/users/me/context
 ```

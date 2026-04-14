@@ -200,7 +200,7 @@ export class ZolaClient {
       const text = await response.text();
       throw new Error(
         `Zola session refresh failed (${response.status}): ${text}\n` +
-          'To fix: log into the Zola iOS app → capture refresh token via mitmproxy → update ZOLA_REFRESH_TOKEN'
+          'To fix: run `npm run auth` (or `./scripts/setup-auth.sh`) to capture a fresh ZOLA_REFRESH_TOKEN via browser login.'
       );
     }
 

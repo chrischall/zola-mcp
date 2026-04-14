@@ -40,13 +40,16 @@ npm install && npm run build
 
 ### Getting your refresh token
 
-Run the setup script (requires mitmproxy and the Zola iOS app):
+Run the setup script (one-time, token lasts ~1 year):
 
 ```bash
-./scripts/setup-auth.sh
+npm run auth               # prints the token to the console
+npm run auth -- .env       # writes ZOLA_REFRESH_TOKEN=<token> to .env
 ```
 
-This captures a mobile API refresh token (~1 year lifetime) from the Zola iOS app via mitmproxy. One-time setup.
+This launches Chrome with a dedicated profile, waits for you to sign in to zola.com, then captures the `usr` cookie (a ~1-year JWT). Use the printed value with Claude Desktop / MCPB configs, or the `.env` form when running from source.
+
+If you'd rather not run Chrome via the script, you can also copy the `usr` cookie manually from DevTools → Application → Cookies after signing in at zola.com.
 
 ## Credentials
 
