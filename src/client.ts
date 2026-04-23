@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 try {
   const { config } = await import('dotenv');
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  config({ path: join(__dirname, '..', '.env'), override: false });
+  config({ path: join(__dirname, '..', '.env'), override: false, quiet: true });
 } catch {
   // bundled mode — rely on process.env
 }
