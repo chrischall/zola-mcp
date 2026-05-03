@@ -9,6 +9,20 @@ try {
   // bundled mode — rely on process.env
 }
 
+/**
+ * Read an env var, trim whitespace, and treat as unset if blank or if the value
+ * looks like an unsubstituted shell placeholder (e.g. `${FOO}`) — defends
+ * against MCP hosts that pass .mcp.json env blocks through unexpanded.
+ */
+function readVar(key: string): string | undefined {
+  const raw = process.env[key];
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return undefined;
+  if (/^\$\{[^}]*\}$/.test(trimmed)) return undefined;
+  return trimmed;
+}
+
 const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
 
 function decodeJwtExp(token: string): number {
@@ -66,8 +80,8 @@ export class ZolaClient {
   async getContext(): Promise<UserContext> {
     if (this.cachedContext) return this.cachedContext;
 
-    const envAccountId = process.env.ZOLA_ACCOUNT_ID;
-    const envRegistryId = process.env.ZOLA_REGISTRY_ID;
+    const envAccountId = readVar('ZOLA_ACCOUNT_ID');
+    const envRegistryId = readVar('ZOLA_REGISTRY_ID');
 
     // If both env vars are set, skip the API call
     if (envAccountId && envRegistryId) {
@@ -157,7 +171,7 @@ export class ZolaClient {
 
     // Check for session token in env (first load only)
     if (this.sessionToken === null) {
-      const envSession = process.env.ZOLA_SESSION_TOKEN;
+      const envSession = readVar('ZOLA_SESSION_TOKEN');
       if (envSession) {
         try {
           const exp = decodeJwtExp(envSession);
@@ -181,7 +195,7 @@ export class ZolaClient {
    * Returns a new session_token (30-min) and optionally a new refresh_token.
    */
   private async refresh(): Promise<void> {
-    const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
+    const refreshToken = readVar('ZOLA_REFRESH_TOKEN');
     if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
 
     const response = await fetch(`${MOBILE_BASE_URL}/v3/sessions/refresh`, {
