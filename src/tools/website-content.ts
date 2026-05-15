@@ -47,6 +47,11 @@ async function getPageId(pageType: PageType): Promise<number> {
   return pageId;
 }
 
+async function removeEntity(pageType: PageType, entityId: number): Promise<ToolResult> {
+  await deletePageEntity(pageType, entityId);
+  return jsonResult({ removed: entityId });
+}
+
 async function deletePageEntity(pageType: PageType, entityId: number): Promise<void> {
   const { weddingAccountId } = await client.getContext();
   const pageId = await getPageId(pageType);
@@ -111,8 +116,7 @@ export async function updateFaq(args: {
 }
 
 export async function removeFaq(args: { faq_entity_id: number }): Promise<ToolResult> {
-  await deletePageEntity('FAQ', args.faq_entity_id);
-  return jsonResult({ removed: args.faq_entity_id });
+  return removeEntity('FAQ', args.faq_entity_id);
 }
 
 // ===== Home page sections (story blocks) =====
@@ -178,8 +182,7 @@ export async function updateHomeSection(args: {
 }
 
 export async function removeHomeSection(args: { homepage_entity_id: number }): Promise<ToolResult> {
-  await deletePageEntity('HOME', args.homepage_entity_id);
-  return jsonResult({ removed: args.homepage_entity_id });
+  return removeEntity('HOME', args.homepage_entity_id);
 }
 
 // ===== Points of Interest =====
@@ -243,8 +246,7 @@ export async function updatePoi(args: PoiFields & { poi_entity_id: number }): Pr
 }
 
 export async function removePoi(args: { poi_entity_id: number }): Promise<ToolResult> {
-  await deletePageEntity('POI', args.poi_entity_id);
-  return jsonResult({ removed: args.poi_entity_id });
+  return removeEntity('POI', args.poi_entity_id);
 }
 
 // ===== Travel items (hotels, flights, transportation) =====
@@ -315,8 +317,7 @@ export async function updateTravelItem(args: TravelFields & { travel_entity_id: 
 }
 
 export async function removeTravelItem(args: { travel_entity_id: number }): Promise<ToolResult> {
-  await deletePageEntity('TRAVEL', args.travel_entity_id);
-  return jsonResult({ removed: args.travel_entity_id });
+  return removeEntity('TRAVEL', args.travel_entity_id);
 }
 
 export function registerWebsiteContentTools(server: McpServer): void {
