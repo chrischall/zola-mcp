@@ -107,7 +107,7 @@ export async function updateRegistryItem(args: {
   };
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
-    `/v3/registries/${registryId}/items/${args.collection_item_id}`,
+    `/v3/registries/${registryId}/items/${encodeURIComponent(args.collection_item_id)}`,
     body
   );
   return jsonResult(response.data);
@@ -117,7 +117,7 @@ export async function removeRegistryItem(args: { collection_item_id: string }): 
   const { registryId } = await client.getContext();
   await client.requestMobile<MobileEnvelope<unknown>>(
     'DELETE',
-    `/v3/registries/${registryId}/items/${args.collection_item_id}`
+    `/v3/registries/${registryId}/items/${encodeURIComponent(args.collection_item_id)}`
   );
   return jsonResult({ removed: args.collection_item_id });
 }

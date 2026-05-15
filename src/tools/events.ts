@@ -113,7 +113,6 @@ export async function updateEvent(args: {
   attire?: string;
   collect_rsvps?: boolean;
 }): Promise<ToolResult> {
-  // Load current event to merge fields
   const { weddingAccountId } = await client.getContext();
   const listResponse = await client.requestMobile<MobileEnvelope<EventGroup[]>>(
     'GET',

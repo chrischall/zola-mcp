@@ -74,7 +74,6 @@ export async function addVendor(args: {
   event_date?: string;
   reference_vendor_id?: number;
 }): Promise<ToolResult> {
-  // Find an unbooked slot for this vendor type
   const listResponse = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
     '/v3/account-vendors/booked-list',
