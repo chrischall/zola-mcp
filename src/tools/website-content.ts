@@ -8,13 +8,14 @@ interface MobileEnvelope<T> {
 
 type ToolResult = { content: [{ type: 'text'; text: string }] };
 
-type PageType = 'HOME' | 'FAQ' | 'POI';
+type PageType = 'HOME' | 'FAQ' | 'POI' | 'TRAVEL';
 
 interface PagesFullResponse {
   data: {
     home_page?: { page_id: number };
     faq_page?: { page_id: number };
     poi_page?: { page_id: number };
+    travel_page?: { page_id: number };
   };
 }
 
@@ -42,6 +43,7 @@ async function getPageId(pageType: PageType): Promise<number> {
   if (response.data.home_page) perAccount.set('HOME', response.data.home_page.page_id);
   if (response.data.faq_page) perAccount.set('FAQ', response.data.faq_page.page_id);
   if (response.data.poi_page) perAccount.set('POI', response.data.poi_page.page_id);
+  if (response.data.travel_page) perAccount.set('TRAVEL', response.data.travel_page.page_id);
 
   const pageId = perAccount.get(pageType);
   if (pageId === undefined) {

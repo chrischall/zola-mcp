@@ -30,6 +30,7 @@ const MOCK_PAGES_RESPONSE = {
     home_page: { page_id: 41938915, type: 'HOME' },
     faq_page: { page_id: 41938921, type: 'FAQ' },
     poi_page: { page_id: 41938922, type: 'POI' },
+    travel_page: { page_id: 41938918, type: 'TRAVEL' },
   },
 };
 
