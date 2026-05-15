@@ -264,6 +264,95 @@ export async function removePoi(args: { poi_entity_id: number }): Promise<ToolRe
   return { content: [{ type: 'text', text: JSON.stringify({ removed: args.poi_entity_id }) }] };
 }
 
+// ===== Travel items (hotels, flights, transportation) =====
+
+type TravelType = 'HOTEL' | 'FLIGHT' | 'TRAIN' | 'BUS' | 'CAR' | 'OTHER';
+
+interface TravelFields {
+  type?: TravelType;
+  name?: string;
+  note?: string;
+  code?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state_province?: string;
+  postal_code?: string;
+  country_code?: string;
+  latitude?: string;
+  longitude?: string;
+  google_place_id?: string;
+  contact_number?: string;
+  email_address?: string;
+  url?: string;
+  source?: string;
+  timezone?: string;
+  display_order?: number;
+}
+
+function buildTravelBody(args: TravelFields, weddingAccountId: number, travelEntityId: number): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    wedding_account_id: weddingAccountId,
+    travel_entity_id: travelEntityId,
+  };
+  if (args.type !== undefined) body.type = args.type;
+  if (args.name !== undefined) body.name = args.name;
+  if (args.note !== undefined) body.note = args.note;
+  if (args.code !== undefined) body.code = args.code;
+  if (args.address1 !== undefined) body.address1 = args.address1;
+  if (args.address2 !== undefined) body.address2 = args.address2;
+  if (args.city !== undefined) body.city = args.city;
+  if (args.state_province !== undefined) body.state_province = args.state_province;
+  if (args.postal_code !== undefined) body.postal_code = args.postal_code;
+  if (args.country_code !== undefined) body.country_code = args.country_code;
+  if (args.latitude !== undefined) body.latitude = args.latitude;
+  if (args.longitude !== undefined) body.longitude = args.longitude;
+  if (args.google_place_id !== undefined) body.google_place_id = args.google_place_id;
+  if (args.contact_number !== undefined) body.contact_number = args.contact_number;
+  if (args.email_address !== undefined) body.email_address = args.email_address;
+  if (args.url !== undefined) body.url = args.url;
+  if (args.source !== undefined) body.source = args.source;
+  if (args.timezone !== undefined) body.timezone = args.timezone;
+  if (args.display_order !== undefined) body.display_order = args.display_order;
+  return body;
+}
+
+export async function listTravelItems(): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'GET',
+    `/v3/websites/travel/wedding-accounts/${weddingAccountId}`
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export async function addTravelItem(args: TravelFields & { type: TravelType; name: string }): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  const body = buildTravelBody(args, weddingAccountId, 0);
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'POST',
+    '/v3/websites/travel',
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export async function updateTravelItem(args: TravelFields & { travel_entity_id: number }): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  const body = buildTravelBody(args, weddingAccountId, args.travel_entity_id);
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'PUT',
+    `/v3/websites/travel/${args.travel_entity_id}`,
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export async function removeTravelItem(args: { travel_entity_id: number }): Promise<ToolResult> {
+  await deletePageEntity('TRAVEL', args.travel_entity_id);
+  return { content: [{ type: 'text', text: JSON.stringify({ removed: args.travel_entity_id }) }] };
+}
+
 export function registerWebsiteContentTools(server: McpServer): void {
   server.tool('list_faqs', 'List all FAQs on the wedding website', {}, listFaqs);
 
@@ -390,5 +479,69 @@ export function registerWebsiteContentTools(server: McpServer): void {
     'Remove a point-of-interest from the Things-to-Do page',
     { poi_entity_id: z.number() },
     removePoi
+  );
+
+  server.tool('list_travel_items', 'List hotels, flights, and transportation on the website Travel page', {}, listTravelItems);
+
+  server.tool(
+    'add_travel_item',
+    'Add a travel item (hotel, flight, train, car, bus) to the Travel page',
+    {
+      type: z.enum(['HOTEL', 'FLIGHT', 'TRAIN', 'BUS', 'CAR', 'OTHER']).describe('Travel item type'),
+      name: z.string().describe('Name of the hotel/airline/etc.'),
+      note: z.string().optional().describe('Free-text notes (e.g., booking code instructions)'),
+      code: z.string().optional().describe('Booking code or group rate code'),
+      address1: z.string().optional(),
+      address2: z.string().optional(),
+      city: z.string().optional(),
+      state_province: z.string().optional(),
+      postal_code: z.string().optional(),
+      country_code: z.string().optional().describe('Default: US'),
+      latitude: z.string().optional().describe('Decimal degrees as string'),
+      longitude: z.string().optional().describe('Decimal degrees as string'),
+      google_place_id: z.string().optional(),
+      contact_number: z.string().optional(),
+      email_address: z.string().optional(),
+      url: z.string().optional().describe('Booking link'),
+      source: z.string().optional().describe('GOOGLE_PLACES or MANUAL'),
+      timezone: z.string().optional().describe('e.g. America/New_York'),
+      display_order: z.number().optional(),
+    },
+    addTravelItem
+  );
+
+  server.tool(
+    'update_travel_item',
+    'Update a travel item. Provide only the fields you want to change.',
+    {
+      travel_entity_id: z.number().describe('Travel entity ID from list_travel_items'),
+      type: z.enum(['HOTEL', 'FLIGHT', 'TRAIN', 'BUS', 'CAR', 'OTHER']).optional(),
+      name: z.string().optional(),
+      note: z.string().optional(),
+      code: z.string().optional(),
+      address1: z.string().optional(),
+      address2: z.string().optional(),
+      city: z.string().optional(),
+      state_province: z.string().optional(),
+      postal_code: z.string().optional(),
+      country_code: z.string().optional(),
+      latitude: z.string().optional(),
+      longitude: z.string().optional(),
+      google_place_id: z.string().optional(),
+      contact_number: z.string().optional(),
+      email_address: z.string().optional(),
+      url: z.string().optional(),
+      source: z.string().optional(),
+      timezone: z.string().optional(),
+      display_order: z.number().optional(),
+    },
+    updateTravelItem
+  );
+
+  server.tool(
+    'remove_travel_item',
+    'Remove a travel item from the Travel page',
+    { travel_entity_id: z.number() },
+    removeTravelItem
   );
 }
