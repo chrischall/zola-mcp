@@ -39,13 +39,15 @@ async function getPageId(pageType: PageType): Promise<number> {
     'GET',
     '/v3/websites/pages/wedding-accounts/full'
   );
-  const key = pageType === 'HOME' ? 'home_page' : pageType === 'FAQ' ? 'faq_page' : 'poi_page';
-  const page = response.data[key];
-  if (!page) {
+  if (response.data.home_page) perAccount.set('HOME', response.data.home_page.page_id);
+  if (response.data.faq_page) perAccount.set('FAQ', response.data.faq_page.page_id);
+  if (response.data.poi_page) perAccount.set('POI', response.data.poi_page.page_id);
+
+  const pageId = perAccount.get(pageType);
+  if (pageId === undefined) {
     throw new Error(`Page of type ${pageType} not found on this wedding`);
   }
-  perAccount.set(pageType, page.page_id);
-  return page.page_id;
+  return pageId;
 }
 
 async function deletePageEntity(pageType: PageType, entityId: number): Promise<void> {
