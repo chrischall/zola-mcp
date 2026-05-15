@@ -9,6 +9,10 @@ import {
   addHomeSection,
   updateHomeSection,
   removeHomeSection,
+  listPois,
+  addPoi,
+  updatePoi,
+  removePoi,
   _resetPageIdCache,
 } from '../src/tools/website-content.js';
 
@@ -211,6 +215,108 @@ describe('website-content: home sections', () => {
       2,
       'DELETE',
       '/v3/websites/pages/41938915/entities/1381564/wedding-accounts/4664323'
+    );
+  });
+});
+
+describe('website-content: points of interest', () => {
+  let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
+
+  beforeEach(() => {
+    reqSpy = vi.spyOn(client, 'requestMobile');
+    vi.spyOn(client, 'getContext').mockResolvedValue(MOCK_CTX);
+    _resetPageIdCache();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('listPois: GETs points-of-interest for wedding account', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: [{ poi_entity_id: 5506041, title: 'Rhino Market' }],
+    } as never);
+
+    const result = await listPois();
+
+    expect(reqSpy).toHaveBeenCalledWith(
+      'GET',
+      '/v3/websites/points-of-interest/wedding-accounts/4664323'
+    );
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed[0].title).toBe('Rhino Market');
+  });
+
+  it('addPoi: POSTs with poi_entity_id=0 and all provided fields', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { poi_entity_id: 5506041, title: 'Rhino Market' },
+    } as never);
+
+    await addPoi({
+      title: 'Rhino Market',
+      address1: '1414 South Tryon Street',
+      city: 'Charlotte',
+      state_province: 'NC',
+      postal_code: '28203',
+      country_code: 'US',
+      description: 'Coffee + sandwiches',
+      display_order: 0,
+      google_place_id: 'ChIJ3VVpfi-fVogRMuoFolGsGQY',
+      latitude: '35.2175737',
+      longitude: '-80.8555847',
+    });
+
+    expect(reqSpy).toHaveBeenCalledWith(
+      'POST',
+      '/v3/websites/points-of-interest',
+      expect.objectContaining({
+        wedding_account_id: 4664323,
+        poi_entity_id: 0,
+        title: 'Rhino Market',
+        address1: '1414 South Tryon Street',
+        google_place_id: 'ChIJ3VVpfi-fVogRMuoFolGsGQY',
+      })
+    );
+  });
+
+  it('addPoi: omits unset optional fields', async () => {
+    reqSpy.mockResolvedValueOnce({ data: { poi_entity_id: 1 } } as never);
+    await addPoi({ title: 'Bare POI' });
+    const body = reqSpy.mock.calls[0][2] as Record<string, unknown>;
+    expect(body.title).toBe('Bare POI');
+    expect(body.poi_entity_id).toBe(0);
+    expect(body).not.toHaveProperty('google_place_id');
+    expect(body).not.toHaveProperty('latitude');
+  });
+
+  it('updatePoi: PUTs to /points-of-interest/{id}', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { poi_entity_id: 5506041, title: 'Renamed' },
+    } as never);
+
+    await updatePoi({ poi_entity_id: 5506041, title: 'Renamed' });
+
+    expect(reqSpy).toHaveBeenCalledWith(
+      'PUT',
+      '/v3/websites/points-of-interest/5506041',
+      expect.objectContaining({
+        wedding_account_id: 4664323,
+        poi_entity_id: 5506041,
+        title: 'Renamed',
+      })
+    );
+  });
+
+  it('removePoi: looks up POI page_id then DELETEs entity', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
+    reqSpy.mockResolvedValueOnce({ data: null } as never);
+
+    await removePoi({ poi_entity_id: 5506041 });
+
+    expect(reqSpy).toHaveBeenNthCalledWith(
+      2,
+      'DELETE',
+      '/v3/websites/pages/41938922/entities/5506041/wedding-accounts/4664323'
     );
   });
 });
