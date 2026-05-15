@@ -128,6 +128,58 @@ describe('website-content: faqs', () => {
     const getCalls = reqSpy.mock.calls.filter((c) => c[0] === 'GET');
     expect(getCalls).toHaveLength(1);
   });
+
+  // Gap 4: getPageId error path when faq_page is absent
+  it('removeFaq: rejects with "Page of type FAQ not found" when faq_page is missing', async () => {
+    const pagesWithoutFaq = {
+      data: {
+        home_page: { page_id: 41938915, type: 'HOME' },
+        poi_page: { page_id: 41938922, type: 'POI' },
+        // faq_page deliberately absent
+      },
+    };
+    reqSpy.mockResolvedValueOnce(pagesWithoutFaq as never);
+
+    await expect(removeFaq({ faq_entity_id: 999 })).rejects.toThrow(/Page of type FAQ not found/);
+  });
+
+  // Gap 6: addFaq default display_order when omitted
+  it('addFaq: defaults display_order to 0 when omitted', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { faq_entity_id: 9999, question: 'Default order?', answer: 'Yes', display_order: 0 },
+    } as never);
+
+    await addFaq({ question: 'Default order?', answer: 'Yes' }); // no display_order
+
+    const body = reqSpy.mock.calls[0][2] as Record<string, unknown>;
+    expect(body.display_order).toBe(0);
+  });
+
+  // Gap 8: removeFaq return content
+  it('removeFaq: returns {removed: faq_entity_id} in content', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
+    reqSpy.mockResolvedValueOnce({ data: null } as never);
+
+    const result = await removeFaq({ faq_entity_id: 6522901 });
+
+    expect(JSON.parse(result.content[0].text).removed).toBe(6522901);
+  });
+
+  // Gap 5: cross-type cache — one GET populates HOME, FAQ, and POI
+  it('cache: one GET populates all three page types (FAQ + HOME + POI removes = 1 GET + 3 DELETEs)', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never); // single pages lookup
+    reqSpy.mockResolvedValueOnce({ data: null } as never); // removeFaq DELETE
+    reqSpy.mockResolvedValueOnce({ data: null } as never); // removeHomeSection DELETE
+    reqSpy.mockResolvedValueOnce({ data: null } as never); // removePoi DELETE
+
+    await removeFaq({ faq_entity_id: 6522901 });
+    await removeHomeSection({ homepage_entity_id: 1381564 });
+    await removePoi({ poi_entity_id: 5506041 });
+
+    expect(reqSpy).toHaveBeenCalledTimes(4);
+    const getCalls = reqSpy.mock.calls.filter((c) => c[0] === 'GET');
+    expect(getCalls).toHaveLength(1);
+  });
 });
 
 describe('website-content: home sections', () => {
@@ -216,6 +268,29 @@ describe('website-content: home sections', () => {
       'DELETE',
       '/v3/websites/pages/41938915/entities/1381564/wedding-accounts/4664323'
     );
+  });
+
+  // Gap 7: addHomeSection defaults display_order and hidden when omitted
+  it('addHomeSection: defaults display_order to 0 and hidden to false when omitted', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { homepage_entity_id: 1422067, title: 'No defaults', subtitle: 'sub', description: 'd', display_order: 0, hidden: false },
+    } as never);
+
+    await addHomeSection({ title: 'No defaults', subtitle: 'sub', description: 'd' });
+
+    const body = reqSpy.mock.calls[0][2] as Record<string, unknown>;
+    expect(body.display_order).toBe(0);
+    expect(body.hidden).toBe(false);
+  });
+
+  // Gap 8: removeHomeSection return content
+  it('removeHomeSection: returns {removed: homepage_entity_id} in content', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
+    reqSpy.mockResolvedValueOnce({ data: null } as never);
+
+    const result = await removeHomeSection({ homepage_entity_id: 1381564 });
+
+    expect(JSON.parse(result.content[0].text).removed).toBe(1381564);
   });
 });
 
@@ -318,5 +393,15 @@ describe('website-content: points of interest', () => {
       'DELETE',
       '/v3/websites/pages/41938922/entities/5506041/wedding-accounts/4664323'
     );
+  });
+
+  // Gap 8: removePoi return content
+  it('removePoi: returns {removed: poi_entity_id} in content', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
+    reqSpy.mockResolvedValueOnce({ data: null } as never);
+
+    const result = await removePoi({ poi_entity_id: 5506041 });
+
+    expect(JSON.parse(result.content[0].text).removed).toBe(5506041);
   });
 });

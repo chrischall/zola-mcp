@@ -165,5 +165,41 @@ describe('website tools', () => {
     );
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.title).toBe('New Title');
+
+    // Gap 2: untouched fields are preserved from current wedding
+    const putBody = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    expect(putBody.owner_first_name).toBe('Meredith');
+    expect(putBody.owner_last_name).toBe('Suffron');
+    expect(putBody.enable_search_engine).toBe(false);
+    expect(putBody.enable_search_zola).toBe(false);
+    expect(putBody.guest_count).toBe(100);
+    expect(putBody.city).toBe('Charlotte');
+    expect(putBody.state_province).toBe('NC');
+  });
+
+  // Gap 1: hashtag ?? current.hashtag ?? '' double-fallback when current.hashtag is null
+  it('updateWeddingSettings: produces empty string for hashtag when neither arg nor current has one', async () => {
+    const ctxWithNullHashtag = {
+      data: { ...MOCK_CONTEXT_RESPONSE.data, wedding: { ...MOCK_CONTEXT_RESPONSE.data.wedding, hashtag: null } },
+    };
+    reqSpy.mockResolvedValueOnce(ctxWithNullHashtag as never);
+    reqSpy.mockResolvedValueOnce({ data: ctxWithNullHashtag.data.wedding } as never);
+
+    await updateWeddingSettings({ title: 'X' }); // no hashtag arg
+
+    const putBody = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    expect(putBody.hashtag).toBe('');
+  });
+
+  // Gap 3: boolean-false passthrough — enable_search_engine: true overrides current false
+  it('updateWeddingSettings: passes enable_search_engine: true through ?? merge correctly', async () => {
+    // current has enable_search_engine: false; caller passes true
+    reqSpy.mockResolvedValueOnce(MOCK_CONTEXT_RESPONSE as never);
+    reqSpy.mockResolvedValueOnce({ data: MOCK_CONTEXT_RESPONSE.data.wedding } as never);
+
+    await updateWeddingSettings({ enable_search_engine: true });
+
+    const putBody = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    expect(putBody.enable_search_engine).toBe(true);
   });
 });
