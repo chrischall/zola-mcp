@@ -118,6 +118,73 @@ export async function removeFaq(args: { faq_entity_id: number }): Promise<ToolRe
   return { content: [{ type: 'text', text: JSON.stringify({ removed: args.faq_entity_id }) }] };
 }
 
+// ===== Home page sections (story blocks) =====
+
+export async function listHomeSections(): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'GET',
+    `/v3/websites/home-sections/wedding-accounts/${weddingAccountId}`
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export async function addHomeSection(args: {
+  title: string;
+  subtitle: string;
+  description: string;
+  display_order?: number;
+  hidden?: boolean;
+}): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  const body = {
+    wedding_account_id: weddingAccountId,
+    homepage_entity_id: 0,
+    title: args.title,
+    subtitle: args.subtitle,
+    description: args.description,
+    display_order: args.display_order ?? 0,
+    hidden: args.hidden ?? false,
+  };
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'POST',
+    '/v3/websites/home-sections',
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export async function updateHomeSection(args: {
+  homepage_entity_id: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  display_order: number;
+  hidden: boolean;
+}): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  const body = {
+    wedding_account_id: weddingAccountId,
+    homepage_entity_id: args.homepage_entity_id,
+    title: args.title,
+    subtitle: args.subtitle,
+    description: args.description,
+    display_order: args.display_order,
+    hidden: args.hidden,
+  };
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'PUT',
+    `/v3/websites/home-sections/${args.homepage_entity_id}`,
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export async function removeHomeSection(args: { homepage_entity_id: number }): Promise<ToolResult> {
+  await deletePageEntity('HOME', args.homepage_entity_id);
+  return { content: [{ type: 'text', text: JSON.stringify({ removed: args.homepage_entity_id }) }] };
+}
+
 export function registerWebsiteContentTools(server: McpServer): void {
   server.tool('list_faqs', 'List all FAQs on the wedding website', {}, listFaqs);
 
@@ -149,5 +216,41 @@ export function registerWebsiteContentTools(server: McpServer): void {
     'Remove an FAQ from the website',
     { faq_entity_id: z.number().describe('FAQ entity ID from list_faqs') },
     removeFaq
+  );
+
+  server.tool('list_home_sections', 'List the story sections on the website home page', {}, listHomeSections);
+
+  server.tool(
+    'add_home_section',
+    'Add a story section to the home page (title + subtitle + description block)',
+    {
+      title: z.string(),
+      subtitle: z.string(),
+      description: z.string(),
+      display_order: z.number().optional(),
+      hidden: z.boolean().optional(),
+    },
+    addHomeSection
+  );
+
+  server.tool(
+    'update_home_section',
+    'Update a home page story section — all fields must be supplied',
+    {
+      homepage_entity_id: z.number().describe('Home section ID from list_home_sections'),
+      title: z.string(),
+      subtitle: z.string(),
+      description: z.string(),
+      display_order: z.number(),
+      hidden: z.boolean(),
+    },
+    updateHomeSection
+  );
+
+  server.tool(
+    'remove_home_section',
+    'Remove a story section from the home page',
+    { homepage_entity_id: z.number() },
+    removeHomeSection
   );
 }

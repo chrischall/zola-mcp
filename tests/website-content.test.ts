@@ -5,6 +5,10 @@ import {
   addFaq,
   updateFaq,
   removeFaq,
+  listHomeSections,
+  addHomeSection,
+  updateHomeSection,
+  removeHomeSection,
   _resetPageIdCache,
 } from '../src/tools/website-content.js';
 
@@ -119,5 +123,94 @@ describe('website-content: faqs', () => {
     expect(reqSpy).toHaveBeenCalledTimes(3);
     const getCalls = reqSpy.mock.calls.filter((c) => c[0] === 'GET');
     expect(getCalls).toHaveLength(1);
+  });
+});
+
+describe('website-content: home sections', () => {
+  let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
+
+  beforeEach(() => {
+    reqSpy = vi.spyOn(client, 'requestMobile');
+    vi.spyOn(client, 'getContext').mockResolvedValue(MOCK_CTX);
+    _resetPageIdCache();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('listHomeSections: GETs home sections for wedding account', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: [
+        { homepage_entity_id: 1381564, title: 'Story 1', subtitle: 'sub', description: 'desc', display_order: 0, hidden: false },
+      ],
+    } as never);
+
+    const result = await listHomeSections();
+
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/home-sections/wedding-accounts/4664323');
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed[0].title).toBe('Story 1');
+  });
+
+  it('addHomeSection: POSTs new section with homepage_entity_id=0', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { homepage_entity_id: 1422067, title: 'New', subtitle: 'sub', description: 'd', display_order: 2, hidden: false },
+    } as never);
+
+    await addHomeSection({
+      title: 'New',
+      subtitle: 'sub',
+      description: 'd',
+      display_order: 2,
+    });
+
+    expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/home-sections', {
+      wedding_account_id: 4664323,
+      homepage_entity_id: 0,
+      title: 'New',
+      subtitle: 'sub',
+      description: 'd',
+      display_order: 2,
+      hidden: false,
+    });
+  });
+
+  it('updateHomeSection: PUTs to /home-sections/{id}', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { homepage_entity_id: 1381564, title: 'Edited' },
+    } as never);
+
+    await updateHomeSection({
+      homepage_entity_id: 1381564,
+      title: 'Edited',
+      subtitle: 'sub',
+      description: 'd',
+      display_order: 0,
+      hidden: false,
+    });
+
+    expect(reqSpy).toHaveBeenCalledWith('PUT', '/v3/websites/home-sections/1381564', {
+      wedding_account_id: 4664323,
+      homepage_entity_id: 1381564,
+      title: 'Edited',
+      subtitle: 'sub',
+      description: 'd',
+      display_order: 0,
+      hidden: false,
+    });
+  });
+
+  it('removeHomeSection: looks up HOME page_id then DELETEs entity', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
+    reqSpy.mockResolvedValueOnce({ data: null } as never);
+
+    await removeHomeSection({ homepage_entity_id: 1381564 });
+
+    expect(reqSpy).toHaveBeenNthCalledWith(
+      2,
+      'DELETE',
+      '/v3/websites/pages/41938915/entities/1381564/wedding-accounts/4664323'
+    );
   });
 });
