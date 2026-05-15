@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from './_shared.js';
+import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
 
 export async function listPages(): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
@@ -131,36 +131,29 @@ export async function updateWeddingSettings(args: {
 }
 
 export function registerWebsiteTools(server: McpServer): void {
-  server.tool(
-    'list_pages',
-    'List all wedding-website pages with their IDs, types, display order, visibility, and theme info',
-    {},
-    listPages
-  );
+  server.registerTool('list_pages', {
+    description: 'List all wedding-website pages with their IDs, types, display order, visibility, and theme info',
+    annotations: { readOnlyHint: true },
+  }, listPages);
 
-  server.tool(
-    'set_page_hidden',
-    'Show or hide a page on the wedding website (e.g., hide the RSVP page until invites go out)',
-    {
+  server.registerTool('set_page_hidden', {
+    description: 'Show or hide a page on the wedding website (e.g., hide the RSVP page until invites go out)',
+    inputSchema: {
       page_id: z.number().describe('Page ID from list_pages'),
       hidden: z.boolean().describe('true to hide the page, false to show it'),
     },
-    setPageHidden
-  );
+  }, setPageHidden);
 
-  server.tool(
-    'reorder_pages',
-    'Reorder pages in the website navigation. Pass the complete ordered list of page IDs.',
-    {
+  server.registerTool('reorder_pages', {
+    description: 'Reorder pages in the website navigation. Pass the complete ordered list of page IDs.',
+    inputSchema: {
       page_ids: z.array(z.number()).describe('Full ordered list of page IDs in desired nav order'),
     },
-    reorderPages
-  );
+  }, reorderPages);
 
-  server.tool(
-    'update_page',
-    'Update page-level metadata (title, intro copy, nav title, visibility, layout customization)',
-    {
+  server.registerTool('update_page', {
+    description: 'Update page-level metadata (title, intro copy, nav title, visibility, layout customization)',
+    inputSchema: {
       page_id: z.number().describe('Page ID from list_pages'),
       title: z.string().optional().describe('On-page title'),
       nav_title: z.string().optional().describe('Title shown in nav bar'),
@@ -170,20 +163,16 @@ export function registerWebsiteTools(server: McpServer): void {
       hidden: z.boolean().optional().describe('Hide the page from the public site'),
       customization: z.unknown().optional().describe('Layout customization object (see list_pages for shape)'),
     },
-    updatePage
-  );
+  }, updatePage);
 
-  server.tool(
-    'get_wedding_settings',
-    'Get top-level wedding settings: title, URL slug, partner names, date, city, hashtag, guest count, search visibility',
-    {},
-    getWeddingSettings
-  );
+  server.registerTool('get_wedding_settings', {
+    description: 'Get top-level wedding settings: title, URL slug, partner names, date, city, hashtag, guest count, search visibility',
+    annotations: { readOnlyHint: true },
+  }, getWeddingSettings);
 
-  server.tool(
-    'update_wedding_settings',
-    'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
-    {
+  server.registerTool('update_wedding_settings', {
+    description: 'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
+    inputSchema: {
       title: z.string().optional().describe('Wedding title (e.g., "Alex & Jordan")'),
       slug: z.string().optional().describe('URL slug — appears in the public website URL'),
       owner_first_name: z.string().optional(),
@@ -198,6 +187,5 @@ export function registerWebsiteTools(server: McpServer): void {
       enable_search_engine: z.boolean().optional().describe('Allow search engines (Google, etc.) to index the site'),
       enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),
     },
-    updateWeddingSettings
-  );
+  }, updateWeddingSettings);
 }

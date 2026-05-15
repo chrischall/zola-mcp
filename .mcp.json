@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "zola": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/bundle.js"],
+      "env": {
+        "ZOLA_REFRESH_TOKEN": "${ZOLA_REFRESH_TOKEN}"
+      }
+    }
+  }
+}

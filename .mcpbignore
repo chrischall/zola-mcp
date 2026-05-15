@@ -1,0 +1,31 @@
+# Source
+src/
+tests/
+
+# Dev tooling
+node_modules/
+coverage/
+tsconfig.json
+vitest.config.ts
+*.skill
+
+# Plugin/marketplace files
+.claude-plugin/
+skills/
+plugin.json
+.mcp.json
+
+# Docs (dev artifacts)
+docs/
+
+# GitHub/CI
+.github/
+
+# Local config
+.claude/
+.env
+.env.*
+
+# Git
+.git/
+.gitignore

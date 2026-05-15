@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
+import { MobileEnvelope, ToolResult } from '../types.js';
 
 interface VendorCard {
   id: number | null;
@@ -45,7 +45,7 @@ export async function listVendors(): Promise<ToolResult> {
     '/v3/account-vendors/booked-list',
     {}
   );
-  return jsonResult(response.data.booked_vendors);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data.booked_vendors, null, 2) }] };
 }
 
 export async function searchVendors(args: {
@@ -60,20 +60,21 @@ export async function searchVendors(args: {
       taxonomy_key: args.taxonomy_key ?? 'wedding-venues',
     }
   );
-  return jsonResult(results.data);
+  return { content: [{ type: 'text', text: JSON.stringify(results.data, null, 2) }] };
 }
 
 export async function addVendor(args: {
   vendor_type: string;
   name: string;
   city: string;
-  state: string;
+  state_province: string;
   email?: string;
   phone?: string;
   price_cents?: number;
   event_date?: string;
   reference_vendor_id?: number;
 }): Promise<ToolResult> {
+  // Find an unbooked slot for this vendor type
   const listResponse = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
     '/v3/account-vendors/booked-list',
@@ -103,7 +104,7 @@ export async function addVendor(args: {
       phone: args.phone ?? null,
       address: {
         city: args.city,
-        state_province_region: args.state,
+        state_province_region: args.state_province,
       },
     },
   };
@@ -113,14 +114,14 @@ export async function addVendor(args: {
     '/v5/account-vendors/vendor',
     body
   );
-  return jsonResult(result.data);
+  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
 }
 
 export async function updateVendor(args: {
   uuid: string;
   name?: string;
   city?: string;
-  state?: string;
+  state_province?: string;
   email?: string;
   price_cents?: number;
   event_date?: string;
@@ -153,7 +154,7 @@ export async function updateVendor(args: {
       email: args.email ?? current.vendor_card?.email ?? null,
       address: {
         city: args.city ?? current.vendor_card?.city ?? null,
-        state_province_region: args.state ?? current.vendor_card?.state_province ?? null,
+        state_province_region: args.state_province ?? current.vendor_card?.state_province ?? null,
       },
     },
   };
@@ -163,11 +164,11 @@ export async function updateVendor(args: {
     '/v5/account-vendors/vendor',
     body
   );
-  return jsonResult(result.data);
+  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
 }
 
 export async function removeVendor(args: { uuid: string }): Promise<ToolResult> {
-  const result = await client.requestMobile<MobileEnvelope<unknown>>(
+  await client.requestMobile(
     'POST',
     '/v3/account-vendors/vendor/unbook',
     { uuid: args.uuid }
@@ -176,59 +177,53 @@ export async function removeVendor(args: { uuid: string }): Promise<ToolResult> 
 }
 
 export function registerVendorTools(server: McpServer): void {
-  server.tool(
-    'list_vendors',
-    'List all booked vendors with details',
-    {},
-    listVendors
-  );
+  server.registerTool('list_vendors', {
+    description: 'List all booked vendors with details',
+    annotations: { readOnlyHint: true },
+  }, listVendors);
 
-  server.tool(
-    'search_vendors',
-    'Search for vendors by name (typeahead) within a vendor category',
-    {
+  server.registerTool('search_vendors', {
+    description: 'Search for vendors by name (typeahead) within a vendor category',
+    inputSchema: {
       query: z.string().describe('Vendor name to search for'),
       taxonomy_key: z.string().optional().describe('Vendor category key (e.g. wedding-venues, wedding-photographers, wedding-planners, wedding-bands-djs). Default: wedding-venues'),
     },
-    searchVendors
-  );
+    annotations: { readOnlyHint: true },
+  }, searchVendors);
 
-  server.tool(
-    'add_vendor',
-    'Book a new vendor',
-    {
+  server.registerTool('add_vendor', {
+    description: 'Book a new vendor',
+    inputSchema: {
       vendor_type: z.string().describe('Vendor type (VENUE, PHOTOGRAPHER, FLORIST, MUSICIAN_DJ, PLANNER, VIDEOGRAPHER, HAIR_MAKEUP, CAKES_DESSERTS)'),
       name: z.string().describe('Vendor business name'),
       city: z.string().describe('City'),
-      state: z.string().describe('State abbreviation (e.g. NC)'),
+      state_province: z.string().describe('State abbreviation (e.g. NC)'),
       email: z.string().optional().describe('Vendor email'),
       phone: z.string().optional().describe('Vendor phone'),
       price_cents: z.number().optional().describe('Total price in cents'),
       event_date: z.string().optional().describe('Event date ISO 8601'),
       reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
     },
-    addVendor
-  );
+    annotations: { destructiveHint: false },
+  }, addVendor);
 
-  server.tool(
-    'update_vendor',
-    'Update a booked vendor\'s details',
-    {
+  server.registerTool('update_vendor', {
+    description: 'Update a booked vendor\'s details',
+    inputSchema: {
       uuid: z.string().describe('Vendor UUID from list_vendors'),
       name: z.string().optional(),
       city: z.string().optional(),
-      state: z.string().optional(),
+      state_province: z.string().optional(),
       email: z.string().optional(),
       price_cents: z.number().optional(),
       event_date: z.string().optional().describe('ISO 8601 date'),
     },
-    updateVendor
-  );
+    annotations: { destructiveHint: false },
+  }, updateVendor);
 
-  server.tool(
-    'remove_vendor',
-    'Unbook a vendor',
-    { uuid: z.string().describe('Vendor UUID from list_vendors') },
-    removeVendor
-  );
+  server.registerTool('remove_vendor', {
+    description: 'Unbook a vendor',
+    inputSchema: { uuid: z.string().describe('Vendor UUID from list_vendors') },
+    annotations: { destructiveHint: true },
+  }, removeVendor);
 }

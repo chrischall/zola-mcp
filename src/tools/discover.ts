@@ -1,27 +1,28 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
+
+import { MobileEnvelope, ToolResult } from '../types.js';
 
 export async function getWeddingDashboard(): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     '/v4/your-wedding'
   );
-  return jsonResult(response.data);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
 }
 
 export async function searchStorefronts(args: {
   taxonomy_node_id: number;
   city: string;
-  state: string;
+  state_province: string;
   limit?: number;
   offset?: number;
 }): Promise<ToolResult> {
   const body = {
     taxonomy_node_id: args.taxonomy_node_id,
     city: args.city,
-    state: args.state,
+    state: args.state_province,
     limit: args.limit ?? 24,
     offset: args.offset ?? 0,
     facets: {},
@@ -37,15 +38,15 @@ export async function searchStorefronts(args: {
     '/v3/storefronts/search',
     body
   );
-  return jsonResult(response.data);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
 }
 
 export async function getStorefront(args: { uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
-    `/v3/storefronts/${encodeURIComponent(args.uuid)}`
+    `/v3/storefronts/${args.uuid}`
   );
-  return jsonResult(response.data);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
 }
 
 export async function listFavorites(): Promise<ToolResult> {
@@ -53,41 +54,35 @@ export async function listFavorites(): Promise<ToolResult> {
     'GET',
     '/v3/favorites/'
   );
-  return jsonResult(response.data);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
 }
 
 export function registerDiscoverTools(server: McpServer): void {
-  server.tool(
-    'get_wedding_dashboard',
-    'Get the wedding planning dashboard overview (invites, paper, planning progress)',
-    {},
-    getWeddingDashboard
-  );
+  server.registerTool('get_wedding_dashboard', {
+    description: 'Get the wedding planning dashboard overview (invites, paper, planning progress)',
+    annotations: { readOnlyHint: true },
+  }, getWeddingDashboard);
 
-  server.tool(
-    'search_storefronts',
-    'Search Zola vendor marketplace by category and location (1=Venues, 2=Photographers, 3=Florists, 7=Planners, 9=Bands/DJs)',
-    {
+  server.registerTool('search_storefronts', {
+    description: 'Search Zola vendor marketplace by category and location (1=Venues, 2=Photographers, 3=Florists, 7=Planners, 9=Bands/DJs)',
+    inputSchema: {
       taxonomy_node_id: z.number().describe('Vendor category ID (1=Venues, 2=Photographers, 3=Florists, 7=Planners, 9=Bands/DJs)'),
       city: z.string().describe('City name (e.g. Charlotte)'),
-      state: z.string().describe('State abbreviation (e.g. NC)'),
+      state_province: z.string().describe('State abbreviation (e.g. NC)'),
       limit: z.number().optional().describe('Results per page (default 24)'),
       offset: z.number().optional().describe('Pagination offset (default 0)'),
     },
-    searchStorefronts
-  );
+    annotations: { readOnlyHint: true },
+  }, searchStorefronts);
 
-  server.tool(
-    'get_storefront',
-    'Get full details for a vendor storefront (pricing, reviews, photos, about, FAQs)',
-    { uuid: z.string().describe('Storefront UUID from search_storefronts or list_favorites') },
-    getStorefront
-  );
+  server.registerTool('get_storefront', {
+    description: 'Get full details for a vendor storefront (pricing, reviews, photos, about, FAQs)',
+    inputSchema: { uuid: z.string().describe('Storefront UUID from search_storefronts or list_favorites') },
+    annotations: { readOnlyHint: true },
+  }, getStorefront);
 
-  server.tool(
-    'list_favorites',
-    'List all favorited/saved vendors',
-    {},
-    listFavorites
-  );
+  server.registerTool('list_favorites', {
+    description: 'List all favorited/saved vendors',
+    annotations: { readOnlyHint: true },
+  }, listFavorites);
 }

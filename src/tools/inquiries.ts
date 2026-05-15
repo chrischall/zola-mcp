@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
+import { ToolResult } from '../types.js';
 
 interface VendorCard {
   storefront_id: number;
@@ -31,7 +32,7 @@ interface InquirySummary {
 
 interface UnifiedSection {
   title: string;
-  inquiries: InquirySummary[];
+  inquiry_summaries: InquirySummary[];
 }
 
 interface UnifiedResponse {
@@ -70,8 +71,6 @@ interface ConversationResponse {
   };
 }
 
-import { ToolResult, jsonResult } from './_shared.js';
-
 export async function listInquiries(): Promise<ToolResult> {
   const response = await client.requestMobile<UnifiedResponse>(
     'POST',
@@ -79,7 +78,7 @@ export async function listInquiries(): Promise<ToolResult> {
     {}
   );
   const inquiries = response.data.flatMap((section) =>
-    section.inquiries.map((inq) => ({
+    (section.inquiry_summaries ?? []).map((inq) => ({
       inquiry_uuid: inq.inquiry_uuid,
       vendor_name: inq.vendor_card.vendor_name,
       vendor_type: inq.vendor_card.taxonomy_node.singular_name,
@@ -93,43 +92,39 @@ export async function listInquiries(): Promise<ToolResult> {
       updated_at: inq.updated_at,
     }))
   );
-  return jsonResult(inquiries);
+  return { content: [{ type: 'text', text: JSON.stringify(inquiries, null, 2) }] };
 }
 
 export async function getInquiryConversation(args: { uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<ConversationResponse>(
     'GET',
-    `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation`
+    `/v3/inquiries/${args.uuid}/conversation`
   );
-  return jsonResult(response.data);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
 }
 
 export async function markInquiryRead(args: { uuid: string }): Promise<ToolResult> {
-  await client.requestMobile('PUT', `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation/read`);
+  await client.requestMobile('PUT', `/v3/inquiries/${args.uuid}/conversation/read`);
   return {
     content: [{ type: 'text', text: `Marked inquiry ${args.uuid} as read` }],
   };
 }
 
 export function registerInquiryTools(server: McpServer): void {
-  server.tool(
-    'list_inquiries',
-    'List all vendor inquiries with status, vendor name, and unread flag',
-    {},
-    listInquiries
-  );
+  server.registerTool('list_inquiries', {
+    description: 'List all vendor inquiries with status, vendor name, and unread flag',
+    annotations: { readOnlyHint: true },
+  }, listInquiries);
 
-  server.tool(
-    'get_inquiry_conversation',
-    'Get full conversation for a vendor inquiry including messages and inquiry details',
-    { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
-    getInquiryConversation
-  );
+  server.registerTool('get_inquiry_conversation', {
+    description: 'Get full conversation for a vendor inquiry including messages and inquiry details',
+    inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    annotations: { readOnlyHint: true },
+  }, getInquiryConversation);
 
-  server.tool(
-    'mark_inquiry_read',
-    'Mark a vendor inquiry conversation as read',
-    { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
-    markInquiryRead
-  );
+  server.registerTool('mark_inquiry_read', {
+    description: 'Mark a vendor inquiry conversation as read',
+    inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    annotations: { destructiveHint: false },
+  }, markInquiryRead);
 }

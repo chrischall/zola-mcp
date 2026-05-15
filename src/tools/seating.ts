@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { ToolResult, jsonResult } from './_shared.js';
+import { MobileEnvelope, ToolResult } from '../types.js';
 
 interface SeatOccupant {
   display_name: string;
@@ -67,25 +67,23 @@ interface GuestGroup {
 }
 
 interface DirectoryResponse {
-  data: {
-    num_invited_guests: number;
-    guest_groups: GuestGroup[];
-  };
+  num_invited_guests: number;
+  guest_groups: GuestGroup[];
 }
 
 export async function listSeatingCharts(): Promise<ToolResult> {
   const charts = await client.requestMobile<SeatingChartSummary[]>('GET', '/v3/seating-charts/summaries');
-  return jsonResult(charts);
+  return { content: [{ type: 'text', text: JSON.stringify(charts, null, 2) }] };
 }
 
 export async function getSeatingChart(args: { uuid: string }): Promise<ToolResult> {
-  const chart = await client.requestMobile<SeatingChart>('GET', `/v3/seating-charts/${encodeURIComponent(args.uuid)}`);
-  return jsonResult(chart);
+  const chart = await client.requestMobile<SeatingChart>('GET', `/v3/seating-charts/${args.uuid}`);
+  return { content: [{ type: 'text', text: JSON.stringify(chart, null, 2) }] };
 }
 
 export async function listUnseatedGuests(): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
-  const response = await client.requestMobile<DirectoryResponse>(
+  const response = await client.requestMobile<MobileEnvelope<DirectoryResponse>>(
     'POST',
     `/v3/guestlists/directory/wedding-accounts/${weddingAccountId}`,
     { sort_by_name_asc: true }
@@ -100,7 +98,7 @@ export async function listUnseatedGuests(): Promise<ToolResult> {
       relationship_type: e.guest.relationship_type,
       rsvp: e.guest.rsvp,
     }));
-  return jsonResult(unseated);
+  return { content: [{ type: 'text', text: JSON.stringify(unseated, null, 2) }] };
 }
 
 export async function assignSeat(args: {
@@ -115,40 +113,34 @@ export async function assignSeat(args: {
     table_uuid: args.table_uuid,
     seating_chart_uuid: args.seating_chart_uuid,
   });
-  return jsonResult(chart);
+  return { content: [{ type: 'text', text: JSON.stringify(chart, null, 2) }] };
 }
 
 export function registerSeatingTools(server: McpServer): void {
-  server.tool(
-    'list_seating_charts',
-    'List all seating charts with their UUID and event name',
-    {},
-    listSeatingCharts
-  );
+  server.registerTool('list_seating_charts', {
+    description: 'List all seating charts with their UUID and event name',
+    annotations: { readOnlyHint: true },
+  }, listSeatingCharts);
 
-  server.tool(
-    'get_seating_chart',
-    'Get full seating chart with all tables, seats, and current occupants',
-    { uuid: z.string().describe('Seating chart UUID from list_seating_charts') },
-    getSeatingChart
-  );
+  server.registerTool('get_seating_chart', {
+    description: 'Get full seating chart with all tables, seats, and current occupants',
+    inputSchema: { uuid: z.string().describe('Seating chart UUID from list_seating_charts') },
+    annotations: { readOnlyHint: true },
+  }, getSeatingChart);
 
-  server.tool(
-    'list_unseated_guests',
-    'List all guests who have not yet been assigned a seat',
-    {},
-    listUnseatedGuests
-  );
+  server.registerTool('list_unseated_guests', {
+    description: 'List all guests who have not yet been assigned a seat',
+    annotations: { readOnlyHint: true },
+  }, listUnseatedGuests);
 
-  server.tool(
-    'assign_seat',
-    'Assign a guest to a specific seat in a seating chart',
-    {
+  server.registerTool('assign_seat', {
+    description: 'Assign a guest to a specific seat in a seating chart',
+    inputSchema: {
       guest_uuid: z.string().describe('Guest UUID from list_unseated_guests'),
       seat_uuid: z.string().describe('Seat UUID from get_seating_chart'),
       table_uuid: z.string().describe('Table UUID from get_seating_chart'),
       seating_chart_uuid: z.string().describe('Seating chart UUID from list_seating_charts'),
     },
-    assignSeat
-  );
+    annotations: { destructiveHint: false },
+  }, assignSeat);
 }
