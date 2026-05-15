@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
 import { listVendors, searchVendors, addVendor, updateVendor, removeVendor } from '../src/tools/vendors.js';
+import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_BOOKED_VENDOR = {
   id: 26135549,
@@ -46,7 +47,7 @@ describe('vendor tools (mobile API)', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
+    reqSpy = setupClientMocks();
   });
 
   afterEach(() => {

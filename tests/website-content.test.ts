@@ -19,15 +19,7 @@ import {
   removeTravelItem,
   _resetPageIdCache,
 } from '../src/tools/website-content.js';
-
-const MOCK_CTX = {
-  weddingAccountId: 4664323,
-  weddingId: 7585869,
-  registryId: 'registry-1',
-  userId: 'user-1',
-  weddingDate: '2026-10-17',
-  weddingSlug: 'chrismer26',
-};
+import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_PAGES_RESPONSE = {
   data: {
@@ -42,8 +34,7 @@ describe('website-content: faqs', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
-    vi.spyOn(client, 'getContext').mockResolvedValue(MOCK_CTX);
+    reqSpy = setupClientMocks();
     _resetPageIdCache();
   });
 
@@ -193,8 +184,7 @@ describe('website-content: home sections', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
-    vi.spyOn(client, 'getContext').mockResolvedValue(MOCK_CTX);
+    reqSpy = setupClientMocks();
     _resetPageIdCache();
   });
 
@@ -305,8 +295,7 @@ describe('website-content: points of interest', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
-    vi.spyOn(client, 'getContext').mockResolvedValue(MOCK_CTX);
+    reqSpy = setupClientMocks();
     _resetPageIdCache();
   });
 
@@ -417,8 +406,7 @@ describe('website-content: travel items', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
-    vi.spyOn(client, 'getContext').mockResolvedValue(MOCK_CTX);
+    reqSpy = setupClientMocks();
     _resetPageIdCache();
   });
 

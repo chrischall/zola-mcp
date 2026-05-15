@@ -7,15 +7,7 @@ import {
   removeRegistryItem,
   _resetRegistryCollectionCache,
 } from '../src/tools/registry-items.js';
-
-const MOCK_CTX = {
-  weddingAccountId: 4664323,
-  weddingId: 7585869,
-  registryId: 'registry-1',
-  userId: 'user-1',
-  weddingDate: '2026-10-17',
-  weddingSlug: 'chrismer26',
-};
+import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_REGISTRY_RESPONSE = {
   data: {
@@ -37,8 +29,7 @@ describe('registry-items tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
-    vi.spyOn(client, 'getContext').mockResolvedValue(MOCK_CTX);
+    reqSpy = setupClientMocks();
     _resetRegistryCollectionCache();
   });
 
