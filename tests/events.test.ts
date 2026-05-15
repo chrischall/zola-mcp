@@ -149,6 +149,15 @@ describe('events & wedding tools', () => {
     expect(parsed).toBeDefined();
   });
 
+  it('updateEvent: throws when event_id not found', async () => {
+    // Return an empty group array — no events at all
+    reqSpy.mockResolvedValueOnce({ data: [] } as never);
+
+    await expect(updateEvent({ event_id: 999, name: 'X' })).rejects.toThrow(
+      'Event with ID 999 not found'
+    );
+  });
+
   it('updateEvent: loads current event, merges fields, PUTs update', async () => {
     // First call: list events to get current data
     reqSpy.mockResolvedValueOnce(MOCK_EVENTS_RESPONSE as never);
