@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
 import {
   getCurrentTheme,
+  getWebsiteCustomizations,
   searchThemes,
   updateCurrentTheme,
   updateWebsiteCustomization,
@@ -26,6 +27,16 @@ describe('website-theme tools', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('getWebsiteCustomizations: GETs /v3/websites/website-customizations/context', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { customization_view: { theme_key: 'galata' } },
+    } as never);
+    const result = await getWebsiteCustomizations();
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/website-customizations/context');
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.customization_view.theme_key).toBe('galata');
   });
 
   it('getCurrentTheme: GETs /v3/themes/current', async () => {

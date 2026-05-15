@@ -142,4 +142,13 @@ describe('registry-items tools', () => {
     await removeRegistryItem({ collection_item_id: 'item-1' });
     expect(reqSpy).toHaveBeenCalledWith('DELETE', '/v3/registries/registry-1/items/item-1');
   });
+
+  it('addRegistryItem: throws when no collection can be discovered', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { groups: [], default_collection_id: undefined },
+    } as never);
+    await expect(addRegistryItem({ sku_id: 'sku-1' })).rejects.toThrow(
+      /Could not determine default collection ID/
+    );
+  });
 });
