@@ -105,4 +105,20 @@ describe('website-theme tools', () => {
       navigation_customization: { background_color: 'B51A00' },
     });
   });
+
+  it('updateWebsiteCustomization: merges body_font_color and body_font_family_id into one object', async () => {
+    reqSpy.mockResolvedValueOnce({ data: {} } as never);
+    await updateWebsiteCustomization({ body_font_color: '000000', body_font_family_id: 42 });
+    expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/website-customizations/context', {
+      body_font: { color: '000000', font_family_id: 42 },
+    });
+  });
+
+  it('updateWebsiteCustomization: sets header_font when header_font_family_id provided', async () => {
+    reqSpy.mockResolvedValueOnce({ data: {} } as never);
+    await updateWebsiteCustomization({ header_font_family_id: 7 });
+    expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/website-customizations/context', {
+      header_font: { font_family_id: 7 },
+    });
+  });
 });
