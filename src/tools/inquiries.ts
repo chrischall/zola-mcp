@@ -70,7 +70,7 @@ interface ConversationResponse {
   };
 }
 
-type ToolResult = { content: [{ type: 'text'; text: string }] };
+import { ToolResult, jsonResult } from './_shared.js';
 
 export async function listInquiries(): Promise<ToolResult> {
   const response = await client.requestMobile<UnifiedResponse>(
@@ -93,7 +93,7 @@ export async function listInquiries(): Promise<ToolResult> {
       updated_at: inq.updated_at,
     }))
   );
-  return { content: [{ type: 'text', text: JSON.stringify(inquiries, null, 2) }] };
+  return jsonResult(inquiries);
 }
 
 export async function getInquiryConversation(args: { uuid: string }): Promise<ToolResult> {
@@ -101,7 +101,7 @@ export async function getInquiryConversation(args: { uuid: string }): Promise<To
     'GET',
     `/v3/inquiries/${args.uuid}/conversation`
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function markInquiryRead(args: { uuid: string }): Promise<ToolResult> {

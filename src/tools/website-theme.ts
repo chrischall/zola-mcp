@@ -1,18 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-
-interface MobileEnvelope<T> {
-  data: T;
-}
-
-type ToolResult = { content: [{ type: 'text'; text: string }] };
+import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
 
 type ThemeLayoutType = 'MULTI_PAGE' | 'SINGLE_PAGE';
 
 export async function getCurrentTheme(): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>('GET', '/v3/themes/current');
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function getWebsiteCustomizations(): Promise<ToolResult> {
@@ -20,7 +15,7 @@ export async function getWebsiteCustomizations(): Promise<ToolResult> {
     'GET',
     '/v3/websites/website-customizations/context'
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function searchThemes(args: {
@@ -38,7 +33,7 @@ export async function searchThemes(args: {
     '/v3/themes/search',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function updateCurrentTheme(args: {
@@ -54,7 +49,7 @@ export async function updateCurrentTheme(args: {
     '/v3/themes/current',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function updateWebsiteCustomization(args: {
@@ -84,7 +79,7 @@ export async function updateWebsiteCustomization(args: {
     '/v3/websites/website-customizations/context',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export function registerWebsiteThemeTools(server: McpServer): void {

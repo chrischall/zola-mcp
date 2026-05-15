@@ -1,19 +1,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-
-interface MobileEnvelope<T> {
-  data: T;
-}
-
-type ToolResult = { content: [{ type: 'text'; text: string }] };
+import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
 
 export async function getWeddingDashboard(): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     '/v4/your-wedding'
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function searchStorefronts(args: {
@@ -42,7 +37,7 @@ export async function searchStorefronts(args: {
     '/v3/storefronts/search',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function getStorefront(args: { uuid: string }): Promise<ToolResult> {
@@ -50,7 +45,7 @@ export async function getStorefront(args: { uuid: string }): Promise<ToolResult>
     'GET',
     `/v3/storefronts/${args.uuid}`
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function listFavorites(): Promise<ToolResult> {
@@ -58,7 +53,7 @@ export async function listFavorites(): Promise<ToolResult> {
     'GET',
     '/v3/favorites/'
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export function registerDiscoverTools(server: McpServer): void {
