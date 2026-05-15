@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
+import { ToolResult, jsonResult } from './_shared.js';
 
 interface SeatOccupant {
   display_name: string;
@@ -72,16 +73,14 @@ interface DirectoryResponse {
   };
 }
 
-type ToolResult = { content: [{ type: 'text'; text: string }] };
-
 export async function listSeatingCharts(): Promise<ToolResult> {
   const charts = await client.requestMobile<SeatingChartSummary[]>('GET', '/v3/seating-charts/summaries');
-  return { content: [{ type: 'text', text: JSON.stringify(charts, null, 2) }] };
+  return jsonResult(charts);
 }
 
 export async function getSeatingChart(args: { uuid: string }): Promise<ToolResult> {
   const chart = await client.requestMobile<SeatingChart>('GET', `/v3/seating-charts/${args.uuid}`);
-  return { content: [{ type: 'text', text: JSON.stringify(chart, null, 2) }] };
+  return jsonResult(chart);
 }
 
 export async function listUnseatedGuests(): Promise<ToolResult> {
@@ -101,7 +100,7 @@ export async function listUnseatedGuests(): Promise<ToolResult> {
       relationship_type: e.guest.relationship_type,
       rsvp: e.guest.rsvp,
     }));
-  return { content: [{ type: 'text', text: JSON.stringify(unseated, null, 2) }] };
+  return jsonResult(unseated);
 }
 
 export async function assignSeat(args: {
@@ -116,7 +115,7 @@ export async function assignSeat(args: {
     table_uuid: args.table_uuid,
     seating_chart_uuid: args.seating_chart_uuid,
   });
-  return { content: [{ type: 'text', text: JSON.stringify(chart, null, 2) }] };
+  return jsonResult(chart);
 }
 
 export function registerSeatingTools(server: McpServer): void {

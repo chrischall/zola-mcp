@@ -1,12 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-
-interface MobileEnvelope<T> {
-  data: T;
-}
-
-type ToolResult = { content: [{ type: 'text'; text: string }] };
+import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
 
 const collectionIdCache = new Map<string, string>();
 
@@ -66,7 +61,7 @@ export async function searchRegistryProducts(args: {
     `/v3/categories/${args.category_id}/entities`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function addRegistryItem(args: {
@@ -89,7 +84,7 @@ export async function addRegistryItem(args: {
     `/v3/registries/${registryId}/collections/${collectionId}`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function updateRegistryItem(args: {
@@ -115,7 +110,7 @@ export async function updateRegistryItem(args: {
     `/v3/registries/${registryId}/items/${args.collection_item_id}`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function removeRegistryItem(args: { collection_item_id: string }): Promise<ToolResult> {
@@ -124,7 +119,7 @@ export async function removeRegistryItem(args: { collection_item_id: string }): 
     'DELETE',
     `/v3/registries/${registryId}/items/${args.collection_item_id}`
   );
-  return { content: [{ type: 'text', text: JSON.stringify({ removed: args.collection_item_id }) }] };
+  return jsonResult({ removed: args.collection_item_id });
 }
 
 export function registerRegistryItemTools(server: McpServer): void {

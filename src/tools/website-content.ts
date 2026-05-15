@@ -1,12 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-
-interface MobileEnvelope<T> {
-  data: T;
-}
-
-type ToolResult = { content: [{ type: 'text'; text: string }] };
+import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from './_shared.js';
 
 type PageType = 'HOME' | 'FAQ' | 'POI' | 'TRAVEL';
 
@@ -69,7 +64,7 @@ export async function listFaqs(): Promise<ToolResult> {
     'GET',
     `/v3/websites/faqs/wedding-accounts/${weddingAccountId}`
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function addFaq(args: {
@@ -90,7 +85,7 @@ export async function addFaq(args: {
     '/v3/websites/faqs',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function updateFaq(args: {
@@ -112,12 +107,12 @@ export async function updateFaq(args: {
     `/v3/websites/faqs/${args.faq_entity_id}`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function removeFaq(args: { faq_entity_id: number }): Promise<ToolResult> {
   await deletePageEntity('FAQ', args.faq_entity_id);
-  return { content: [{ type: 'text', text: JSON.stringify({ removed: args.faq_entity_id }) }] };
+  return jsonResult({ removed: args.faq_entity_id });
 }
 
 // ===== Home page sections (story blocks) =====
@@ -128,7 +123,7 @@ export async function listHomeSections(): Promise<ToolResult> {
     'GET',
     `/v3/websites/home-sections/wedding-accounts/${weddingAccountId}`
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function addHomeSection(args: {
@@ -153,7 +148,7 @@ export async function addHomeSection(args: {
     '/v3/websites/home-sections',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function updateHomeSection(args: {
@@ -179,12 +174,12 @@ export async function updateHomeSection(args: {
     `/v3/websites/home-sections/${args.homepage_entity_id}`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function removeHomeSection(args: { homepage_entity_id: number }): Promise<ToolResult> {
   await deletePageEntity('HOME', args.homepage_entity_id);
-  return { content: [{ type: 'text', text: JSON.stringify({ removed: args.homepage_entity_id }) }] };
+  return jsonResult({ removed: args.homepage_entity_id });
 }
 
 // ===== Points of Interest =====
@@ -206,26 +201,14 @@ interface PoiFields {
   url?: string;
 }
 
+const POI_FIELDS = ['title', 'description', 'display_order', 'address1', 'address2', 'city', 'state_province', 'postal_code', 'country_code', 'latitude', 'longitude', 'google_place_id', 'contact_phone', 'url'] as const;
+
 function buildPoiBody(args: PoiFields, weddingAccountId: number, poiEntityId: number): Record<string, unknown> {
-  const body: Record<string, unknown> = {
-    wedding_account_id: weddingAccountId,
-    poi_entity_id: poiEntityId,
-  };
-  if (args.title !== undefined) body.title = args.title;
-  if (args.description !== undefined) body.description = args.description;
-  if (args.display_order !== undefined) body.display_order = args.display_order;
-  if (args.address1 !== undefined) body.address1 = args.address1;
-  if (args.address2 !== undefined) body.address2 = args.address2;
-  if (args.city !== undefined) body.city = args.city;
-  if (args.state_province !== undefined) body.state_province = args.state_province;
-  if (args.postal_code !== undefined) body.postal_code = args.postal_code;
-  if (args.country_code !== undefined) body.country_code = args.country_code;
-  if (args.latitude !== undefined) body.latitude = args.latitude;
-  if (args.longitude !== undefined) body.longitude = args.longitude;
-  if (args.google_place_id !== undefined) body.google_place_id = args.google_place_id;
-  if (args.contact_phone !== undefined) body.contact_phone = args.contact_phone;
-  if (args.url !== undefined) body.url = args.url;
-  return body;
+  return pickDefined(
+    { wedding_account_id: weddingAccountId, poi_entity_id: poiEntityId },
+    args as Record<string, unknown>,
+    POI_FIELDS
+  );
 }
 
 export async function listPois(): Promise<ToolResult> {
@@ -234,7 +217,7 @@ export async function listPois(): Promise<ToolResult> {
     'GET',
     `/v3/websites/points-of-interest/wedding-accounts/${weddingAccountId}`
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function addPoi(args: PoiFields & { title: string }): Promise<ToolResult> {
@@ -245,7 +228,7 @@ export async function addPoi(args: PoiFields & { title: string }): Promise<ToolR
     '/v3/websites/points-of-interest',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function updatePoi(args: PoiFields & { poi_entity_id: number }): Promise<ToolResult> {
@@ -256,12 +239,12 @@ export async function updatePoi(args: PoiFields & { poi_entity_id: number }): Pr
     `/v3/websites/points-of-interest/${args.poi_entity_id}`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function removePoi(args: { poi_entity_id: number }): Promise<ToolResult> {
   await deletePageEntity('POI', args.poi_entity_id);
-  return { content: [{ type: 'text', text: JSON.stringify({ removed: args.poi_entity_id }) }] };
+  return jsonResult({ removed: args.poi_entity_id });
 }
 
 // ===== Travel items (hotels, flights, transportation) =====
@@ -290,31 +273,14 @@ interface TravelFields {
   display_order?: number;
 }
 
+const TRAVEL_FIELDS = ['type', 'name', 'note', 'code', 'address1', 'address2', 'city', 'state_province', 'postal_code', 'country_code', 'latitude', 'longitude', 'google_place_id', 'contact_number', 'email_address', 'url', 'source', 'timezone', 'display_order'] as const;
+
 function buildTravelBody(args: TravelFields, weddingAccountId: number, travelEntityId: number): Record<string, unknown> {
-  const body: Record<string, unknown> = {
-    wedding_account_id: weddingAccountId,
-    travel_entity_id: travelEntityId,
-  };
-  if (args.type !== undefined) body.type = args.type;
-  if (args.name !== undefined) body.name = args.name;
-  if (args.note !== undefined) body.note = args.note;
-  if (args.code !== undefined) body.code = args.code;
-  if (args.address1 !== undefined) body.address1 = args.address1;
-  if (args.address2 !== undefined) body.address2 = args.address2;
-  if (args.city !== undefined) body.city = args.city;
-  if (args.state_province !== undefined) body.state_province = args.state_province;
-  if (args.postal_code !== undefined) body.postal_code = args.postal_code;
-  if (args.country_code !== undefined) body.country_code = args.country_code;
-  if (args.latitude !== undefined) body.latitude = args.latitude;
-  if (args.longitude !== undefined) body.longitude = args.longitude;
-  if (args.google_place_id !== undefined) body.google_place_id = args.google_place_id;
-  if (args.contact_number !== undefined) body.contact_number = args.contact_number;
-  if (args.email_address !== undefined) body.email_address = args.email_address;
-  if (args.url !== undefined) body.url = args.url;
-  if (args.source !== undefined) body.source = args.source;
-  if (args.timezone !== undefined) body.timezone = args.timezone;
-  if (args.display_order !== undefined) body.display_order = args.display_order;
-  return body;
+  return pickDefined(
+    { wedding_account_id: weddingAccountId, travel_entity_id: travelEntityId },
+    args as Record<string, unknown>,
+    TRAVEL_FIELDS
+  );
 }
 
 export async function listTravelItems(): Promise<ToolResult> {
@@ -323,7 +289,7 @@ export async function listTravelItems(): Promise<ToolResult> {
     'GET',
     `/v3/websites/travel/wedding-accounts/${weddingAccountId}`
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function addTravelItem(args: TravelFields & { type: TravelType; name: string }): Promise<ToolResult> {
@@ -334,7 +300,7 @@ export async function addTravelItem(args: TravelFields & { type: TravelType; nam
     '/v3/websites/travel',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function updateTravelItem(args: TravelFields & { travel_entity_id: number }): Promise<ToolResult> {
@@ -345,12 +311,12 @@ export async function updateTravelItem(args: TravelFields & { travel_entity_id: 
     `/v3/websites/travel/${args.travel_entity_id}`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function removeTravelItem(args: { travel_entity_id: number }): Promise<ToolResult> {
   await deletePageEntity('TRAVEL', args.travel_entity_id);
-  return { content: [{ type: 'text', text: JSON.stringify({ removed: args.travel_entity_id }) }] };
+  return jsonResult({ removed: args.travel_entity_id });
 }
 
 export function registerWebsiteContentTools(server: McpServer): void {

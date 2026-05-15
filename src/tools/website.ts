@@ -1,19 +1,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-
-interface MobileEnvelope<T> {
-  data: T;
-}
-
-type ToolResult = { content: [{ type: 'text'; text: string }] };
+import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from './_shared.js';
 
 export async function listPages(): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     '/v3/websites/pages/wedding-accounts/full'
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function setPageHidden(args: {
@@ -24,7 +19,7 @@ export async function setPageHidden(args: {
     'PUT',
     `/v3/websites/pages/${args.page_id}/hidden/${args.hidden}`
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function reorderPages(args: { page_ids: number[] }): Promise<ToolResult> {
@@ -34,7 +29,7 @@ export async function reorderPages(args: { page_ids: number[] }): Promise<ToolRe
     `/v3/websites/pages/wedding-accounts/${weddingAccountId}/reorder`,
     { ids: args.page_ids }
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function updatePage(args: {
@@ -47,21 +42,16 @@ export async function updatePage(args: {
   hidden?: boolean;
   customization?: unknown;
 }): Promise<ToolResult> {
-  const body: Record<string, unknown> = { page_id: args.page_id };
-  if (args.title !== undefined) body.title = args.title;
-  if (args.nav_title !== undefined) body.nav_title = args.nav_title;
-  if (args.menu_title !== undefined) body.menu_title = args.menu_title;
-  if (args.intro_copy !== undefined) body.intro_copy = args.intro_copy;
-  if (args.description !== undefined) body.description = args.description;
-  if (args.hidden !== undefined) body.hidden = args.hidden;
-  if (args.customization !== undefined) body.customization = args.customization;
+  const body = pickDefined({ page_id: args.page_id }, args, [
+    'title', 'nav_title', 'menu_title', 'intro_copy', 'description', 'hidden', 'customization',
+  ] as const);
 
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
     `/v3/websites/pages-v2/${args.page_id}`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 interface WeddingFields {
@@ -95,7 +85,7 @@ async function fetchWeddingFields(): Promise<WeddingFields> {
 
 export async function getWeddingSettings(): Promise<ToolResult> {
   const wedding = await fetchWeddingFields();
-  return { content: [{ type: 'text', text: JSON.stringify(wedding, null, 2) }] };
+  return jsonResult(wedding);
 }
 
 export async function updateWeddingSettings(args: {
@@ -137,7 +127,7 @@ export async function updateWeddingSettings(args: {
     `/v3/weddings/${current.wedding_id}`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export function registerWebsiteTools(server: McpServer): void {

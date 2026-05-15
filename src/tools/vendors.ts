@@ -1,10 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-
-interface MobileEnvelope<T> {
-  data: T;
-}
+import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
 
 interface VendorCard {
   id: number | null;
@@ -42,15 +39,13 @@ interface TypeaheadResult {
   address: { city: string | null; state_province_region: string | null } | null;
 }
 
-type ToolResult = { content: [{ type: 'text'; text: string }] };
-
 export async function listVendors(): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
     '/v3/account-vendors/booked-list',
     {}
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data.booked_vendors, null, 2) }] };
+  return jsonResult(response.data.booked_vendors);
 }
 
 export async function searchVendors(args: {
@@ -65,7 +60,7 @@ export async function searchVendors(args: {
       taxonomy_key: args.taxonomy_key ?? 'wedding-venues',
     }
   );
-  return { content: [{ type: 'text', text: JSON.stringify(results.data, null, 2) }] };
+  return jsonResult(results.data);
 }
 
 export async function addVendor(args: {
@@ -119,7 +114,7 @@ export async function addVendor(args: {
     '/v5/account-vendors/vendor',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export async function updateVendor(args: {
@@ -169,7 +164,7 @@ export async function updateVendor(args: {
     '/v5/account-vendors/vendor',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export async function removeVendor(args: { uuid: string }): Promise<ToolResult> {

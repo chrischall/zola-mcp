@@ -1,10 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-
-interface MobileEnvelope<T> {
-  data: T;
-}
+import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
 
 interface GuestEntry {
   guest: {
@@ -50,8 +47,6 @@ interface DirectoryResponse {
   guest_groups: GuestGroup[];
 }
 
-type ToolResult = { content: [{ type: 'text'; text: string }] };
-
 export async function listGuests(): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<DirectoryResponse>>(
@@ -60,9 +55,7 @@ export async function listGuests(): Promise<ToolResult> {
     { sort_by_name_asc: true }
   );
   const { guest_groups, ...stats } = response.data;
-  return {
-    content: [{ type: 'text', text: JSON.stringify({ stats, guest_groups }, null, 2) }],
-  };
+  return jsonResult({ stats, guest_groups });
 }
 
 export async function addGuest(args: {
@@ -141,7 +134,7 @@ export async function addGuest(args: {
     '/v3/guestlists/groups',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export async function updateGuestAddress(args: {
@@ -201,7 +194,7 @@ export async function updateGuestAddress(args: {
     `/v3/guestlists/groups/wedding-accounts/id/${weddingAccountId}/suite`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export async function removeGuest(args: { guest_group_id: number }): Promise<ToolResult> {
