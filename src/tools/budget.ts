@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { MobileEnvelope, ToolResult } from '../types.js';
+import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 interface BudgetPayment {
   uuid: string;
@@ -73,7 +73,7 @@ export async function getBudget(): Promise<ToolResult> {
     balance_due_cents: budget.balance_due_cents,
     items,
   };
-  return { content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }] };
+  return jsonResult(summary);
 }
 
 export async function updateBudgetItem(args: {
@@ -98,7 +98,7 @@ export async function updateBudgetItem(args: {
     ...(current.account_vendor_uuid ? { account_vendor_uuid: current.account_vendor_uuid } : {}),
   };
   const result = await client.requestMobile<MobileEnvelope<BudgetItem>>('PUT', '/v3/budgets/items', body);
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export function registerBudgetTools(server: McpServer): void {

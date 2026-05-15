@@ -99,7 +99,6 @@ export class ZolaClient {
       return this.cachedContext;
     }
 
-    // Fetch from API
     const response = await this.requestMobile<{
       data: {
         user: { id: string };
