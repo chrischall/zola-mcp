@@ -79,7 +79,7 @@ export async function listSeatingCharts(): Promise<ToolResult> {
 }
 
 export async function getSeatingChart(args: { uuid: string }): Promise<ToolResult> {
-  const chart = await client.requestMobile<SeatingChart>('GET', `/v3/seating-charts/${args.uuid}`);
+  const chart = await client.requestMobile<SeatingChart>('GET', `/v3/seating-charts/${encodeURIComponent(args.uuid)}`);
   return jsonResult(chart);
 }
 

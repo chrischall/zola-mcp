@@ -71,7 +71,6 @@ export class ZolaClient {
     const envRegistryId = process.env.ZOLA_REGISTRY_ID;
     const envWeddingId = process.env.ZOLA_WEDDING_ID;
 
-    // If all three env vars are set, skip the API call
     if (envAccountId && envRegistryId && envWeddingId) {
       this.cachedContext = {
         weddingAccountId: Number(envAccountId),
@@ -84,7 +83,6 @@ export class ZolaClient {
       return this.cachedContext;
     }
 
-    // Fetch from API
     const response = await this.requestMobile<{
       data: {
         user: { id: string };
@@ -158,7 +156,6 @@ export class ZolaClient {
       if (this.sessionExpiry.getTime() - Date.now() > 5 * 60 * 1000) return;
     }
 
-    // Check for session token in env (first load only)
     if (this.sessionToken === null) {
       const envSession = process.env.ZOLA_SESSION_TOKEN;
       if (envSession) {

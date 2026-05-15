@@ -43,7 +43,7 @@ export async function searchStorefronts(args: {
 export async function getStorefront(args: { uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
-    `/v3/storefronts/${args.uuid}`
+    `/v3/storefronts/${encodeURIComponent(args.uuid)}`
   );
   return jsonResult(response.data);
 }

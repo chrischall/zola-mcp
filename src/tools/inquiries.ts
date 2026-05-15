@@ -99,13 +99,13 @@ export async function listInquiries(): Promise<ToolResult> {
 export async function getInquiryConversation(args: { uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<ConversationResponse>(
     'GET',
-    `/v3/inquiries/${args.uuid}/conversation`
+    `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation`
   );
   return jsonResult(response.data);
 }
 
 export async function markInquiryRead(args: { uuid: string }): Promise<ToolResult> {
-  await client.requestMobile('PUT', `/v3/inquiries/${args.uuid}/conversation/read`);
+  await client.requestMobile('PUT', `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation/read`);
   return {
     content: [{ type: 'text', text: `Marked inquiry ${args.uuid} as read` }],
   };

@@ -184,7 +184,7 @@ export function registerWebsiteTools(server: McpServer): void {
     'update_wedding_settings',
     'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
     {
-      title: z.string().optional().describe('Wedding title (e.g., "Meredith & Chris")'),
+      title: z.string().optional().describe('Wedding title (e.g., "Alex & Jordan")'),
       slug: z.string().optional().describe('URL slug — appears in the public website URL'),
       owner_first_name: z.string().optional(),
       owner_last_name: z.string().optional(),
