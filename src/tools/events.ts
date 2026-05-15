@@ -60,7 +60,7 @@ interface GiftTracker {
   gifts: GiftEntry[];
 }
 
-import { MobileEnvelope, ToolResult } from '../types.js';
+import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 export async function listEvents(): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
@@ -69,7 +69,7 @@ export async function listEvents(): Promise<ToolResult> {
     `/v3/websites/events/wedding-accounts/${weddingAccountId}/groups`
   );
   const events = response.data.flatMap((group) => group.events);
-  return { content: [{ type: 'text', text: JSON.stringify(events, null, 2) }] };
+  return jsonResult(events);
 }
 
 export async function trackRsvps(): Promise<ToolResult> {
@@ -77,7 +77,7 @@ export async function trackRsvps(): Promise<ToolResult> {
     'GET',
     '/v3/websites/events/track-rsvps'
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data.modules, null, 2) }] };
+  return jsonResult(response.data.modules);
 }
 
 export async function getGiftTracker(): Promise<ToolResult> {
@@ -87,7 +87,7 @@ export async function getGiftTracker(): Promise<ToolResult> {
     `/v3/gift_tracker/${registryId}`
   );
   const { info_modules: _, ...tracker } = response.data;
-  return { content: [{ type: 'text', text: JSON.stringify(tracker, null, 2) }] };
+  return jsonResult(tracker);
 }
 
 export async function getRegistry(): Promise<ToolResult> {
@@ -96,7 +96,7 @@ export async function getRegistry(): Promise<ToolResult> {
     'GET',
     `/v4/shop/registry?registry_id=${registryId}&updated_modules=true`
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function updateEvent(args: {
@@ -114,7 +114,6 @@ export async function updateEvent(args: {
   attire?: string;
   collect_rsvps?: boolean;
 }): Promise<ToolResult> {
-  // Load current event to merge fields
   const { weddingAccountId } = await client.getContext();
   const listResponse = await client.requestMobile<MobileEnvelope<EventGroup[]>>(
     'GET',
@@ -160,7 +159,7 @@ export async function updateEvent(args: {
     `/v3/websites/events/${args.event_id}`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export function registerEventTools(server: McpServer): void {

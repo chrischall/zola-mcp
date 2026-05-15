@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
 import { getBudget, updateBudgetItem } from '../src/tools/budget.js';
+import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_BUDGET_ITEM = {
   uuid: '8b90d700-c891-46f9-87c5-f0f8b786b457',
@@ -48,7 +49,7 @@ describe('budget tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
+    reqSpy = setupClientMocks();
   });
 
   afterEach(() => {

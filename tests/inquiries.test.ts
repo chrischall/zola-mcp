@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
 import { listInquiries, getInquiryConversation, markInquiryRead } from '../src/tools/inquiries.js';
+import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_INQUIRY = {
   inquiry_uuid: 'inquiry-uuid-1',
@@ -84,7 +85,7 @@ describe('inquiry tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
+    reqSpy = setupClientMocks();
   });
 
   afterEach(() => {

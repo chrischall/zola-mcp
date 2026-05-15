@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
 import { listEvents, trackRsvps, getGiftTracker, getRegistry, updateEvent } from '../src/tools/events.js';
+import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_EVENT = {
   event_entity_id: 5108495,
@@ -93,14 +94,7 @@ describe('events & wedding tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
-    vi.spyOn(client, 'getContext').mockResolvedValue({
-      weddingAccountId: 4664323,
-      registryId: 'registry-id-1',
-      userId: 'user-id-1',
-      weddingDate: '2026-10-17',
-      weddingSlug: 'chrismer26',
-    });
+    reqSpy = setupClientMocks();
   });
 
   afterEach(() => {
@@ -138,7 +132,7 @@ describe('events & wedding tools', () => {
 
     const result = await getGiftTracker();
 
-    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/gift_tracker/registry-id-1');
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/gift_tracker/registry-1');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.total_gifts_received).toBe(3);
     expect(parsed.gifts).toHaveLength(1);
@@ -150,9 +144,18 @@ describe('events & wedding tools', () => {
 
     const result = await getRegistry();
 
-    expect(reqSpy).toHaveBeenCalledWith('GET', '/v4/shop/registry?registry_id=registry-id-1&updated_modules=true');
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v4/shop/registry?registry_id=registry-1&updated_modules=true');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed).toBeDefined();
+  });
+
+  it('updateEvent: throws when event_id not found', async () => {
+    // Return an empty group array — no events at all
+    reqSpy.mockResolvedValueOnce({ data: [] } as never);
+
+    await expect(updateEvent({ event_id: 999, name: 'X' })).rejects.toThrow(
+      'Event with ID 999 not found'
+    );
   });
 
   it('updateEvent: loads current event, merges fields, PUTs update', async () => {

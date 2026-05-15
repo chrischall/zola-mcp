@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
 
-import { MobileEnvelope, ToolResult } from '../types.js';
+import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 interface GuestEntry {
   guest: {
@@ -56,9 +56,7 @@ export async function listGuests(): Promise<ToolResult> {
     { sort_by_name_asc: true }
   );
   const { guest_groups, ...stats } = response.data;
-  return {
-    content: [{ type: 'text', text: JSON.stringify({ stats, guest_groups }, null, 2) }],
-  };
+  return jsonResult({ stats, guest_groups });
 }
 
 export async function addGuest(args: {
@@ -137,7 +135,7 @@ export async function addGuest(args: {
     '/v3/guestlists/groups',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export async function updateGuestAddress(args: {
@@ -197,7 +195,7 @@ export async function updateGuestAddress(args: {
     `/v3/guestlists/groups/wedding-accounts/id/${weddingAccountId}/suite`,
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export async function removeGuest(args: { guest_group_id: number }): Promise<ToolResult> {

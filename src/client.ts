@@ -51,6 +51,7 @@ function decodeJwtSessionId(token: string): string | null {
 
 export interface UserContext {
   weddingAccountId: number;
+  weddingId: number;
   registryId: string;
   userId: string;
   weddingDate: string | null;
@@ -83,11 +84,13 @@ export class ZolaClient {
 
     const envAccountId = readVar('ZOLA_ACCOUNT_ID');
     const envRegistryId = readVar('ZOLA_REGISTRY_ID');
+    const envWeddingId = readVar('ZOLA_WEDDING_ID');
 
-    // If both env vars are set, skip the API call
-    if (envAccountId && envRegistryId) {
+    // If all env vars are set, skip the API call
+    if (envAccountId && envRegistryId && envWeddingId) {
       this.cachedContext = {
         weddingAccountId: Number(envAccountId),
+        weddingId: Number(envWeddingId),
         registryId: envRegistryId,
         userId: '',
         weddingDate: null,
@@ -96,18 +99,18 @@ export class ZolaClient {
       return this.cachedContext;
     }
 
-    // Fetch from API
     const response = await this.requestMobile<{
       data: {
         user: { id: string };
         wedding_account: { wedding_account_id: number };
-        wedding: { wedding_date: string | null; slug: string | null };
+        wedding: { wedding_id: number; wedding_date: string | null; slug: string | null };
         registry: { id: string };
       };
     }>('GET', '/v3/users/me/context');
 
     this.cachedContext = {
       weddingAccountId: Number(envAccountId) || response.data.wedding_account.wedding_account_id,
+      weddingId: Number(envWeddingId) || response.data.wedding.wedding_id,
       registryId: envRegistryId || response.data.registry.id,
       userId: response.data.user.id,
       weddingDate: response.data.wedding.wedding_date,

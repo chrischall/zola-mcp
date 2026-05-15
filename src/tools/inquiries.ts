@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { ToolResult } from '../types.js';
+import { ToolResult, jsonResult } from '../types.js';
 
 interface VendorCard {
   storefront_id: number;
@@ -92,19 +92,19 @@ export async function listInquiries(): Promise<ToolResult> {
       updated_at: inq.updated_at,
     }))
   );
-  return { content: [{ type: 'text', text: JSON.stringify(inquiries, null, 2) }] };
+  return jsonResult(inquiries);
 }
 
 export async function getInquiryConversation(args: { uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<ConversationResponse>(
     'GET',
-    `/v3/inquiries/${args.uuid}/conversation`
+    `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation`
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+  return jsonResult(response.data);
 }
 
 export async function markInquiryRead(args: { uuid: string }): Promise<ToolResult> {
-  await client.requestMobile('PUT', `/v3/inquiries/${args.uuid}/conversation/read`);
+  await client.requestMobile('PUT', `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation/read`);
   return {
     content: [{ type: 'text', text: `Marked inquiry ${args.uuid} as read` }],
   };

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
 import { listSeatingCharts, getSeatingChart, listUnseatedGuests, assignSeat } from '../src/tools/seating.js';
+import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_SUMMARIES = [
   { uuid: 'chart-uuid-1', name: 'Reception', event_id: 5108495 },
@@ -91,14 +92,7 @@ describe('seating tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
-    vi.spyOn(client, 'getContext').mockResolvedValue({
-      weddingAccountId: 4664323,
-      registryId: 'registry-id-1',
-      userId: 'user-id-1',
-      weddingDate: '2026-10-17',
-      weddingSlug: 'chrismer26',
-    });
+    reqSpy = setupClientMocks();
   });
 
   afterEach(() => {
