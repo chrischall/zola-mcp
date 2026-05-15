@@ -134,6 +134,30 @@ describe('registry-items tools', () => {
     expect(reqSpy).toHaveBeenCalledWith('DELETE', '/v3/registries/registry-1/items/item-1');
   });
 
+  it('addRegistryItem: falls back to scanning groups when default_collection_id is absent', async () => {
+    // No default_collection_id; has a COLLECTION module in a group
+    reqSpy.mockResolvedValueOnce({
+      data: {
+        groups: [
+          {
+            modules: [
+              { type: 'OTHER', id: 'ignore' },
+              { type: 'COLLECTION', id: 'col-found' },
+            ],
+          },
+        ],
+        // no default_collection_id field
+      },
+    } as never);
+    reqSpy.mockResolvedValueOnce({ data: { collection_item_id: 'item-1' } } as never);
+
+    await addRegistryItem({ sku_id: 'sku-1' });
+
+    const postCall = reqSpy.mock.calls.find((c) => c[0] === 'POST');
+    expect(postCall).toBeDefined();
+    expect(postCall![1]).toContain('/collections/col-found');
+  });
+
   it('addRegistryItem: throws when no collection can be discovered', async () => {
     reqSpy.mockResolvedValueOnce({
       data: { groups: [], default_collection_id: undefined },
