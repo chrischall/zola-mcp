@@ -142,6 +142,7 @@ export function registerWebsiteTools(server: McpServer): void {
       page_id: z.number().describe('Page ID from list_pages'),
       hidden: z.boolean().describe('true to hide the page, false to show it'),
     },
+    annotations: { destructiveHint: false },
   }, setPageHidden);
 
   server.registerTool('reorder_pages', {
@@ -149,6 +150,7 @@ export function registerWebsiteTools(server: McpServer): void {
     inputSchema: {
       page_ids: z.array(z.number()).describe('Full ordered list of page IDs in desired nav order'),
     },
+    annotations: { destructiveHint: false },
   }, reorderPages);
 
   server.registerTool('update_page', {
@@ -163,6 +165,7 @@ export function registerWebsiteTools(server: McpServer): void {
       hidden: z.boolean().optional().describe('Hide the page from the public site'),
       customization: z.unknown().optional().describe('Layout customization object (see list_pages for shape)'),
     },
+    annotations: { destructiveHint: false },
   }, updatePage);
 
   server.registerTool('get_wedding_settings', {
@@ -187,5 +190,6 @@ export function registerWebsiteTools(server: McpServer): void {
       enable_search_engine: z.boolean().optional().describe('Allow search engines (Google, etc.) to index the site'),
       enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),
     },
+    annotations: { destructiveHint: false },
   }, updateWeddingSettings);
 }

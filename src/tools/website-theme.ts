@@ -95,12 +95,12 @@ export function registerWebsiteThemeTools(server: McpServer): void {
 
   server.registerTool('search_themes', {
     description: 'Browse the catalog of available wedding-website themes',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       limit: z.number().optional().describe('Default 50'),
       offset: z.number().optional().describe('Default 0'),
       theme_layout_types: z.array(z.enum(['MULTI_PAGE', 'SINGLE_PAGE'])).optional().describe('Default ["MULTI_PAGE"]'),
     },
+    annotations: { readOnlyHint: true },
   }, searchThemes);
 
   server.registerTool('update_current_theme', {
@@ -109,6 +109,7 @@ export function registerWebsiteThemeTools(server: McpServer): void {
       theme_key: z.string().describe('Theme key from search_themes (e.g., "galata", "blake-cranberry")'),
       theme_layout_type: z.enum(['MULTI_PAGE', 'SINGLE_PAGE']).optional().describe('Default MULTI_PAGE'),
     },
+    annotations: { destructiveHint: false },
   }, updateCurrentTheme);
 
   server.registerTool('update_website_customization', {
@@ -121,5 +122,6 @@ export function registerWebsiteThemeTools(server: McpServer): void {
       header_font_family_id: z.number().optional().describe('Font family ID — call get_website_customizations to see available font_family_ids'),
       body_font_family_id: z.number().optional(),
     },
+    annotations: { destructiveHint: false },
   }, updateWebsiteCustomization);
 }

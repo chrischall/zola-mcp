@@ -125,12 +125,12 @@ export async function removeRegistryItem(args: { collection_item_id: string }): 
 export function registerRegistryItemTools(server: McpServer): void {
   server.registerTool('search_registry_products', {
     description: 'Browse Zola products in a category, scoped to your registry. Category IDs are Zola constants (e.g. 544 = Kitchen) — exposed via GET /v3/categories in the iOS app.',
-    annotations: { readOnlyHint: true },
     inputSchema: {
       category_id: z.number().describe('Zola product category ID'),
       offset: z.number().optional().describe('Default 0'),
       limit: z.number().optional().describe('Default 50'),
     },
+    annotations: { readOnlyHint: true },
   }, searchRegistryProducts);
 
   server.registerTool('add_registry_item', {
@@ -142,6 +142,7 @@ export function registerRegistryItemTools(server: McpServer): void {
       most_wanted: z.boolean().optional().describe('Mark as a most-wanted gift. Default false'),
       enable_group_gifting: z.boolean().optional().describe('Allow multiple guests to chip in. Default false'),
     },
+    annotations: { destructiveHint: false },
   }, addRegistryItem);
 
   server.registerTool('update_registry_item', {
@@ -155,13 +156,14 @@ export function registerRegistryItemTools(server: McpServer): void {
       personal_note: z.string(),
       most_wanted: z.boolean(),
     },
+    annotations: { destructiveHint: false },
   }, updateRegistryItem);
 
   server.registerTool('remove_registry_item', {
     description: 'Remove an item from the registry',
-    annotations: { destructiveHint: true },
     inputSchema: {
       collection_item_id: z.string(),
     },
+    annotations: { destructiveHint: true },
   }, removeRegistryItem);
 }
