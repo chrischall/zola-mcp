@@ -15,6 +15,14 @@ export async function getCurrentTheme(): Promise<ToolResult> {
   return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
 }
 
+export async function getWebsiteCustomizations(): Promise<ToolResult> {
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'GET',
+    '/v3/websites/website-customizations/context'
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
 export async function searchThemes(args: {
   limit?: number;
   offset?: number;
@@ -88,6 +96,13 @@ export function registerWebsiteThemeTools(server: McpServer): void {
   );
 
   server.tool(
+    'get_website_customizations',
+    'Get the current website customization context: active colors, font selections, and the catalog of available fonts and color presets to choose from',
+    {},
+    getWebsiteCustomizations
+  );
+
+  server.tool(
     'search_themes',
     'Browse the catalog of available wedding-website themes',
     {
@@ -116,7 +131,7 @@ export function registerWebsiteThemeTools(server: McpServer): void {
       background_color: z.string().optional(),
       body_font_color: z.string().optional(),
       navigation_background_color: z.string().optional(),
-      header_font_family_id: z.number().optional().describe('Font family ID from get_website_customizations options'),
+      header_font_family_id: z.number().optional().describe('Font family ID — call get_website_customizations to see available font_family_ids'),
       body_font_family_id: z.number().optional(),
     },
     updateWebsiteCustomization
