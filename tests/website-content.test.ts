@@ -13,6 +13,10 @@ import {
   addPoi,
   updatePoi,
   removePoi,
+  listTravelItems,
+  addTravelItem,
+  updateTravelItem,
+  removeTravelItem,
   _resetPageIdCache,
 } from '../src/tools/website-content.js';
 
@@ -166,18 +170,20 @@ describe('website-content: faqs', () => {
     expect(JSON.parse(result.content[0].text).removed).toBe(6522901);
   });
 
-  // Gap 5: cross-type cache — one GET populates HOME, FAQ, and POI
-  it('cache: one GET populates all three page types (FAQ + HOME + POI removes = 1 GET + 3 DELETEs)', async () => {
+  // Gap 5: cross-type cache — one GET populates HOME, FAQ, POI, and TRAVEL
+  it('cache: one GET populates all four page types (FAQ + HOME + POI + TRAVEL removes = 1 GET + 4 DELETEs)', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never); // single pages lookup
     reqSpy.mockResolvedValueOnce({ data: null } as never); // removeFaq DELETE
     reqSpy.mockResolvedValueOnce({ data: null } as never); // removeHomeSection DELETE
     reqSpy.mockResolvedValueOnce({ data: null } as never); // removePoi DELETE
+    reqSpy.mockResolvedValueOnce({ data: null } as never); // removeTravelItem DELETE
 
     await removeFaq({ faq_entity_id: 6522901 });
     await removeHomeSection({ homepage_entity_id: 1381564 });
     await removePoi({ poi_entity_id: 5506041 });
+    await removeTravelItem({ travel_entity_id: 4 });
 
-    expect(reqSpy).toHaveBeenCalledTimes(4);
+    expect(reqSpy).toHaveBeenCalledTimes(5);
     const getCalls = reqSpy.mock.calls.filter((c) => c[0] === 'GET');
     expect(getCalls).toHaveLength(1);
   });
@@ -404,5 +410,97 @@ describe('website-content: points of interest', () => {
     const result = await removePoi({ poi_entity_id: 5506041 });
 
     expect(JSON.parse(result.content[0].text).removed).toBe(5506041);
+  });
+});
+
+describe('website-content: travel items', () => {
+  let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
+
+  beforeEach(() => {
+    reqSpy = vi.spyOn(client, 'requestMobile');
+    vi.spyOn(client, 'getContext').mockResolvedValue(MOCK_CTX);
+    _resetPageIdCache();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('listTravelItems: GETs travel for wedding account', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: [{ travel_entity_id: 4752577, type: 'HOTEL', name: 'DoubleTree' }],
+    } as never);
+    const result = await listTravelItems();
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/travel/wedding-accounts/4664323');
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed[0].name).toBe('DoubleTree');
+  });
+
+  it('addTravelItem: POSTs with travel_entity_id=0', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { travel_entity_id: 4752577, name: 'DoubleTree' },
+    } as never);
+    await addTravelItem({
+      type: 'HOTEL',
+      name: 'DoubleTree Suites',
+      address1: '6300 Carnegie Blvd',
+      city: 'Charlotte',
+      state_province: 'NC',
+      postal_code: '28211',
+      country_code: 'US',
+      contact_number: '(704) 364-2400',
+      url: 'https://hilton.com/x',
+      timezone: 'America/New_York',
+      source: 'GOOGLE_PLACES',
+    });
+    expect(reqSpy).toHaveBeenCalledWith(
+      'POST',
+      '/v3/websites/travel',
+      expect.objectContaining({
+        wedding_account_id: 4664323,
+        travel_entity_id: 0,
+        type: 'HOTEL',
+        name: 'DoubleTree Suites',
+        timezone: 'America/New_York',
+      })
+    );
+  });
+
+  it('addTravelItem: omits unset optional fields', async () => {
+    reqSpy.mockResolvedValueOnce({ data: { travel_entity_id: 1 } } as never);
+    await addTravelItem({ type: 'HOTEL', name: 'Bare Hotel' });
+    const body = reqSpy.mock.calls[0][2] as Record<string, unknown>;
+    expect(body.travel_entity_id).toBe(0);
+    expect(body.type).toBe('HOTEL');
+    expect(body.name).toBe('Bare Hotel');
+    expect(body).not.toHaveProperty('contact_number');
+    expect(body).not.toHaveProperty('latitude');
+  });
+
+  it('updateTravelItem: PUTs to /travel/{id}', async () => {
+    reqSpy.mockResolvedValueOnce({
+      data: { travel_entity_id: 4752577, name: 'Renamed' },
+    } as never);
+    await updateTravelItem({ travel_entity_id: 4752577, name: 'Renamed' });
+    expect(reqSpy).toHaveBeenCalledWith(
+      'PUT',
+      '/v3/websites/travel/4752577',
+      expect.objectContaining({
+        wedding_account_id: 4664323,
+        travel_entity_id: 4752577,
+        name: 'Renamed',
+      })
+    );
+  });
+
+  it('removeTravelItem: looks up TRAVEL page_id then DELETEs', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
+    reqSpy.mockResolvedValueOnce({ data: null } as never);
+    await removeTravelItem({ travel_entity_id: 4752577 });
+    expect(reqSpy).toHaveBeenNthCalledWith(
+      2,
+      'DELETE',
+      '/v3/websites/pages/41938918/entities/4752577/wedding-accounts/4664323'
+    );
   });
 });
