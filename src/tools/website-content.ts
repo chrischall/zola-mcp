@@ -185,6 +185,83 @@ export async function removeHomeSection(args: { homepage_entity_id: number }): P
   return { content: [{ type: 'text', text: JSON.stringify({ removed: args.homepage_entity_id }) }] };
 }
 
+// ===== Points of Interest =====
+
+interface PoiFields {
+  title?: string;
+  description?: string;
+  display_order?: number;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state_province?: string;
+  postal_code?: string;
+  country_code?: string;
+  latitude?: string;
+  longitude?: string;
+  google_place_id?: string;
+  contact_phone?: string;
+  url?: string;
+}
+
+function buildPoiBody(args: PoiFields, weddingAccountId: number, poiEntityId: number): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    wedding_account_id: weddingAccountId,
+    poi_entity_id: poiEntityId,
+  };
+  if (args.title !== undefined) body.title = args.title;
+  if (args.description !== undefined) body.description = args.description;
+  if (args.display_order !== undefined) body.display_order = args.display_order;
+  if (args.address1 !== undefined) body.address1 = args.address1;
+  if (args.address2 !== undefined) body.address2 = args.address2;
+  if (args.city !== undefined) body.city = args.city;
+  if (args.state_province !== undefined) body.state_province = args.state_province;
+  if (args.postal_code !== undefined) body.postal_code = args.postal_code;
+  if (args.country_code !== undefined) body.country_code = args.country_code;
+  if (args.latitude !== undefined) body.latitude = args.latitude;
+  if (args.longitude !== undefined) body.longitude = args.longitude;
+  if (args.google_place_id !== undefined) body.google_place_id = args.google_place_id;
+  if (args.contact_phone !== undefined) body.contact_phone = args.contact_phone;
+  if (args.url !== undefined) body.url = args.url;
+  return body;
+}
+
+export async function listPois(): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'GET',
+    `/v3/websites/points-of-interest/wedding-accounts/${weddingAccountId}`
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export async function addPoi(args: PoiFields & { title: string }): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  const body = buildPoiBody(args, weddingAccountId, 0);
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'POST',
+    '/v3/websites/points-of-interest',
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export async function updatePoi(args: PoiFields & { poi_entity_id: number }): Promise<ToolResult> {
+  const { weddingAccountId } = await client.getContext();
+  const body = buildPoiBody(args, weddingAccountId, args.poi_entity_id);
+  const response = await client.requestMobile<MobileEnvelope<unknown>>(
+    'PUT',
+    `/v3/websites/points-of-interest/${args.poi_entity_id}`,
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export async function removePoi(args: { poi_entity_id: number }): Promise<ToolResult> {
+  await deletePageEntity('POI', args.poi_entity_id);
+  return { content: [{ type: 'text', text: JSON.stringify({ removed: args.poi_entity_id }) }] };
+}
+
 export function registerWebsiteContentTools(server: McpServer): void {
   server.tool('list_faqs', 'List all FAQs on the wedding website', {}, listFaqs);
 
@@ -252,5 +329,64 @@ export function registerWebsiteContentTools(server: McpServer): void {
     'Remove a story section from the home page',
     { homepage_entity_id: z.number() },
     removeHomeSection
+  );
+
+  server.tool(
+    'list_pois',
+    'List points-of-interest on the "Things to Do" page',
+    {},
+    listPois
+  );
+
+  server.tool(
+    'add_poi',
+    'Add a point-of-interest to the Things-to-Do page (restaurant, attraction, etc.)',
+    {
+      title: z.string().describe('Name of the place'),
+      description: z.string().optional(),
+      address1: z.string().optional(),
+      address2: z.string().optional(),
+      city: z.string().optional(),
+      state_province: z.string().optional(),
+      postal_code: z.string().optional(),
+      country_code: z.string().optional().describe('Default: US'),
+      latitude: z.string().optional().describe('Decimal degrees as string'),
+      longitude: z.string().optional().describe('Decimal degrees as string'),
+      google_place_id: z.string().optional(),
+      contact_phone: z.string().optional(),
+      url: z.string().optional(),
+      display_order: z.number().optional(),
+    },
+    addPoi
+  );
+
+  server.tool(
+    'update_poi',
+    'Update a point-of-interest. Provide only the fields you want to change.',
+    {
+      poi_entity_id: z.number().describe('POI ID from list_pois'),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      address1: z.string().optional(),
+      address2: z.string().optional(),
+      city: z.string().optional(),
+      state_province: z.string().optional(),
+      postal_code: z.string().optional(),
+      country_code: z.string().optional(),
+      latitude: z.string().optional(),
+      longitude: z.string().optional(),
+      google_place_id: z.string().optional(),
+      contact_phone: z.string().optional(),
+      url: z.string().optional(),
+      display_order: z.number().optional(),
+    },
+    updatePoi
+  );
+
+  server.tool(
+    'remove_poi',
+    'Remove a point-of-interest from the Things-to-Do page',
+    { poi_entity_id: z.number() },
+    removePoi
   );
 }
