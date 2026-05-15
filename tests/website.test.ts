@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
-import { listPages } from '../src/tools/website.js';
+import { listPages, setPageHidden, reorderPages } from '../src/tools/website.js';
 
 const MOCK_CTX = {
   weddingAccountId: 4664323,
@@ -46,5 +46,25 @@ describe('website tools', () => {
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.faq_page.page_id).toBe(41938921);
     expect(parsed.ordered_page_ids).toHaveLength(9);
+  });
+
+  it('setPageHidden: PUTs hidden flag and returns response data', async () => {
+    reqSpy.mockResolvedValueOnce({ data: { page_id: 41938920, hidden: true } } as never);
+    const result = await setPageHidden({ page_id: 41938920, hidden: true });
+    expect(reqSpy).toHaveBeenCalledWith('PUT', '/v3/websites/pages/41938920/hidden/true');
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.hidden).toBe(true);
+  });
+
+  it('reorderPages: PUTs ids array against the wedding-accounts reorder endpoint', async () => {
+    const newOrder = [41938915, 41938918, 41938917];
+    reqSpy.mockResolvedValueOnce({ data: [] } as never);
+    const result = await reorderPages({ page_ids: newOrder });
+    expect(reqSpy).toHaveBeenCalledWith(
+      'PUT',
+      '/v3/websites/pages/wedding-accounts/4664323/reorder',
+      { ids: newOrder }
+    );
+    expect(result.content[0].text).toBeDefined();
   });
 });
