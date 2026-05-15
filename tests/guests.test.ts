@@ -55,6 +55,7 @@ describe('guest tools (mobile API)', () => {
     reqSpy = vi.spyOn(client, 'requestMobile');
     vi.spyOn(client, 'getContext').mockResolvedValue({
       weddingAccountId: 4664323,
+      weddingId: 7585869,
       registryId: 'reg-1',
       userId: 'user-1',
       weddingDate: '2026-10-17',

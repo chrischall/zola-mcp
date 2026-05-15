@@ -96,6 +96,7 @@ describe('events & wedding tools', () => {
     reqSpy = vi.spyOn(client, 'requestMobile');
     vi.spyOn(client, 'getContext').mockResolvedValue({
       weddingAccountId: 4664323,
+      weddingId: 7585869,
       registryId: 'registry-id-1',
       userId: 'user-id-1',
       weddingDate: '2026-10-17',

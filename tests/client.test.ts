@@ -153,6 +153,20 @@ describe('ZolaClient', () => {
     );
   });
 
+  it('getContext: returns weddingId from context response', async () => {
+    const freshClient = new (await import('../src/client.js')).ZolaClient();
+    vi.spyOn(freshClient, 'requestMobile').mockResolvedValueOnce({
+      data: {
+        user: { id: 'user-1' },
+        wedding_account: { wedding_account_id: 4664323 },
+        wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'chrismer26' },
+        registry: { id: 'registry-1' },
+      },
+    } as never);
+    const ctx = await freshClient.getContext();
+    expect(ctx.weddingId).toBe(7585869);
+  });
+
   it('sends body as JSON with content-type header', async () => {
     process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
     fetchMock.mockResolvedValueOnce(makeResponse({ data: [] }));
