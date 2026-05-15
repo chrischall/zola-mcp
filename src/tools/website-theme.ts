@@ -97,7 +97,7 @@ export function registerWebsiteThemeTools(server: McpServer): void {
 
   server.tool(
     'get_website_customizations',
-    'Get the current website customization context: active colors, font selections, and the catalog of available fonts and color presets to choose from',
+    'Get current website colors, font settings, and available font/color options',
     {},
     getWebsiteCustomizations
   );
