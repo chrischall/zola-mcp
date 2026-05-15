@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
-import { listPages, setPageHidden, reorderPages, updatePage } from '../src/tools/website.js';
+import {
+  listPages,
+  setPageHidden,
+  reorderPages,
+  updatePage,
+  getWeddingSettings,
+  updateWeddingSettings,
+} from '../src/tools/website.js';
 
 const MOCK_CTX = {
   weddingAccountId: 1000001,
@@ -95,5 +102,68 @@ describe('website tools', () => {
     expect(callBody.title).toBe('Just title');
     expect(callBody).not.toHaveProperty('intro_copy');
     expect(callBody).not.toHaveProperty('description');
+  });
+
+  const MOCK_CONTEXT_RESPONSE = {
+    data: {
+      user: { id: 'user-1' },
+      wedding_account: { wedding_account_id: 1000001 },
+      wedding: {
+        wedding_id: 7585869,
+        account_id: 7585875,
+        slug: 'alexjordan2026',
+        owner_first_name: 'Alex',
+        owner_last_name: 'Rivera',
+        partner_first_name: 'Christopher',
+        partner_last_name: 'Hall',
+        title: 'Alex & Chris',
+        wedding_date: '2026-10-17',
+        hashtag: null,
+        enable_search_engine: false,
+        enable_search_zola: false,
+        city: 'Charlotte',
+        state_province: 'NC',
+        guest_count: 100,
+      },
+      registry: { id: 'registry-1' },
+    },
+  };
+
+  it('getWeddingSettings: GETs /v3/users/me/context and returns wedding object', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_CONTEXT_RESPONSE as never);
+    const result = await getWeddingSettings();
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/users/me/context');
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.title).toBe('Alex & Chris');
+    expect(parsed.slug).toBe('alexjordan2026');
+    expect(parsed.wedding_id).toBe(7585869);
+  });
+
+  it('updateWeddingSettings: GETs current wedding, merges args, PUTs to /v3/weddings/{id}', async () => {
+    reqSpy.mockResolvedValueOnce(MOCK_CONTEXT_RESPONSE as never);
+    reqSpy.mockResolvedValueOnce({
+      data: { ...MOCK_CONTEXT_RESPONSE.data.wedding, title: 'New Title' },
+    } as never);
+
+    const result = await updateWeddingSettings({ title: 'New Title', hashtag: '#alexjordan2026' });
+
+    expect(reqSpy).toHaveBeenCalledTimes(2);
+    expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/users/me/context');
+    expect(reqSpy).toHaveBeenNthCalledWith(
+      2,
+      'PUT',
+      '/v3/weddings/7585869',
+      expect.objectContaining({
+        wedding_id: 7585869,
+        account_id: 7585875,
+        title: 'New Title',
+        hashtag: '#alexjordan2026',
+        slug: 'alexjordan2026',
+        partner_first_name: 'Christopher',
+        wedding_date: '2026-10-17',
+      })
+    );
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.title).toBe('New Title');
   });
 });
