@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
-import { listPages, setPageHidden, reorderPages } from '../src/tools/website.js';
+import { listPages, setPageHidden, reorderPages, updatePage } from '../src/tools/website.js';
 
 const MOCK_CTX = {
   weddingAccountId: 4664323,
@@ -66,5 +66,34 @@ describe('website tools', () => {
       { ids: newOrder }
     );
     expect(result.content[0].text).toBeDefined();
+  });
+
+  it('updatePage: PUTs partial fields to pages-v2/{id}', async () => {
+    reqSpy.mockResolvedValueOnce({ data: { page_id: 41938922, title: 'Things To Do' } } as never);
+    const result = await updatePage({
+      page_id: 41938922,
+      title: 'Things To Do',
+      intro_copy: 'Stuff to see and do nearby.',
+    });
+    expect(reqSpy).toHaveBeenCalledWith(
+      'PUT',
+      '/v3/websites/pages-v2/41938922',
+      expect.objectContaining({
+        page_id: 41938922,
+        title: 'Things To Do',
+        intro_copy: 'Stuff to see and do nearby.',
+      })
+    );
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.title).toBe('Things To Do');
+  });
+
+  it('updatePage: omits undefined fields from the request body', async () => {
+    reqSpy.mockResolvedValueOnce({ data: {} } as never);
+    await updatePage({ page_id: 41938922, title: 'Just title' });
+    const callBody = reqSpy.mock.calls[0][2] as Record<string, unknown>;
+    expect(callBody.title).toBe('Just title');
+    expect(callBody).not.toHaveProperty('intro_copy');
+    expect(callBody).not.toHaveProperty('description');
   });
 });
