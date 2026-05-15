@@ -130,7 +130,7 @@ export async function removeRegistryItem(args: { collection_item_id: string }): 
 export function registerRegistryItemTools(server: McpServer): void {
   server.tool(
     'search_registry_products',
-    'Browse Zola products in a category, scoped to your registry. Use category IDs from get_registry.',
+    'Browse Zola products in a category, scoped to your registry. Category IDs are Zola constants (e.g. 544 = Kitchen) — exposed via GET /v3/categories in the iOS app.',
     {
       category_id: z.number().describe('Zola product category ID'),
       offset: z.number().optional().describe('Default 0'),
