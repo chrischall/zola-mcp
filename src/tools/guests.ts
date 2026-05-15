@@ -1,7 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
+
+import { MobileEnvelope, ToolResult } from '../types.js';
 
 interface GuestEntry {
   guest: {
@@ -55,7 +56,9 @@ export async function listGuests(): Promise<ToolResult> {
     { sort_by_name_asc: true }
   );
   const { guest_groups, ...stats } = response.data;
-  return jsonResult({ stats, guest_groups });
+  return {
+    content: [{ type: 'text', text: JSON.stringify({ stats, guest_groups }, null, 2) }],
+  };
 }
 
 export async function addGuest(args: {
@@ -134,7 +137,7 @@ export async function addGuest(args: {
     '/v3/guestlists/groups',
     body
   );
-  return jsonResult(result.data);
+  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
 }
 
 export async function updateGuestAddress(args: {
@@ -194,7 +197,7 @@ export async function updateGuestAddress(args: {
     `/v3/guestlists/groups/wedding-accounts/id/${weddingAccountId}/suite`,
     body
   );
-  return jsonResult(result.data);
+  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
 }
 
 export async function removeGuest(args: { guest_group_id: number }): Promise<ToolResult> {
@@ -213,12 +216,14 @@ export async function removeGuest(args: { guest_group_id: number }): Promise<Too
 }
 
 export function registerGuestTools(server: McpServer): void {
-  server.tool('list_guests', 'List all guest groups with stats (total, invited, missing addresses)', {}, listGuests);
+  server.registerTool('list_guests', {
+    description: 'List all guest groups with stats (total, invited, missing addresses)',
+    annotations: { readOnlyHint: true },
+  }, listGuests);
 
-  server.tool(
-    'add_guest',
-    'Add a new guest group (household) to the guest list',
-    {
+  server.registerTool('add_guest', {
+    description: 'Add a new guest group (household) to the guest list',
+    inputSchema: {
       first_name: z.string().describe('Primary guest first name'),
       last_name: z.string().describe('Primary guest last name'),
       plus_one_first_name: z.string().optional().describe('Plus-one first name'),
@@ -227,13 +232,12 @@ export function registerGuestTools(server: McpServer): void {
       phone: z.string().optional().describe('Guest phone number'),
       affiliation: z.string().optional().describe('Affiliation (default: PRIMARY_FRIEND)'),
     },
-    addGuest
-  );
+    annotations: { destructiveHint: false },
+  }, addGuest);
 
-  server.tool(
-    'update_guest_address',
-    "Update a guest group's mailing address",
-    {
+  server.registerTool('update_guest_address', {
+    description: "Update a guest group's mailing address",
+    inputSchema: {
       guest_group_id: z.number().describe('Guest group ID from list_guests'),
       address1: z.string().optional(),
       address2: z.string().optional(),
@@ -242,13 +246,12 @@ export function registerGuestTools(server: McpServer): void {
       postal_code: z.string().optional(),
       country_code: z.string().optional().describe('Default: US'),
     },
-    updateGuestAddress
-  );
+    annotations: { destructiveHint: false },
+  }, updateGuestAddress);
 
-  server.tool(
-    'remove_guest',
-    'Remove a guest group from the guest list',
-    { guest_group_id: z.number().describe('Guest group ID from list_guests') },
-    removeGuest
-  );
+  server.registerTool('remove_guest', {
+    description: 'Remove a guest group from the guest list',
+    inputSchema: { guest_group_id: z.number().describe('Guest group ID from list_guests') },
+    annotations: { destructiveHint: true },
+  }, removeGuest);
 }

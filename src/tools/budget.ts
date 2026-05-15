@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
+import { MobileEnvelope, ToolResult } from '../types.js';
 
 interface BudgetPayment {
   uuid: string;
@@ -73,7 +73,7 @@ export async function getBudget(): Promise<ToolResult> {
     balance_due_cents: budget.balance_due_cents,
     items,
   };
-  return jsonResult(summary);
+  return { content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }] };
 }
 
 export async function updateBudgetItem(args: {
@@ -98,25 +98,22 @@ export async function updateBudgetItem(args: {
     ...(current.account_vendor_uuid ? { account_vendor_uuid: current.account_vendor_uuid } : {}),
   };
   const result = await client.requestMobile<MobileEnvelope<BudgetItem>>('PUT', '/v3/budgets/items', body);
-  return jsonResult(result.data);
+  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
 }
 
 export function registerBudgetTools(server: McpServer): void {
-  server.tool(
-    'get_budget',
-    'Get the wedding budget summary including total budgeted, actual cost, paid, and all budget items',
-    {},
-    getBudget
-  );
+  server.registerTool('get_budget', {
+    description: 'Get the wedding budget summary including total budgeted, actual cost, paid, and all budget items',
+    annotations: { readOnlyHint: true },
+  }, getBudget);
 
-  server.tool(
-    'update_budget_item',
-    "Update a budget item's actual cost and/or note by UUID",
-    {
+  server.registerTool('update_budget_item', {
+    description: "Update a budget item's actual cost and/or note by UUID",
+    inputSchema: {
       uuid: z.string().describe('Budget item UUID from get_budget'),
       actual_cost_cents: z.number().optional().describe('Actual cost in cents'),
       note: z.string().optional().describe('Note for the budget item'),
     },
-    updateBudgetItem
-  );
+    annotations: { destructiveHint: false },
+  }, updateBudgetItem);
 }

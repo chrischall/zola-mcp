@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { MobileEnvelope, ToolResult, jsonResult } from './_shared.js';
+import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 const collectionIdCache = new Map<string, string>();
 
@@ -123,34 +123,30 @@ export async function removeRegistryItem(args: { collection_item_id: string }): 
 }
 
 export function registerRegistryItemTools(server: McpServer): void {
-  server.tool(
-    'search_registry_products',
-    'Browse Zola products in a category, scoped to your registry. Category IDs are Zola constants (e.g. 544 = Kitchen) — exposed via GET /v3/categories in the iOS app.',
-    {
+  server.registerTool('search_registry_products', {
+    description: 'Browse Zola products in a category, scoped to your registry. Category IDs are Zola constants (e.g. 544 = Kitchen) — exposed via GET /v3/categories in the iOS app.',
+    annotations: { readOnlyHint: true },
+    inputSchema: {
       category_id: z.number().describe('Zola product category ID'),
       offset: z.number().optional().describe('Default 0'),
       limit: z.number().optional().describe('Default 50'),
     },
-    searchRegistryProducts
-  );
+  }, searchRegistryProducts);
 
-  server.tool(
-    'add_registry_item',
-    'Add a product (by SKU) to the registry. If collection_id is omitted, the default collection is looked up automatically.',
-    {
+  server.registerTool('add_registry_item', {
+    description: 'Add a product (by SKU) to the registry. If collection_id is omitted, the default collection is looked up automatically.',
+    inputSchema: {
       sku_id: z.string().describe('Product SKU ID (e.g., from search_registry_products)'),
       collection_id: z.string().optional().describe("Collection to add into; defaults to the registry's default collection"),
       quantity: z.number().optional().describe('Default 1'),
       most_wanted: z.boolean().optional().describe('Mark as a most-wanted gift. Default false'),
       enable_group_gifting: z.boolean().optional().describe('Allow multiple guests to chip in. Default false'),
     },
-    addRegistryItem
-  );
+  }, addRegistryItem);
 
-  server.tool(
-    'update_registry_item',
-    "Update an existing registry item — all fields must be supplied (it's a full replace)",
-    {
+  server.registerTool('update_registry_item', {
+    description: "Update an existing registry item — all fields must be supplied (it's a full replace)",
+    inputSchema: {
       collection_item_id: z.string().describe('Item ID from get_registry'),
       collection_id: z.string().describe('Collection the item belongs to'),
       quantity: z.number(),
@@ -159,13 +155,13 @@ export function registerRegistryItemTools(server: McpServer): void {
       personal_note: z.string(),
       most_wanted: z.boolean(),
     },
-    updateRegistryItem
-  );
+  }, updateRegistryItem);
 
-  server.tool(
-    'remove_registry_item',
-    'Remove an item from the registry',
-    { collection_item_id: z.string() },
-    removeRegistryItem
-  );
+  server.registerTool('remove_registry_item', {
+    description: 'Remove an item from the registry',
+    annotations: { destructiveHint: true },
+    inputSchema: {
+      collection_item_id: z.string(),
+    },
+  }, removeRegistryItem);
 }

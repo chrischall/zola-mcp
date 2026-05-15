@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from './_shared.js';
+import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
 
 type PageType = 'HOME' | 'FAQ' | 'POI' | 'TRAVEL';
 
@@ -321,57 +321,57 @@ export async function removeTravelItem(args: { travel_entity_id: number }): Prom
 }
 
 export function registerWebsiteContentTools(server: McpServer): void {
-  server.tool('list_faqs', 'List all FAQs on the wedding website', {}, listFaqs);
+  server.registerTool('list_faqs', {
+    description: 'List all FAQs on the wedding website',
+    annotations: { readOnlyHint: true },
+  }, listFaqs);
 
-  server.tool(
-    'add_faq',
-    'Add a new FAQ (question + answer) to the website FAQ page',
-    {
+  server.registerTool('add_faq', {
+    description: 'Add a new FAQ (question + answer) to the website FAQ page',
+    inputSchema: {
       question: z.string().describe('The FAQ question'),
       answer: z.string().describe('The FAQ answer'),
       display_order: z.number().optional().describe('Position in the FAQ list (defaults to 0)'),
     },
-    addFaq
-  );
+  }, addFaq);
 
-  server.tool(
-    'update_faq',
-    'Update an existing FAQ — all three fields (question, answer, display_order) must be supplied',
-    {
+  server.registerTool('update_faq', {
+    description: 'Update an existing FAQ — all three fields (question, answer, display_order) must be supplied',
+    inputSchema: {
       faq_entity_id: z.number().describe('FAQ entity ID from list_faqs'),
       question: z.string(),
       answer: z.string(),
       display_order: z.number(),
     },
-    updateFaq
-  );
+  }, updateFaq);
 
-  server.tool(
-    'remove_faq',
-    'Remove an FAQ from the website',
-    { faq_entity_id: z.number().describe('FAQ entity ID from list_faqs') },
-    removeFaq
-  );
+  server.registerTool('remove_faq', {
+    description: 'Remove an FAQ from the website',
+    annotations: { destructiveHint: true },
+    inputSchema: {
+      faq_entity_id: z.number().describe('FAQ entity ID from list_faqs'),
+    },
+  }, removeFaq);
 
-  server.tool('list_home_sections', 'List the story sections on the website home page', {}, listHomeSections);
+  server.registerTool('list_home_sections', {
+    description: 'List the story sections on the website home page',
+    annotations: { readOnlyHint: true },
+  }, listHomeSections);
 
-  server.tool(
-    'add_home_section',
-    'Add a story section to the home page (title + subtitle + description block)',
-    {
+  server.registerTool('add_home_section', {
+    description: 'Add a story section to the home page (title + subtitle + description block)',
+    inputSchema: {
       title: z.string(),
       subtitle: z.string(),
       description: z.string(),
       display_order: z.number().optional(),
       hidden: z.boolean().optional(),
     },
-    addHomeSection
-  );
+  }, addHomeSection);
 
-  server.tool(
-    'update_home_section',
-    'Update a home page story section — all fields must be supplied',
-    {
+  server.registerTool('update_home_section', {
+    description: 'Update a home page story section — all fields must be supplied',
+    inputSchema: {
       homepage_entity_id: z.number().describe('Home section ID from list_home_sections'),
       title: z.string(),
       subtitle: z.string(),
@@ -379,27 +379,24 @@ export function registerWebsiteContentTools(server: McpServer): void {
       display_order: z.number(),
       hidden: z.boolean(),
     },
-    updateHomeSection
-  );
+  }, updateHomeSection);
 
-  server.tool(
-    'remove_home_section',
-    'Remove a story section from the home page',
-    { homepage_entity_id: z.number() },
-    removeHomeSection
-  );
+  server.registerTool('remove_home_section', {
+    description: 'Remove a story section from the home page',
+    annotations: { destructiveHint: true },
+    inputSchema: {
+      homepage_entity_id: z.number(),
+    },
+  }, removeHomeSection);
 
-  server.tool(
-    'list_pois',
-    'List points-of-interest on the "Things to Do" page',
-    {},
-    listPois
-  );
+  server.registerTool('list_pois', {
+    description: 'List points-of-interest on the "Things to Do" page',
+    annotations: { readOnlyHint: true },
+  }, listPois);
 
-  server.tool(
-    'add_poi',
-    'Add a point-of-interest to the Things-to-Do page (restaurant, attraction, etc.)',
-    {
+  server.registerTool('add_poi', {
+    description: 'Add a point-of-interest to the Things-to-Do page (restaurant, attraction, etc.)',
+    inputSchema: {
       title: z.string().describe('Name of the place'),
       description: z.string().optional(),
       address1: z.string().optional(),
@@ -415,13 +412,11 @@ export function registerWebsiteContentTools(server: McpServer): void {
       url: z.string().optional(),
       display_order: z.number().optional(),
     },
-    addPoi
-  );
+  }, addPoi);
 
-  server.tool(
-    'update_poi',
-    'Update a point-of-interest. Provide only the fields you want to change.',
-    {
+  server.registerTool('update_poi', {
+    description: 'Update a point-of-interest. Provide only the fields you want to change.',
+    inputSchema: {
       poi_entity_id: z.number().describe('POI ID from list_pois'),
       title: z.string().optional(),
       description: z.string().optional(),
@@ -438,22 +433,24 @@ export function registerWebsiteContentTools(server: McpServer): void {
       url: z.string().optional(),
       display_order: z.number().optional(),
     },
-    updatePoi
-  );
+  }, updatePoi);
 
-  server.tool(
-    'remove_poi',
-    'Remove a point-of-interest from the Things-to-Do page',
-    { poi_entity_id: z.number() },
-    removePoi
-  );
+  server.registerTool('remove_poi', {
+    description: 'Remove a point-of-interest from the Things-to-Do page',
+    annotations: { destructiveHint: true },
+    inputSchema: {
+      poi_entity_id: z.number(),
+    },
+  }, removePoi);
 
-  server.tool('list_travel_items', 'List hotels, flights, and transportation on the website Travel page', {}, listTravelItems);
+  server.registerTool('list_travel_items', {
+    description: 'List hotels, flights, and transportation on the website Travel page',
+    annotations: { readOnlyHint: true },
+  }, listTravelItems);
 
-  server.tool(
-    'add_travel_item',
-    'Add a travel item (hotel, flight, train, car, bus) to the Travel page',
-    {
+  server.registerTool('add_travel_item', {
+    description: 'Add a travel item (hotel, flight, train, car, bus) to the Travel page',
+    inputSchema: {
       type: z.enum(['HOTEL', 'FLIGHT', 'TRAIN', 'BUS', 'CAR', 'OTHER']).describe('Travel item type'),
       name: z.string().describe('Name of the hotel/airline/etc.'),
       note: z.string().optional().describe('Free-text notes (e.g., booking code instructions)'),
@@ -474,13 +471,11 @@ export function registerWebsiteContentTools(server: McpServer): void {
       timezone: z.string().optional().describe('e.g. America/New_York'),
       display_order: z.number().optional(),
     },
-    addTravelItem
-  );
+  }, addTravelItem);
 
-  server.tool(
-    'update_travel_item',
-    'Update a travel item. Provide only the fields you want to change.',
-    {
+  server.registerTool('update_travel_item', {
+    description: 'Update a travel item. Provide only the fields you want to change.',
+    inputSchema: {
       travel_entity_id: z.number().describe('Travel entity ID from list_travel_items'),
       type: z.enum(['HOTEL', 'FLIGHT', 'TRAIN', 'BUS', 'CAR', 'OTHER']).optional(),
       name: z.string().optional(),
@@ -502,13 +497,13 @@ export function registerWebsiteContentTools(server: McpServer): void {
       timezone: z.string().optional(),
       display_order: z.number().optional(),
     },
-    updateTravelItem
-  );
+  }, updateTravelItem);
 
-  server.tool(
-    'remove_travel_item',
-    'Remove a travel item from the Travel page',
-    { travel_entity_id: z.number() },
-    removeTravelItem
-  );
+  server.registerTool('remove_travel_item', {
+    description: 'Remove a travel item from the Travel page',
+    annotations: { destructiveHint: true },
+    inputSchema: {
+      travel_entity_id: z.number(),
+    },
+  }, removeTravelItem);
 }

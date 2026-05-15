@@ -4,9 +4,24 @@ import { fileURLToPath } from 'url';
 try {
   const { config } = await import('dotenv');
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  config({ path: join(__dirname, '..', '.env'), override: false });
+  config({ path: join(__dirname, '..', '.env'), override: false, quiet: true });
 } catch {
   // bundled mode — rely on process.env
+}
+
+/**
+ * Read an env var, trim whitespace, and treat as unset if blank or if the value
+ * looks like an unsubstituted shell placeholder (e.g. `${FOO}`) — defends
+ * against MCP hosts that pass .mcp.json env blocks through unexpanded.
+ */
+function readVar(key: string): string | undefined {
+  const raw = process.env[key];
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return undefined;
+  if (trimmed === 'undefined' || trimmed === 'null') return undefined;
+  if (/^\$\{[^}]*\}$/.test(trimmed)) return undefined;
+  return trimmed;
 }
 
 const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
@@ -67,10 +82,11 @@ export class ZolaClient {
   async getContext(): Promise<UserContext> {
     if (this.cachedContext) return this.cachedContext;
 
-    const envAccountId = process.env.ZOLA_ACCOUNT_ID;
-    const envRegistryId = process.env.ZOLA_REGISTRY_ID;
-    const envWeddingId = process.env.ZOLA_WEDDING_ID;
+    const envAccountId = readVar('ZOLA_ACCOUNT_ID');
+    const envRegistryId = readVar('ZOLA_REGISTRY_ID');
+    const envWeddingId = readVar('ZOLA_WEDDING_ID');
 
+    // If all env vars are set, skip the API call
     if (envAccountId && envRegistryId && envWeddingId) {
       this.cachedContext = {
         weddingAccountId: Number(envAccountId),
@@ -83,6 +99,7 @@ export class ZolaClient {
       return this.cachedContext;
     }
 
+    // Fetch from API
     const response = await this.requestMobile<{
       data: {
         user: { id: string };
@@ -116,6 +133,7 @@ export class ZolaClient {
       authorization: `Bearer ${this.sessionToken}`,
       'x-zola-platform-type': 'iphone_app',
       'x-zola-session-id': this.deviceSessionId,
+      'user-agent': 'Zola/42.5.0 (iPad; iOS 26.4; Scale/2.0)',
       ...(sessionId ? { 'x-zola-user-session-id': sessionId } : {}),
     };
     if (body !== undefined) headers['content-type'] = 'application/json';
@@ -156,8 +174,9 @@ export class ZolaClient {
       if (this.sessionExpiry.getTime() - Date.now() > 5 * 60 * 1000) return;
     }
 
+    // Check for session token in env (first load only)
     if (this.sessionToken === null) {
-      const envSession = process.env.ZOLA_SESSION_TOKEN;
+      const envSession = readVar('ZOLA_SESSION_TOKEN');
       if (envSession) {
         try {
           const exp = decodeJwtExp(envSession);
@@ -181,7 +200,7 @@ export class ZolaClient {
    * Returns a new session_token (30-min) and optionally a new refresh_token.
    */
   private async refresh(): Promise<void> {
-    const refreshToken = process.env.ZOLA_REFRESH_TOKEN;
+    const refreshToken = readVar('ZOLA_REFRESH_TOKEN');
     if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
 
     const response = await fetch(`${MOBILE_BASE_URL}/v3/sessions/refresh`, {
@@ -191,6 +210,7 @@ export class ZolaClient {
         accept: 'application/json',
         'x-zola-platform-type': 'iphone_app',
         'x-zola-session-id': this.deviceSessionId,
+        'user-agent': 'Zola/42.5.0 (iPad; iOS 26.4; Scale/2.0)',
       },
       body: JSON.stringify({ token: refreshToken }),
     });
@@ -199,7 +219,7 @@ export class ZolaClient {
       const text = await response.text();
       throw new Error(
         `Zola session refresh failed (${response.status}): ${text}\n` +
-          'To fix: log into the Zola iOS app → capture refresh token via mitmproxy → update ZOLA_REFRESH_TOKEN'
+          'To fix: run `npm run auth` (or `./scripts/setup-auth.sh`) to capture a fresh ZOLA_REFRESH_TOKEN via browser login.'
       );
     }
 

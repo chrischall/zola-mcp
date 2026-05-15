@@ -96,7 +96,7 @@ describe('discover tools', () => {
   it('searchStorefronts: POSTs search with location and category', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_SEARCH_RESULT as never);
 
-    const result = await searchStorefronts({ taxonomy_node_id: 9, city: 'Charlotte', state: 'NC' });
+    const result = await searchStorefronts({ taxonomy_node_id: 9, city: 'Charlotte', state_province: 'NC' });
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/storefronts/search', expect.objectContaining({
       taxonomy_node_id: 9,
