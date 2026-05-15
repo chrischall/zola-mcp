@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { client } from '../client.js';
-import { MobileEnvelope, ToolResult } from '../types.js';
+import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 interface VendorCard {
   id: number | null;
@@ -45,7 +45,7 @@ export async function listVendors(): Promise<ToolResult> {
     '/v3/account-vendors/booked-list',
     {}
   );
-  return { content: [{ type: 'text', text: JSON.stringify(response.data.booked_vendors, null, 2) }] };
+  return jsonResult(response.data.booked_vendors);
 }
 
 export async function searchVendors(args: {
@@ -60,7 +60,7 @@ export async function searchVendors(args: {
       taxonomy_key: args.taxonomy_key ?? 'wedding-venues',
     }
   );
-  return { content: [{ type: 'text', text: JSON.stringify(results.data, null, 2) }] };
+  return jsonResult(results.data);
 }
 
 export async function addVendor(args: {
@@ -74,7 +74,6 @@ export async function addVendor(args: {
   event_date?: string;
   reference_vendor_id?: number;
 }): Promise<ToolResult> {
-  // Find an unbooked slot for this vendor type
   const listResponse = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
     '/v3/account-vendors/booked-list',
@@ -114,7 +113,7 @@ export async function addVendor(args: {
     '/v5/account-vendors/vendor',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export async function updateVendor(args: {
@@ -164,7 +163,7 @@ export async function updateVendor(args: {
     '/v5/account-vendors/vendor',
     body
   );
-  return { content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }] };
+  return jsonResult(result.data);
 }
 
 export async function removeVendor(args: { uuid: string }): Promise<ToolResult> {

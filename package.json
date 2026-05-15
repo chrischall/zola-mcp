@@ -1,6 +1,6 @@
 {
   "name": "zola-mcp",
-  "version": "1.0.8",
+  "version": "1.1.0",
   "mcpName": "io.github.chrischall/zola-mcp",
   "description": "Zola wedding MCP server for Claude",
   "author": "Claude Code (AI) <https://www.anthropic.com/claude>",
@@ -52,10 +52,10 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "@vitest/coverage-v8": "^4.1.2",
+    "@vitest/coverage-v8": "^4.1.6",
     "esbuild": "^0.28.0",
     "puppeteer-core": "^24.0.0",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.2"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
   }
 }
