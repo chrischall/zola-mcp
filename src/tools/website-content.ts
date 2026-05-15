@@ -333,6 +333,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       answer: z.string().describe('The FAQ answer'),
       display_order: z.number().optional().describe('Position in the FAQ list (defaults to 0)'),
     },
+    annotations: { destructiveHint: false },
   }, addFaq);
 
   server.registerTool('update_faq', {
@@ -343,14 +344,15 @@ export function registerWebsiteContentTools(server: McpServer): void {
       answer: z.string(),
       display_order: z.number(),
     },
+    annotations: { destructiveHint: false },
   }, updateFaq);
 
   server.registerTool('remove_faq', {
     description: 'Remove an FAQ from the website',
-    annotations: { destructiveHint: true },
     inputSchema: {
       faq_entity_id: z.number().describe('FAQ entity ID from list_faqs'),
     },
+    annotations: { destructiveHint: true },
   }, removeFaq);
 
   server.registerTool('list_home_sections', {
@@ -367,6 +369,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       display_order: z.number().optional(),
       hidden: z.boolean().optional(),
     },
+    annotations: { destructiveHint: false },
   }, addHomeSection);
 
   server.registerTool('update_home_section', {
@@ -379,14 +382,15 @@ export function registerWebsiteContentTools(server: McpServer): void {
       display_order: z.number(),
       hidden: z.boolean(),
     },
+    annotations: { destructiveHint: false },
   }, updateHomeSection);
 
   server.registerTool('remove_home_section', {
     description: 'Remove a story section from the home page',
-    annotations: { destructiveHint: true },
     inputSchema: {
       homepage_entity_id: z.number(),
     },
+    annotations: { destructiveHint: true },
   }, removeHomeSection);
 
   server.registerTool('list_pois', {
@@ -412,6 +416,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       url: z.string().optional(),
       display_order: z.number().optional(),
     },
+    annotations: { destructiveHint: false },
   }, addPoi);
 
   server.registerTool('update_poi', {
@@ -433,14 +438,15 @@ export function registerWebsiteContentTools(server: McpServer): void {
       url: z.string().optional(),
       display_order: z.number().optional(),
     },
+    annotations: { destructiveHint: false },
   }, updatePoi);
 
   server.registerTool('remove_poi', {
     description: 'Remove a point-of-interest from the Things-to-Do page',
-    annotations: { destructiveHint: true },
     inputSchema: {
       poi_entity_id: z.number(),
     },
+    annotations: { destructiveHint: true },
   }, removePoi);
 
   server.registerTool('list_travel_items', {
@@ -471,6 +477,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       timezone: z.string().optional().describe('e.g. America/New_York'),
       display_order: z.number().optional(),
     },
+    annotations: { destructiveHint: false },
   }, addTravelItem);
 
   server.registerTool('update_travel_item', {
@@ -497,13 +504,14 @@ export function registerWebsiteContentTools(server: McpServer): void {
       timezone: z.string().optional(),
       display_order: z.number().optional(),
     },
+    annotations: { destructiveHint: false },
   }, updateTravelItem);
 
   server.registerTool('remove_travel_item', {
     description: 'Remove a travel item from the Travel page',
-    annotations: { destructiveHint: true },
     inputSchema: {
       travel_entity_id: z.number(),
     },
+    annotations: { destructiveHint: true },
   }, removeTravelItem);
 }
