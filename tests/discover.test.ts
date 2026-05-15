@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
 import { getWeddingDashboard, searchStorefronts, getStorefront, listFavorites } from '../src/tools/discover.js';
+import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_DASHBOARD = {
   data: {
@@ -74,7 +75,7 @@ describe('discover tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
   beforeEach(() => {
-    reqSpy = vi.spyOn(client, 'requestMobile');
+    reqSpy = setupClientMocks();
   });
 
   afterEach(() => {
