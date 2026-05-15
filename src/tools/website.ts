@@ -64,6 +64,82 @@ export async function updatePage(args: {
   return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
 }
 
+interface WeddingFields {
+  wedding_id: number;
+  account_id: number;
+  slug: string;
+  owner_first_name: string | null;
+  owner_last_name: string | null;
+  partner_first_name: string | null;
+  partner_last_name: string | null;
+  title: string;
+  wedding_date: string | null;
+  hashtag: string | null;
+  enable_search_engine: boolean;
+  enable_search_zola: boolean;
+  city: string | null;
+  state_province: string | null;
+  guest_count: number | null;
+}
+
+interface UserContextResponse {
+  data: {
+    wedding: WeddingFields;
+  };
+}
+
+async function fetchWeddingFields(): Promise<WeddingFields> {
+  const response = await client.requestMobile<UserContextResponse>('GET', '/v3/users/me/context');
+  return response.data.wedding;
+}
+
+export async function getWeddingSettings(): Promise<ToolResult> {
+  const wedding = await fetchWeddingFields();
+  return { content: [{ type: 'text', text: JSON.stringify(wedding, null, 2) }] };
+}
+
+export async function updateWeddingSettings(args: {
+  title?: string;
+  slug?: string;
+  owner_first_name?: string;
+  owner_last_name?: string;
+  partner_first_name?: string;
+  partner_last_name?: string;
+  wedding_date?: string;
+  city?: string;
+  state_province?: string;
+  hashtag?: string;
+  guest_count?: number;
+  enable_search_engine?: boolean;
+  enable_search_zola?: boolean;
+}): Promise<ToolResult> {
+  const current = await fetchWeddingFields();
+  const body = {
+    wedding_id: current.wedding_id,
+    account_id: current.account_id,
+    slug: args.slug ?? current.slug,
+    owner_first_name: args.owner_first_name ?? current.owner_first_name,
+    owner_last_name: args.owner_last_name ?? current.owner_last_name,
+    partner_first_name: args.partner_first_name ?? current.partner_first_name,
+    partner_last_name: args.partner_last_name ?? current.partner_last_name,
+    title: args.title ?? current.title,
+    wedding_date: args.wedding_date ?? current.wedding_date,
+    hashtag: args.hashtag ?? current.hashtag ?? '',
+    enable_search_engine: args.enable_search_engine ?? current.enable_search_engine,
+    enable_search_zola: args.enable_search_zola ?? current.enable_search_zola,
+    city: args.city ?? current.city,
+    state_province: args.state_province ?? current.state_province,
+    guest_count: args.guest_count ?? current.guest_count,
+  };
+
+  const response = await client.requestMobile<MobileEnvelope<WeddingFields>>(
+    'PUT',
+    `/v3/weddings/${current.wedding_id}`,
+    body
+  );
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
 export function registerWebsiteTools(server: McpServer): void {
   server.tool(
     'list_pages',
@@ -105,5 +181,33 @@ export function registerWebsiteTools(server: McpServer): void {
       customization: z.unknown().optional().describe('Layout customization object (see list_pages for shape)'),
     },
     updatePage
+  );
+
+  server.tool(
+    'get_wedding_settings',
+    'Get top-level wedding settings: title, URL slug, partner names, date, city, hashtag, guest count, search visibility',
+    {},
+    getWeddingSettings
+  );
+
+  server.tool(
+    'update_wedding_settings',
+    'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
+    {
+      title: z.string().optional().describe('Wedding title (e.g., "Meredith & Chris")'),
+      slug: z.string().optional().describe('URL slug — appears in the public website URL'),
+      owner_first_name: z.string().optional(),
+      owner_last_name: z.string().optional(),
+      partner_first_name: z.string().optional(),
+      partner_last_name: z.string().optional(),
+      wedding_date: z.string().optional().describe('YYYY-MM-DD'),
+      city: z.string().optional(),
+      state_province: z.string().optional(),
+      hashtag: z.string().optional().describe('e.g. #merchris2026 — empty string clears it'),
+      guest_count: z.number().optional(),
+      enable_search_engine: z.boolean().optional().describe('Allow search engines (Google, etc.) to index the site'),
+      enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),
+    },
+    updateWeddingSettings
   );
 }
