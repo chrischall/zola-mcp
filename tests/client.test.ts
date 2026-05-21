@@ -42,12 +42,14 @@ describe('ZolaClient', () => {
     delete process.env.ZOLA_SESSION_TOKEN;
   });
 
-  it('throws when ZOLA_REFRESH_TOKEN is missing', async () => {
+  it('throws when ZOLA_REFRESH_TOKEN is missing and fetchproxy is disabled', async () => {
     delete process.env.ZOLA_REFRESH_TOKEN;
+    process.env.ZOLA_DISABLE_FETCHPROXY = '1';
     const client = new ZolaClient();
     await expect(client.requestMobile('GET', '/v3/test')).rejects.toThrow(
-      'ZOLA_REFRESH_TOKEN must be set'
+      /ZOLA_REFRESH_TOKEN/
     );
+    delete process.env.ZOLA_DISABLE_FETCHPROXY;
   });
 
   it('uses ZOLA_SESSION_TOKEN directly if valid', async () => {

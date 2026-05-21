@@ -40,22 +40,18 @@ npm install && npm run build
 
 ### Getting your refresh token
 
-Run the setup script (one-time, token lasts ~1 year):
+Two options:
 
-```bash
-npm run auth               # prints the token to the console
-npm run auth -- .env       # writes ZOLA_REFRESH_TOKEN=<token> to .env
-```
+**Option A — fetchproxy extension (recommended).** Install the [fetchproxy 0.3.0 extension](https://github.com/chrischall/fetchproxy), sign into zola.com once, and leave `ZOLA_REFRESH_TOKEN` unset. The MCP reads the HttpOnly `usr` cookie on demand and goes direct-to-API from Node thereafter.
 
-This launches Chrome with a dedicated profile, waits for you to sign in to zola.com, then captures the `usr` cookie (a ~1-year JWT). Use the printed value with Claude Desktop / MCPB configs, or the `.env` form when running from source.
-
-If you'd rather not run Chrome via the script, you can also copy the `usr` cookie manually from DevTools → Application → Cookies after signing in at zola.com.
+**Option B — manual DevTools copy.** After signing in at zola.com, open DevTools → Application → Cookies, copy the `usr` value, and paste it into your config as `ZOLA_REFRESH_TOKEN`. Token lasts ~1 year.
 
 ## Credentials
 
 | Env var | Required | Notes |
 |---------|----------|-------|
-| `ZOLA_REFRESH_TOKEN` | Yes | Mobile API JWT refresh token (~1 year lifetime) |
+| `ZOLA_REFRESH_TOKEN` | Conditional | Mobile API JWT refresh token (~1 year lifetime). Unset = fetchproxy fallback |
+| `ZOLA_DISABLE_FETCHPROXY` | No | Set to `1` to opt out of the fetchproxy fallback (headless / CI) |
 | `ZOLA_ACCOUNT_ID` | No | Auto-resolved from API; optional override |
 | `ZOLA_REGISTRY_ID` | No | Auto-resolved from API; optional override |
 
@@ -134,4 +130,4 @@ If you'd rather not run Chrome via the script, you can also copy the `usr` cooki
 
 - All tools use the Zola mobile API (`mobile-api.zola.com`) with Bearer JWT auth
 - Account and registry IDs are auto-resolved from the API on first use
-- Refresh token expires after ~1 year; re-run `setup-auth.sh` to renew
+- Refresh token expires after ~1 year; sign back into zola.com (fetchproxy path) or copy a fresh `usr` cookie from DevTools to renew

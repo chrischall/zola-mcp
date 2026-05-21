@@ -18,8 +18,8 @@
       "environmentVariables": [
         {
           "name": "ZOLA_REFRESH_TOKEN",
-          "description": "Zola refresh token JWT (~1 year lifetime). Run npm run auth to capture via browser login.",
-          "isRequired": true,
+          "description": "Zola refresh token JWT (~1 year lifetime). Optional — when unset, the MCP falls back to the fetchproxy 0.3.0 browser extension to read the `usr` cookie from your signed-in zola.com tab.",
+          "isRequired": false,
           "format": "string",
           "isSecret": true
         }
