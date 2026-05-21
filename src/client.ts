@@ -1,5 +1,6 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { resolveRefreshToken } from './auth.js';
 
 try {
   const { config } = await import('dotenv');
@@ -197,10 +198,13 @@ export class ZolaClient {
    * Refresh the session using the mobile API endpoint.
    * POST /v3/sessions/refresh with the refresh token JWT.
    * Returns a new session_token (30-min) and optionally a new refresh_token.
+   *
+   * The refresh token comes from `resolveRefreshToken()`, which tries
+   * (1) ZOLA_REFRESH_TOKEN env var, then (2) the fetchproxy 0.3.0 extension's
+   * `usr` cookie on zola.com, then (3) errors with actionable guidance.
    */
   private async refresh(): Promise<void> {
-    const refreshToken = readVar('ZOLA_REFRESH_TOKEN');
-    if (!refreshToken) throw new Error('ZOLA_REFRESH_TOKEN must be set');
+    const { token: refreshToken } = await resolveRefreshToken();
 
     const response = await fetch(`${MOBILE_BASE_URL}/v3/sessions/refresh`, {
       method: 'POST',
@@ -218,7 +222,7 @@ export class ZolaClient {
       const text = await response.text();
       throw new Error(
         `Zola session refresh failed (${response.status}): ${text}\n` +
-          'To fix: run `npm run auth` (or `./scripts/setup-auth.sh`) to capture a fresh ZOLA_REFRESH_TOKEN via browser login.'
+          'To fix: set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com.'
       );
     }
 
