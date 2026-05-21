@@ -9,8 +9,6 @@ npm run build        # tsc + esbuild bundle → dist/index.js + dist/bundle.js
 npm test             # vitest run
 npm run test:watch   # vitest in watch mode
 npm run dev          # node --env-file=.env dist/index.js (build first)
-npm run auth         # capture ZOLA_REFRESH_TOKEN via scripted Chrome login
-npm run auth -- .env # …and write it to .env
 ```
 
 ## Architecture
@@ -19,6 +17,7 @@ npm run auth -- .env # …and write it to .env
 src/
   index.ts                MCP server entry — registers all tool modules, starts stdio transport
   client.ts               ZolaClient — Bearer JWT auth, session refresh, context resolution
+  auth.ts                 resolveRefreshToken() — env var (primary) / fetchproxy fallback
   types.ts                Shared types
   tools/
     vendors.ts            list/search/add/update/remove booked vendors
@@ -41,17 +40,31 @@ Each tool file exports a `register*Tools(server)` function. `index.ts` imports a
 ## Environment
 
 ```
-ZOLA_REFRESH_TOKEN=<jwt>   # Required. ~1-year refresh token (the `usr` cookie from zola.com).
-                           #   Capture via `npm run auth -- .env` or paste from DevTools.
+ZOLA_REFRESH_TOKEN=<jwt>   # Primary credential. ~1-year refresh token (the `usr` cookie
+                           #   from zola.com). When unset, the fetchproxy fallback
+                           #   reads it from a signed-in zola.com browser tab.
 ZOLA_ACCOUNT_ID=<number>   # Optional. Auto-resolved from GET /v3/users/me/context.
 ZOLA_REGISTRY_ID=<string>  # Optional. Auto-resolved from same.
 ZOLA_WEDDING_ID=<number>   # Optional. Auto-resolved from same. If all three are set,
                            #   the context API call is skipped entirely.
 ZOLA_SESSION_TOKEN=<jwt>   # Optional. Short-lived (30 min) session token; skips initial
                            #   refresh on cold start. Auto-refresh still kicks in on 401.
+ZOLA_DISABLE_FETCHPROXY=1  # Optional. Opts out of the fetchproxy fallback (headless / CI).
+                           #   Without this and without ZOLA_REFRESH_TOKEN, refresh errors
+                           #   out with the "set token or install extension" message.
 ```
 
 Blank, `undefined`, `null`, and unsubstituted `${FOO}` placeholders are treated as unset (defends against MCP hosts that pass `.mcp.json` env blocks through unexpanded).
+
+## Auth resolution (three-path)
+
+`src/auth.ts` exports `resolveRefreshToken()`, which `ZolaClient.refresh()` calls each time it needs to mint a new 30-min session token. Path priority:
+
+1. **`ZOLA_REFRESH_TOKEN` env var** — returned directly. Legacy users are unchanged.
+2. **fetchproxy fallback** — calls `@fetchproxy/bootstrap` (0.3.0+) which spins up a one-shot WebSocket bridge to the fetchproxy 0.3.0 Chrome/Safari extension and reads the HttpOnly `usr` cookie on zola.com via `chrome.cookies.get`. Returns once. All subsequent Zola API calls go direct to `mobile-api.zola.com` from Node — fetchproxy is NOT in the hot path.
+3. **Error** — surface both fixes side-by-side ("set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com").
+
+This is the canonical "browser-bootstrap + Node-direct" shape shared with ofw-mcp, resy-mcp, opentable-mcp, signupgenius-mcp, …
 
 ## Testing
 

@@ -23,7 +23,7 @@ Ask Claude things like:
 - [Claude Desktop](https://claude.ai/download) or [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - [Node.js](https://nodejs.org) 20.6 or later
 - A [Zola](https://www.zola.com) account
-- [Google Chrome](https://www.google.com/chrome/) — used once for the scripted auth flow (optional; you can copy the cookie manually instead)
+- For the no-env-var path: the [fetchproxy 0.3.0 Chrome / Safari extension](https://github.com/chrischall/fetchproxy)
 
 ## Installation
 
@@ -89,16 +89,17 @@ Add to Claude Desktop config:
 
 ### Getting your refresh token
 
-Sign in to zola.com and capture the `usr` cookie — a ~1-year JWT that doubles as the refresh token. The token lasts ~1 year; this is a one-time setup.
+You have two options. Both produce the same `usr` cookie value — a ~1-year JWT that doubles as the refresh token.
 
-#### Option A — scripted (recommended)
+#### Option A — fetchproxy extension (recommended)
 
-```bash
-npm run auth               # prints the token to the console
-npm run auth -- .env       # writes ZOLA_REFRESH_TOKEN=<token> to .env
-```
+1. Install the [fetchproxy 0.3.0 extension](https://github.com/chrischall/fetchproxy) (Chrome Web Store or Safari `.dmg`).
+2. Sign in at [zola.com/account/login](https://www.zola.com/account/login) in that browser.
+3. Leave `ZOLA_REFRESH_TOKEN` **unset** in your Claude config.
 
-Launches Chrome with a dedicated profile at `~/.zola-mcp/chrome-profile`, waits for you to sign in at `zola.com/account/login`, captures the `usr` cookie (a ~1-year JWT), and either prints it (for pasting into Claude Desktop / MCPB / any config that doesn't read `.env`) or writes it to the file you pass. Requires Google Chrome installed locally; the script will install `puppeteer-core` on first run (~1 MB).
+On the first tool call, the MCP asks the extension for the HttpOnly `usr` cookie via `chrome.cookies.get`, then operates direct-to-API from Node. No persistent storage of the token in any env file. To re-auth (e.g. after Zola signs you out), just sign back in to zola.com.
+
+You can opt out of this fallback with `ZOLA_DISABLE_FETCHPROXY=1` (e.g. in headless / CI environments where no extension is available).
 
 #### Option B — manual (DevTools)
 
@@ -117,11 +118,10 @@ Ask Claude: *"How's wedding planning going?"* — it should show your wedding da
 
 ## Credentials
 
-Only one credential is required:
-
 | Env var | Required | Notes |
 |---------|----------|-------|
-| `ZOLA_REFRESH_TOKEN` | Yes | Refresh token JWT (~1 year lifetime). Run `npm run auth` to capture via browser login, or copy the `usr` cookie from DevTools. |
+| `ZOLA_REFRESH_TOKEN` | Conditional | Refresh token JWT (~1 year lifetime). When unset, the MCP falls back to the [fetchproxy extension](https://github.com/chrischall/fetchproxy) to read the `usr` cookie from your signed-in zola.com tab. |
+| `ZOLA_DISABLE_FETCHPROXY` | No | Set to `1` to opt out of the fetchproxy fallback (headless / CI). |
 | `ZOLA_ACCOUNT_ID` | No | Auto-resolved from API on first use |
 | `ZOLA_REGISTRY_ID` | No | Auto-resolved from API on first use |
 
@@ -198,9 +198,9 @@ Only one credential is required:
 
 ## Troubleshooting
 
-**"ZOLA_REFRESH_TOKEN must be set"** — run `npm run auth` to capture your token.
+**"Zola auth: set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension…"** — either set `ZOLA_REFRESH_TOKEN` in your config or install the fetchproxy extension and sign into zola.com.
 
-**"Zola session refresh failed"** — your refresh token has expired (~1 year). Re-run `npm run auth`.
+**"Zola session refresh failed"** — your refresh token has expired (~1 year) or been revoked. Either capture a new `usr` cookie (DevTools) or sign back into zola.com with the fetchproxy extension installed.
 
 **403 from mobile API** — the `x-zola-session-id` header may be missing. Update to the latest version.
 
@@ -208,7 +208,7 @@ Only one credential is required:
 
 ## Security
 
-- The refresh token lives only in your local `.env` or config file
+- The refresh token lives only in your local `.env` or config file (when set) or in the user's browser cookie store (fetchproxy path)
 - It is passed as an environment variable and never logged
 - The server authenticates with Zola's mobile API using the same flow as the iOS app
 - Account and registry IDs are auto-resolved from the API (no manual configuration needed)
