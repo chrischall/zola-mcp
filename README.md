@@ -25,6 +25,28 @@ Ask Claude things like:
 - A [Zola](https://www.zola.com) account
 - For the no-env-var path: the [fetchproxy 0.3.0 Chrome / Safari extension](https://github.com/chrischall/fetchproxy)
 
+## Acknowledgement of Terms
+
+By using this MCP server, you acknowledge and agree to the following:
+
+**1. This server accesses your own Zola account.** Auth happens via your own credentials. It does not — and cannot — access anyone else's wedding website, registry, or guest list.
+
+**2. [Zola's Terms of Use](https://www.zola.com/terms) govern your use of this server**, just as they govern your direct use of zola.com. The clauses most relevant here:
+
+> [You may not use] any hardware or software intended to surreptitiously intercept or otherwise obtain any information… including but not limited to the use of any "scraping" or other data mining techniques, robots or similar data gathering and extraction tools.
+
+And, critically, on agent-acting-as-you: *"You are responsible for maintaining the confidentiality of your account and password… You accept full responsibility for all activities that occur under your account and password, **even if such actions are undertaken by your Authorized Agent or other third party**."*
+
+You are agreeing to those terms — read by the maintainer 2026-05-23 — every time you invoke a tool in this server. Zola's ToU is explicit: this MCP acting as your Authorized Agent counts as you.
+
+**3. Personal, non-commercial use only.** This project is not affiliated with, endorsed by, sponsored by, or in partnership with Zola, Inc. It is a personal automation tool for one couple to manage their own wedding website, registry, vendor research, and guest list. Do not use it to bulk-extract Zola's vendor directory, scrape registries, or compete with Zola.
+
+**4. Stability is not guaranteed.** This server may call internal Zola endpoints that change without notice. It may break.
+
+**5. You accept full responsibility** for any consequences of using this server in connection with your Zola account — rate limiting, account warnings, suspension, or any enforcement action. Per Zola's ToU, anything this MCP does under your account is your action — review guest list edits, registry changes, and inquiries before confirming. If Zola objects to your use, stop using this server.
+
+This section is the maintainer's good-faith summary of the terms — it is not legal advice and does not modify or supersede Zola's actual ToU.
+
 ## Installation
 
 ### Option A — MCPB (recommended)
