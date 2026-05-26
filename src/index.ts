@@ -14,7 +14,7 @@ import { registerRegistryItemTools } from './tools/registry-items.js';
 
 const server = new McpServer({
   name: 'zola-mcp',
-  version: '1.2.0', // x-release-please-version
+  version: '1.2.1', // x-release-please-version
 });
 
 registerVendorTools(server);

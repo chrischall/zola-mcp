@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/chrischall/zola-mcp/compare/v1.2.0...v1.2.1) (2026-05-25)
+
+
+### Bug Fixes
+
+* **ci:** prevent labeled event from cancelling auto-review ([#32](https://github.com/chrischall/zola-mcp/issues/32)) ([28b9916](https://github.com/chrischall/zola-mcp/commit/28b99166263d150bb834a2dbca37d0d5cb06d706))
+
 ## [1.2.0](https://github.com/chrischall/zola-mcp/compare/v1.1.4...v1.2.0) (2026-05-24)
 
 
