@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.3](https://github.com/chrischall/zola-mcp/compare/v1.2.2...v1.2.3) (2026-05-26)
+
+
+### Bug Fixes
+
+* **ci:** substitute repo name in publish workflow ([#37](https://github.com/chrischall/zola-mcp/issues/37)) ([adea018](https://github.com/chrischall/zola-mcp/commit/adea01884293488b9a0c1e2559fcd4739d9f1084))
+
 ## [1.2.2](https://github.com/chrischall/zola-mcp/compare/v1.2.1...v1.2.2) (2026-05-26)
 
 

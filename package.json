@@ -1,6 +1,6 @@
 {
   "name": "zola-mcp",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "mcpName": "io.github.chrischall/zola-mcp",
   "description": "Zola wedding MCP server for Claude",
   "author": "Claude Code (AI) <https://www.anthropic.com/claude>",
