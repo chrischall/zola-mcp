@@ -307,4 +307,31 @@ describe('ZolaClient', () => {
     delete process.env.ZOLA_REGISTRY_ID;
     delete process.env.ZOLA_WEDDING_ID;
   });
+
+  it('requestMobileBinary returns raw bytes + content-type and sends Accept: */*', async () => {
+    process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: new Headers({ 'content-type': 'image/jpeg' }),
+      arrayBuffer: async () => png.buffer,
+    } as unknown as Response);
+
+    const client = new ZolaClient();
+    const result = await client.requestMobileBinary('PUT', '/v3/card-projects/qrcode/preview', {
+      url: 'https://example.com',
+    });
+
+    expect(result.bytes).toBeInstanceOf(Uint8Array);
+    expect(Array.from(result.bytes)).toEqual(Array.from(png));
+    expect(result.contentType).toBe('image/jpeg');
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBe(JSON.stringify({ url: 'https://example.com' }));
+    const headers = init.headers as Record<string, string>;
+    expect(headers['accept']).toBe('*/*');
+  });
 });

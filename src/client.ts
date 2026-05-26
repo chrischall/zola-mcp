@@ -76,6 +76,24 @@ export class ZolaClient {
   }
 
   /**
+   * Like `requestMobile` but for endpoints that return a non-JSON body
+   * (e.g. the QR-code preview which returns image bytes).
+   * Sends `Accept: *\/*` (the JSON default would 406), and returns both the
+   * raw bytes and the server's content-type so callers can pass it through.
+   */
+  async requestMobileBinary(
+    method: string,
+    path: string,
+    body?: unknown
+  ): Promise<{ bytes: Uint8Array; contentType: string }> {
+    await this.ensureSession();
+    const response = await this.sendWithRetry(method, path, body, false, false, '*/*');
+    const contentType = response.headers.get('content-type') ?? 'application/octet-stream';
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return { bytes, contentType };
+  }
+
+  /**
    * Get user context (wedding account ID, registry ID, etc.).
    * Uses env vars as overrides; falls back to GET /v3/users/me/context.
    * Cached for the lifetime of the client instance.
@@ -120,16 +138,23 @@ export class ZolaClient {
     return this.cachedContext;
   }
 
-  private async doRequest<T>(
+  private async doRequest<T>(method: string, path: string, body: unknown): Promise<T> {
+    const response = await this.sendWithRetry(method, path, body);
+    const text = await response.text();
+    return (text ? JSON.parse(text) : null) as T;
+  }
+
+  private async sendWithRetry(
     method: string,
     path: string,
     body: unknown,
     isAuthRetry = false,
-    isRateRetry = false
-  ): Promise<T> {
+    isRateRetry = false,
+    accept = 'application/json'
+  ): Promise<Response> {
     const sessionId = decodeJwtSessionId(this.sessionToken!);
     const headers: Record<string, string> = {
-      accept: 'application/json',
+      accept,
       authorization: `Bearer ${this.sessionToken}`,
       'x-zola-platform-type': 'iphone_app',
       'x-zola-session-id': this.deviceSessionId,
@@ -148,13 +173,13 @@ export class ZolaClient {
       this.sessionToken = null;
       this.sessionExpiry = null;
       await this.refresh();
-      return this.doRequest<T>(method, path, body, true, isRateRetry);
+      return this.sendWithRetry(method, path, body, true, isRateRetry, accept);
     }
 
     if (response.status === 429) {
       if (!isRateRetry) {
         await new Promise<void>((r) => setTimeout(r, 2000));
-        return this.doRequest<T>(method, path, body, isAuthRetry, true);
+        return this.sendWithRetry(method, path, body, isAuthRetry, true, accept);
       }
       throw new Error('Rate limited by Zola API');
     }
@@ -164,8 +189,7 @@ export class ZolaClient {
       throw new Error(`Zola API error: ${response.status} ${response.statusText} for ${method} ${path}: ${text}`);
     }
 
-    const text = await response.text();
-    return (text ? JSON.parse(text) : null) as T;
+    return response;
   }
 
   private async ensureSession(): Promise<void> {
