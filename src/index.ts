@@ -11,6 +11,7 @@ import { registerWebsiteTools } from './tools/website.js';
 import { registerWebsiteContentTools } from './tools/website-content.js';
 import { registerWebsiteThemeTools } from './tools/website-theme.js';
 import { registerRegistryItemTools } from './tools/registry-items.js';
+import { registerInvitationTools } from './tools/invitations.js';
 
 const server = new McpServer({
   name: 'zola-mcp',
@@ -28,6 +29,7 @@ registerWebsiteTools(server);
 registerWebsiteContentTools(server);
 registerWebsiteThemeTools(server);
 registerRegistryItemTools(server);
+registerInvitationTools(server);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

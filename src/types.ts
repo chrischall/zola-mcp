@@ -6,15 +6,24 @@ export interface MobileEnvelope<T> {
   data: T;
 }
 
+type TextContent = { type: 'text'; text: string };
+type ImageContent = { type: 'image'; data: string; mimeType: string };
+type Content = TextContent | ImageContent;
+
 /**
  * Standard MCP tool return type.
- * All tool handlers return a single text content block.
+ * Most handlers return a single text content block; the QR preview tool returns image content.
  */
-export type ToolResult = { content: [{ type: 'text'; text: string }] };
+export type ToolResult = { content: Content[] };
 
 /** Wrap any value as the standard MCP text-content tool result with pretty-printed JSON. */
 export function jsonResult(data: unknown): ToolResult {
   return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+}
+
+/** Wrap raw image bytes as an MCP image-content tool result. */
+export function imageResult(bytes: Uint8Array, mimeType: string): ToolResult {
+  return { content: [{ type: 'image', data: Buffer.from(bytes).toString('base64'), mimeType }] };
 }
 
 /**
