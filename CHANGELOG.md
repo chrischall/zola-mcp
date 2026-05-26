@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/chrischall/zola-mcp/compare/v1.2.1...v1.2.2) (2026-05-26)
+
+
+### Documentation
+
+* **claude:** warn against early PRs and call out first-party dep bumps ([#35](https://github.com/chrischall/zola-mcp/issues/35)) ([f112b12](https://github.com/chrischall/zola-mcp/commit/f112b12f781705d0e031a8cea5b4c21153ab775b))
+
 ## [1.2.1](https://github.com/chrischall/zola-mcp/compare/v1.2.0...v1.2.1) (2026-05-25)
 
 
