@@ -140,7 +140,7 @@ describe('resolveRefreshToken', () => {
       bootstrapMock.mockRejectedValue(downErr);
 
       await expect(resolveRefreshToken()).rejects.toThrow(/fetchproxy bridge is down/);
-      await expect(resolveRefreshToken()).rejects.toThrow(new RegExp(downErr.hint.slice(0, 20)));
+      await expect(resolveRefreshToken()).rejects.toThrow(downErr.hint);
     });
   });
 
