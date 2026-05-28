@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/chrischall/zola-mcp/compare/v1.2.3...v1.3.0) (2026-05-28)
+
+
+### Features
+
+* **deps:** bump @fetchproxy/bootstrap to 0.8.0 + surface SW-eviction hint ([#41](https://github.com/chrischall/zola-mcp/issues/41)) ([c9ad8a4](https://github.com/chrischall/zola-mcp/commit/c9ad8a4488ffd7ffede99d2a501cb10ab3a2d1ee))
+
 ## [1.2.3](https://github.com/chrischall/zola-mcp/compare/v1.2.2...v1.2.3) (2026-05-26)
 
 
