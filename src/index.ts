@@ -15,7 +15,7 @@ import { registerInvitationTools } from './tools/invitations.js';
 
 const server = new McpServer({
   name: 'zola-mcp',
-  version: '1.2.3', // x-release-please-version
+  version: '1.3.0', // x-release-please-version
 });
 
 registerVendorTools(server);
