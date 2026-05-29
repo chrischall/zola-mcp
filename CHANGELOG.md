@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/chrischall/zola-mcp/compare/v1.3.0...v1.3.1) (2026-05-29)
+
+
+### Bug Fixes
+
+* **ci:** auto-merge arm guards ([#44](https://github.com/chrischall/zola-mcp/issues/44)) ([804097d](https://github.com/chrischall/zola-mcp/commit/804097d4f21ef40bc02999789b93bda80caaea7d))
+
 ## [1.3.0](https://github.com/chrischall/zola-mcp/compare/v1.2.3...v1.3.0) (2026-05-28)
 
 
