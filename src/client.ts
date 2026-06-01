@@ -15,14 +15,6 @@ import { resolveRefreshToken } from './auth.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 await loadDotenvSafely({ path: join(__dirname, '..', '.env'), override: false });
 
-/**
- * Read an env var, trim whitespace, and treat as unset if blank or if the value
- * looks like an unsubstituted shell placeholder (e.g. `${FOO}`) — defends
- * against MCP hosts that pass .mcp.json env blocks through unexpanded.
- * Thin alias over the shared `readEnvVar` to keep call sites terse.
- */
-const readVar = (key: string): string | undefined => readEnvVar(key);
-
 const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
 
 export interface UserContext {
@@ -76,9 +68,9 @@ export class ZolaClient {
   async getContext(): Promise<UserContext> {
     if (this.cachedContext) return this.cachedContext;
 
-    const envAccountId = readVar('ZOLA_ACCOUNT_ID');
-    const envRegistryId = readVar('ZOLA_REGISTRY_ID');
-    const envWeddingId = readVar('ZOLA_WEDDING_ID');
+    const envAccountId = readEnvVar('ZOLA_ACCOUNT_ID');
+    const envRegistryId = readEnvVar('ZOLA_REGISTRY_ID');
+    const envWeddingId = readEnvVar('ZOLA_WEDDING_ID');
 
     // If all env vars are set, skip the API call
     if (envAccountId && envRegistryId && envWeddingId) {
@@ -177,7 +169,7 @@ export class ZolaClient {
 
     // Check for session token in env (first load only)
     if (this.sessionToken === null) {
-      const envSession = readVar('ZOLA_SESSION_TOKEN');
+      const envSession = readEnvVar('ZOLA_SESSION_TOKEN');
       if (envSession) {
         try {
           const exp = decodeJwtExp(envSession);

@@ -145,9 +145,7 @@ describe('resolveRefreshToken', () => {
   });
 
   describe('env-var sanitization', () => {
-    // Matches the readVar() helper hardening in client.ts: defenses against
-    // MCP hosts that pass through unexpanded `${VAR}` or serialize
-    // undefined/null as a string.
+    // Matches readEnvVar hardening: treat unexpanded `${VAR}`, blank, and serialized undefined/null as unset.
     it.each(['undefined', 'null', '${ZOLA_REFRESH_TOKEN}', '   ', ''])(
       'treats ZOLA_REFRESH_TOKEN=%j as unset and falls through to fetchproxy',
       async (val) => {
