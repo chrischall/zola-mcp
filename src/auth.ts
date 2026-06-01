@@ -47,6 +47,7 @@
 
 import { bootstrap } from '@fetchproxy/bootstrap';
 import { classifyBridgeError, FetchproxyBridgeDownError } from '@fetchproxy/server';
+import { readEnvVar } from '@chrischall/mcp-utils';
 import pkg from '../package.json' with { type: 'json' };
 
 /** Result of resolving the Zola refresh token, regardless of path taken. */
@@ -57,24 +58,9 @@ export interface ResolvedRefreshToken {
   source: 'env' | 'fetchproxy';
 }
 
-/**
- * Read an env var, trim, and treat blank / `${UNEXPANDED}` placeholders as
- * unset. Defends against MCP hosts that pass `.mcp.json` env blocks through
- * without variable expansion.
- */
-function readEnv(key: string): string | undefined {
-  const raw = process.env[key];
-  if (typeof raw !== 'string') return undefined;
-  const trimmed = raw.trim();
-  if (trimmed.length === 0) return undefined;
-  if (trimmed === 'undefined' || trimmed === 'null') return undefined;
-  if (/^\$\{[^}]*\}$/.test(trimmed)) return undefined;
-  return trimmed;
-}
-
 /** True if the user has explicitly disabled the fetchproxy fallback. */
 function fetchproxyDisabled(): boolean {
-  const raw = readEnv('ZOLA_DISABLE_FETCHPROXY');
+  const raw = readEnvVar('ZOLA_DISABLE_FETCHPROXY');
   if (raw === undefined) return false;
   return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
 }
@@ -89,7 +75,7 @@ function fetchproxyDisabled(): boolean {
  */
 export async function resolveRefreshToken(): Promise<ResolvedRefreshToken> {
   // ── Path 1: env-var refresh token (unchanged from pre-fetchproxy behavior).
-  const envToken = readEnv('ZOLA_REFRESH_TOKEN');
+  const envToken = readEnvVar('ZOLA_REFRESH_TOKEN');
   if (envToken) {
     return { token: envToken, source: 'env' };
   }
