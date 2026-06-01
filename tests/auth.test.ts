@@ -131,7 +131,7 @@ describe('resolveRefreshToken', () => {
       // `.hint` so users see the actionable "click the extension toolbar
       // icon" message in path 2, matching the self-service guidance in
       // path 3.
-      const { FetchproxyBridgeDownError } = await import('@fetchproxy/server');
+      const { FetchproxyBridgeDownError } = await import('@chrischall/mcp-utils/fetchproxy');
       const downErr = new FetchproxyBridgeDownError({
         originalError: 'content_script_unreachable',
         retryAttempted: true,
@@ -145,9 +145,7 @@ describe('resolveRefreshToken', () => {
   });
 
   describe('env-var sanitization', () => {
-    // Matches the readVar() helper hardening in client.ts: defenses against
-    // MCP hosts that pass through unexpanded `${VAR}` or serialize
-    // undefined/null as a string.
+    // Matches readEnvVar hardening: treat unexpanded `${VAR}`, blank, and serialized undefined/null as unset.
     it.each(['undefined', 'null', '${ZOLA_REFRESH_TOKEN}', '   ', ''])(
       'treats ZOLA_REFRESH_TOKEN=%j as unset and falls through to fetchproxy',
       async (val) => {

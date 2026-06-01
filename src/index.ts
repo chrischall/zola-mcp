@@ -1,5 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { runMcp } from '@chrischall/mcp-utils';
 import { registerVendorTools } from './tools/vendors.js';
 import { registerBudgetTools } from './tools/budget.js';
 import { registerGuestTools } from './tools/guests.js';
@@ -13,23 +12,24 @@ import { registerWebsiteThemeTools } from './tools/website-theme.js';
 import { registerRegistryItemTools } from './tools/registry-items.js';
 import { registerInvitationTools } from './tools/invitations.js';
 
-const server = new McpServer({
+const VERSION = '1.3.1'; // x-release-please-version
+
+await runMcp({
   name: 'zola-mcp',
-  version: '1.3.1', // x-release-please-version
+  version: VERSION,
+  banner: `zola-mcp ${VERSION} ready`,
+  tools: [
+    registerVendorTools,
+    registerBudgetTools,
+    registerGuestTools,
+    registerSeatingTools,
+    registerInquiryTools,
+    registerEventTools,
+    registerDiscoverTools,
+    registerWebsiteTools,
+    registerWebsiteContentTools,
+    registerWebsiteThemeTools,
+    registerRegistryItemTools,
+    registerInvitationTools,
+  ],
 });
-
-registerVendorTools(server);
-registerBudgetTools(server);
-registerGuestTools(server);
-registerSeatingTools(server);
-registerInquiryTools(server);
-registerEventTools(server);
-registerDiscoverTools(server);
-registerWebsiteTools(server);
-registerWebsiteContentTools(server);
-registerWebsiteThemeTools(server);
-registerRegistryItemTools(server);
-registerInvitationTools(server);
-
-const transport = new StdioServerTransport();
-await server.connect(transport);
