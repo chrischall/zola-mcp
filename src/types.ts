@@ -1,3 +1,6 @@
+import { textResult, imageResult as imageResultBase64 } from '@chrischall/mcp-utils';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+
 /**
  * Standard mobile API response envelope.
  * All mobile-api.zola.com responses wrap their payload in { data: T }.
@@ -6,24 +9,26 @@ export interface MobileEnvelope<T> {
   data: T;
 }
 
-type TextContent = { type: 'text'; text: string };
-type ImageContent = { type: 'image'; data: string; mimeType: string };
-type Content = TextContent | ImageContent;
-
 /**
  * Standard MCP tool return type.
  * Most handlers return a single text content block; the QR preview tool returns image content.
  */
-export type ToolResult = { content: Content[] };
+export type ToolResult = CallToolResult;
 
-/** Wrap any value as the standard MCP text-content tool result with pretty-printed JSON. */
-export function jsonResult(data: unknown): ToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
-}
+/**
+ * Wrap any value as the standard MCP text-content tool result with pretty-printed JSON.
+ * Re-exported from `@chrischall/mcp-utils` (`textResult`) under the repo's
+ * historical `jsonResult` name so tool modules keep a single local import hub.
+ */
+export const jsonResult = textResult;
 
-/** Wrap raw image bytes as an MCP image-content tool result. */
+/**
+ * Wrap raw image bytes as an MCP image-content tool result.
+ * Thin adapter over the shared `imageResult` (which takes a base64 string)
+ * so call sites can keep passing raw bytes from the binary fetch path.
+ */
 export function imageResult(bytes: Uint8Array, mimeType: string): ToolResult {
-  return { content: [{ type: 'image', data: Buffer.from(bytes).toString('base64'), mimeType }] };
+  return imageResultBase64(Buffer.from(bytes).toString('base64'), mimeType);
 }
 
 /**

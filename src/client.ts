@@ -1,54 +1,21 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import {
+  readEnvVar,
+  loadDotenvSafely,
+  decodeJwtExp,
+  decodeJwtSessionId,
+  formatApiError,
+} from '@chrischall/mcp-utils';
 import { resolveRefreshToken } from './auth.js';
 
-try {
-  const { config } = await import('dotenv');
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  config({ path: join(__dirname, '..', '.env'), override: false, quiet: true });
-} catch {
-  // bundled mode — rely on process.env
-}
-
-/**
- * Read an env var, trim whitespace, and treat as unset if blank or if the value
- * looks like an unsubstituted shell placeholder (e.g. `${FOO}`) — defends
- * against MCP hosts that pass .mcp.json env blocks through unexpanded.
- */
-function readVar(key: string): string | undefined {
-  const raw = process.env[key];
-  if (typeof raw !== 'string') return undefined;
-  const trimmed = raw.trim();
-  if (trimmed.length === 0) return undefined;
-  if (trimmed === 'undefined' || trimmed === 'null') return undefined;
-  if (/^\$\{[^}]*\}$/.test(trimmed)) return undefined;
-  return trimmed;
-}
+// Load `.env` next to the compiled entry point. `loadDotenvSafely` is a
+// no-throw loader: in bundled mode (no resolvable `dotenv`) it returns false
+// and we fall back to process.env.
+const __dirname = dirname(fileURLToPath(import.meta.url));
+await loadDotenvSafely({ path: join(__dirname, '..', '.env'), override: false });
 
 const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
-
-function decodeJwtExp(token: string): number {
-  const parts = token.split('.');
-  if (parts.length < 3 || !parts[1]) {
-    throw new Error(`Invalid JWT structure: expected 3 dot-separated parts, got ${parts.length}`);
-  }
-  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as { exp: number };
-  if (typeof payload.exp !== 'number') {
-    throw new Error('JWT payload missing numeric "exp" claim');
-  }
-  return payload.exp;
-}
-
-function decodeJwtSessionId(token: string): string | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length < 3 || !parts[1]) return null;
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-    return payload.session_id ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export interface UserContext {
   weddingAccountId: number;
@@ -101,9 +68,9 @@ export class ZolaClient {
   async getContext(): Promise<UserContext> {
     if (this.cachedContext) return this.cachedContext;
 
-    const envAccountId = readVar('ZOLA_ACCOUNT_ID');
-    const envRegistryId = readVar('ZOLA_REGISTRY_ID');
-    const envWeddingId = readVar('ZOLA_WEDDING_ID');
+    const envAccountId = readEnvVar('ZOLA_ACCOUNT_ID');
+    const envRegistryId = readEnvVar('ZOLA_REGISTRY_ID');
+    const envWeddingId = readEnvVar('ZOLA_WEDDING_ID');
 
     // If all env vars are set, skip the API call
     if (envAccountId && envRegistryId && envWeddingId) {
@@ -186,7 +153,9 @@ export class ZolaClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Zola API error: ${response.status} ${response.statusText} for ${method} ${path}: ${text}`);
+      throw new Error(
+        formatApiError(response.status, method, path, text, { service: 'Zola API' })
+      );
     }
 
     return response;
@@ -200,7 +169,7 @@ export class ZolaClient {
 
     // Check for session token in env (first load only)
     if (this.sessionToken === null) {
-      const envSession = readVar('ZOLA_SESSION_TOKEN');
+      const envSession = readEnvVar('ZOLA_SESSION_TOKEN');
       if (envSession) {
         try {
           const exp = decodeJwtExp(envSession);

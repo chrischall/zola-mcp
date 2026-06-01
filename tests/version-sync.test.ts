@@ -11,49 +11,22 @@
 // This test catches it at CI time. If a future contributor registers
 // a new version-bearing constant, just add the `x-release-please-version`
 // comment to the line — this test starts asserting it automatically.
+//
+// The walker itself lives in `@chrischall/mcp-utils/test` (`versionSyncTest`),
+// shared across the fleet; this file just wires it to this repo's paths.
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, dirname } from 'node:path';
+import { versionSyncTest } from '@chrischall/mcp-utils/test';
+import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const pkg = JSON.parse(
-  readFileSync(join(ROOT, 'package.json'), 'utf8')
-) as { version: string };
-
-function walkTs(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const p = join(dir, entry);
-    if (statSync(p).isDirectory()) out.push(...walkTs(p));
-    else if (p.endsWith('.ts')) out.push(p);
-  }
-  return out;
-}
 
 describe('version sync', () => {
   it('every `x-release-please-version` annotation matches package.json', () => {
-    const files = walkTs(join(ROOT, 'src'));
-    const mismatches: string[] = [];
-    for (const f of files) {
-      const lines = readFileSync(f, 'utf8').split('\n');
-      lines.forEach((line, i) => {
-        if (!line.includes('x-release-please-version')) return;
-        const match = line.match(
-          /['"]([0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.]+)?)['"]/
-        );
-        // Lines that mention the marker but carry no version literal
-        // (e.g. a docstring explaining the convention) are not real
-        // declarations — skip them.
-        if (!match) return;
-        const ver = match[1];
-        if (ver !== pkg.version) {
-          mismatches.push(
-            `${relative(ROOT, f)}:${i + 1} → ${ver} (expected ${pkg.version})`
-          );
-        }
-      });
-    }
+    const mismatches = versionSyncTest({
+      srcDir: join(ROOT, 'src'),
+      pkgPath: join(ROOT, 'package.json'),
+    });
     expect(mismatches, mismatches.join('\n')).toEqual([]);
   });
 });
