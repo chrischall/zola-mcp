@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.2](https://github.com/chrischall/zola-mcp/compare/v1.3.1...v1.3.2) (2026-06-04)
+
+
+### Bug Fixes
+
+* adopt @fetchproxy/server 0.13.0 (bridge host failover + re-pairing) ([#57](https://github.com/chrischall/zola-mcp/issues/57)) ([57f19c5](https://github.com/chrischall/zola-mcp/commit/57f19c5a6bcede3eee9bc9df887dbdb823d9dd40))
+* adopt @fetchproxy/server 1.0.0 + @chrischall/mcp-utils 0.5.0 ([#59](https://github.com/chrischall/zola-mcp/issues/59)) ([3227dbc](https://github.com/chrischall/zola-mcp/commit/3227dbc4daf7506443a5d52ab56ab9351d1c0b42))
+
 ## [1.3.1](https://github.com/chrischall/zola-mcp/compare/v1.3.0...v1.3.1) (2026-05-29)
 
 

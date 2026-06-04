@@ -12,7 +12,7 @@ import { registerWebsiteThemeTools } from './tools/website-theme.js';
 import { registerRegistryItemTools } from './tools/registry-items.js';
 import { registerInvitationTools } from './tools/invitations.js';
 
-const VERSION = '1.3.1'; // x-release-please-version
+const VERSION = '1.3.2'; // x-release-please-version
 
 await runMcp({
   name: 'zola-mcp',
