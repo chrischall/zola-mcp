@@ -125,26 +125,25 @@ Because release-please keys on Conventional Commits, a PR that squash-merges **w
 <!-- pr-workflow:v1 -->
 ## Pull requests & release notes
 
-**Default workflow: branch + PR, even for solo work.** Direct pushes to `main` skip review *and* skip auto-generated release notes — GitHub's `generate_release_notes` (configured in `.github/release.yml`) only picks up merged PRs. Push directly to `main` only when the user explicitly asks for it (e.g. emergency hotfix).
+**Default workflow: branch + PR, even for solo work.** Open a PR rather than pushing to `main` — a direct push skips review and the auto-merge flow. Push directly to `main` only when the user explicitly asks for it (e.g. emergency hotfix).
 
-For every PR, apply exactly one label so it lands in the right release-notes section:
+**The PR title MUST be a Conventional Commit.** The repo squash-merges with `squash_commit_title = PR_TITLE`, so the **PR title becomes the commit subject**, and release-please derives *both* the version bump and the changelog section from its prefix. A prefix-less title (e.g. "Add event invitations") silently produces **no release and no changelog entry** — the change still lands on `main`, but it's invisible to release-please. Write the title as `type: user-facing summary`; the text after the prefix becomes the changelog bullet.
 
-| Label                | Section in release notes |
-|----------------------|--------------------------|
-| `enhancement`        | Features                 |
-| `bug`                | Bug Fixes                |
-| `security`           | Security                 |
-| `refactor`           | Refactor                 |
-| `documentation`      | Documentation            |
-| `test`               | Tests                    |
-| `dependencies`       | Dependencies             |
-| `ci` / `github_actions` | CI & Build            |
-| *(none / unmatched)* | Other Changes            |
-| `ignore-for-release` | Hidden from notes        |
+| Prefix | Section | Bump |
+|--------|---------|------|
+| `feat:` | Features | minor |
+| `fix:` | Bug Fixes | patch |
+| `perf:` | Performance | patch |
+| `refactor:` | Refactor | patch |
+| `revert:` | Reverts | patch |
+| `docs:` | Documentation | patch |
+| `test:` / `build:` / `ci:` / `chore:` | hidden | **none — no release** |
 
-**Exception for first-party dependency bumps.** When bumping a package we own (currently `@fetchproxy/bootstrap` — anything published from a chrischall-owned repo), label the PR `enhancement` or `bug` instead of `dependencies`, and use the matching commit prefix (`feat:` or `fix:`) instead of `chore:`. Those bumps deliver real product fixes or features through us, so they should drive a release-please version bump and show up under Features/Bug Fixes in the release notes — not get hidden under "Dependencies" (which doesn't trigger a release).
+(Sections/visibility live in `release-please-config.json` → `changelog-sections`.)
 
-The **PR title** becomes the bullet — write it like a user-facing changelog entry, not internal shorthand. Conventional-commit prefixes are still fine in commit messages, but the PR title should read clean.
+**Labels drive the automation, not the changelog.** The changelog section comes from the commit **prefix** above. Labels are for tooling: `ready-to-merge` (arms `auto-merge.yml`), `auto-review`, `ignore-for-release`, and the dependabot categories. A category label (`enhancement`/`bug`/`documentation`/…) is fine for triage but does not affect release notes.
+
+**Exception for first-party dependency bumps.** When bumping a package we own (`@chrischall/mcp-utils`, `@fetchproxy/*` — anything from a chrischall-owned repo), use a `feat:`/`fix:` prefix, **not** `chore(deps):`. Those bumps deliver real fixes/features through us, so they should drive a release and land under Features/Bug Fixes — a `chore(deps):` bump is hidden and triggers no release.
 
 ### How PRs merge
 
