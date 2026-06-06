@@ -3,27 +3,36 @@ import { client } from '../src/client.js';
 import { listGuests, addGuest, updateGuestAddress, removeGuest } from '../src/tools/guests.js';
 import { setupClientMocks } from './_fixtures.js';
 
-const MOCK_GUEST_ENTRY = {
-  guest: {
-    guest_id: 280379459,
-    uuid: 'guest-uuid-1',
-    first_name: 'Jennifer',
-    middle_name: null,
-    family_name: 'Acerra',
-    relationship_type: 'PRIMARY',
-    email_address: null,
-    mobile_phone: null,
-    address1: '3839 N Alta Vista Terrace',
-    address2: null,
-    city: 'Chicago',
-    state_province: 'IL',
-    postal_code: '60613',
-    country_code: 'US',
-    affiliation: 'PRIMARY_FRIEND',
-    tier: 'A',
-    rsvp: 'NO_RESPONSE',
-  },
-  seating_chart_seat: null,
+// FLAT guest shape — matches the live /v3/guestlists/directory response.
+// (Fields sit directly on the guest object; there is NO { guest: {...} } wrapper.)
+const MOCK_GUEST = {
+  guest_id: 280379459,
+  relationship_type: 'PRIMARY',
+  prefix: null,
+  first_name: 'Jennifer',
+  middle_name: null,
+  family_name: 'Acerra',
+  suffix: null,
+  email_address: null,
+  home_phone: '',
+  mobile_phone: null,
+  address1: '3839 N Alta Vista Terrace',
+  address2: '',
+  city: 'Chicago',
+  state_province: 'IL',
+  postal_code: '60613',
+  country_code: 'US',
+  latitude: null,
+  longitude: null,
+  affiliation: 'PRIMARY_FRIEND',
+  tier: 'A',
+  source: 'BULK_IMPORT',
+  rsvp: 'NO_RESPONSE',
+  meal_option: null,
+  event_invitations: [
+    { id: 111, event_id: 5108473, meal_option_id: null, rsvp_type: 'NO_RESPONSE', rsvp_at: null },
+  ],
+  tags: [],
 };
 
 const MOCK_DIRECTORY = {
@@ -43,7 +52,11 @@ const MOCK_DIRECTORY = {
         invited: true,
         invitation_sent: false,
         save_the_date_sent: false,
-        guests: [MOCK_GUEST_ENTRY],
+        rsvp_question_answers: [],
+        gift_count: 0,
+        gift_group: null,
+        thank_you_note_status: 'NOT_STARTED',
+        guests: [MOCK_GUEST],
       },
     ],
   },
@@ -61,7 +74,7 @@ describe('guest tools (mobile API)', () => {
   });
 
   it('listGuests: POSTs to directory and returns stats + groups', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_DIRECTORY as never);
+    reqSpy.mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never);
 
     const result = await listGuests();
 
@@ -73,7 +86,7 @@ describe('guest tools (mobile API)', () => {
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.stats.num_guests).toBe(193);
     expect(parsed.guest_groups).toHaveLength(1);
-    expect(parsed.guest_groups[0].guests[0].guest.first_name).toBe('Jennifer');
+    expect(parsed.guest_groups[0].guests[0].first_name).toBe('Jennifer');
   });
 
   it('addGuest: POSTs to groups with correct body', async () => {
@@ -115,9 +128,9 @@ describe('guest tools (mobile API)', () => {
     }));
   });
 
-  it('updateGuestAddress: loads directory, merges fields, PUTs suite', async () => {
+  it('updateGuestAddress: loads directory, merges fields, PUTs bulk/directory', async () => {
     reqSpy
-      .mockResolvedValueOnce(MOCK_DIRECTORY as never)
+      .mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never)
       .mockResolvedValueOnce({ data: {} } as never);
 
     await updateGuestAddress({ guest_group_id: 152644475, city: 'Evanston' });
@@ -126,17 +139,33 @@ describe('guest tools (mobile API)', () => {
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
       'PUT',
-      '/v3/guestlists/groups/wedding-accounts/id/4664323/suite',
+      '/v3/guestlists/groups/wedding-accounts/4664323/bulk/directory',
       expect.objectContaining({
-        guest_group_request: expect.objectContaining({
-          guest_group_id: 152644475,
-          guests: [expect.objectContaining({
-            city: 'Evanston',
-            address1: '3839 N Alta Vista Terrace',
-          })],
-        }),
+        updated_guest_groups: [
+          expect.objectContaining({
+            guest_group_id: 152644475,
+            guests: [expect.objectContaining({
+              city: 'Evanston',
+              address1: '3839 N Alta Vista Terrace',
+            })],
+          }),
+        ],
       })
     );
+  });
+
+  it('updateGuestAddress: preserves existing event_invitations (no wipe)', async () => {
+    reqSpy
+      .mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never)
+      .mockResolvedValueOnce({ data: {} } as never);
+
+    await updateGuestAddress({ guest_group_id: 152644475, city: 'Evanston' });
+
+    const body = reqSpy.mock.calls[1][2] as {
+      updated_guest_groups: Array<{ guests: Array<{ event_invitations: Array<{ event_id: number }> }> }>;
+    };
+    const invitations = body.updated_guest_groups[0].guests[0].event_invitations;
+    expect(invitations).toContainEqual(expect.objectContaining({ id: 111, event_id: 5108473 }));
   });
 
   it('updateGuestAddress: throws when group not found', async () => {
