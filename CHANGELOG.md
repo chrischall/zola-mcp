@@ -3,9 +3,24 @@
 ## [1.4.0](https://github.com/chrischall/zola-mcp/compare/v1.3.2...v1.4.0) (2026-06-06)
 
 
+### Features
+
+* event-invitation assignment — `set_event_guests`, `invite_guest_to_event`, `remove_event_invitation` to control which guests are invited to which events; verified mobile-api `bulk/directory` read-modify-write that preserves other events' invitations and leaves RSVP untouched ([#60](https://github.com/chrischall/zola-mcp/pull/60))
+
+
+### Bug Fixes
+
+* `update_guest_address` no longer wipes a group's event invitations (it used a stale nested guest shape and blanked `event_invitations`; now uses the live flat shape + read-modify-write) ([#60](https://github.com/chrischall/zola-mcp/pull/60))
+
+
 ### Documentation
 
 * correct release workflow (release-please, not Tag & Bump) ([#62](https://github.com/chrischall/zola-mcp/issues/62)) ([9625343](https://github.com/chrischall/zola-mcp/commit/96253430234fd6f7c6e3f8eb54e4de22c7948134))
+
+
+### Dependencies
+
+* bump `@chrischall/mcp-utils` → ^0.5.2, `@fetchproxy/{server,bootstrap}` → ^1.3.0, `vitest`/`@vitest/coverage-v8` → ^4.1.8, `@types/node` → ^25.9.2; declare `zod` ^4.4.3 as a direct dep; `npm audit` clean ([#60](https://github.com/chrischall/zola-mcp/pull/60))
 
 ## [1.3.2](https://github.com/chrischall/zola-mcp/compare/v1.3.1...v1.3.2) (2026-06-04)
 
