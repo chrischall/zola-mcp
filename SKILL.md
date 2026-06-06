@@ -5,7 +5,7 @@ description: This skill should be used when the user asks about Zola wedding pla
 
 # zola-mcp
 
-MCP server for Zola — 27 tools for managing your entire wedding via the Zola mobile API.
+MCP server for Zola — 30 tools for managing your entire wedding via the Zola mobile API.
 
 - **npm:** [npmjs.com/package/zola-mcp](https://www.npmjs.com/package/zola-mcp)
 - **Source:** [github.com/chrischall/zola-mcp](https://github.com/chrischall/zola-mcp)
@@ -95,12 +95,15 @@ Two options:
 | `get_inquiry_conversation` | Get full conversation for an inquiry |
 | `mark_inquiry_read` | Mark an inquiry conversation as read |
 
-### Events & RSVPs (3 tools)
+### Events & RSVPs (6 tools)
 | Tool | Description |
 |------|-------------|
 | `list_events` | List all wedding events with RSVP counts |
 | `track_rsvps` | Get RSVP tracking per event |
 | `update_event` | Update event details (time, venue, dress code) |
+| `set_event_guests` | Bulk set which guest groups are invited to an event |
+| `invite_guest_to_event` | Invite one guest or group to an event |
+| `remove_event_invitation` | Remove an event invitation for a guest or group |
 
 ### Registry & Gifts (2 tools)
 | Tool | Description |
@@ -125,6 +128,7 @@ Two options:
 - **"Any new vendor messages?"** → `list_inquiries` (filter unread) → `get_inquiry_conversation`
 - **"Update the venue cost to $25,000"** → `get_budget` → `update_budget_item`
 - **"Add my cousin Mike to the guest list"** → `add_guest`
+- **"Invite all family to the rehearsal dinner"** → `list_events` + `list_guests` → `set_event_guests`
 
 ## Notes
 
