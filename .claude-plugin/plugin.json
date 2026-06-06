@@ -1,7 +1,7 @@
 {
   "name": "zola",
   "displayName": "Zola",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "Zola wedding planning tools for Claude — vendors, budget, guests, seating, events, registry, inquiries, and more via MCP",
   "author": {
     "name": "Chris Chall",
