@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/chrischall/zola-mcp/compare/v1.3.2...v1.4.0) (2026-06-06)
+
+
+### Documentation
+
+* correct release workflow (release-please, not Tag & Bump) ([#62](https://github.com/chrischall/zola-mcp/issues/62)) ([9625343](https://github.com/chrischall/zola-mcp/commit/96253430234fd6f7c6e3f8eb54e4de22c7948134))
+
 ## [1.3.2](https://github.com/chrischall/zola-mcp/compare/v1.3.1...v1.3.2) (2026-06-04)
 
 
