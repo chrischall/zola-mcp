@@ -4,27 +4,24 @@ import { client } from '../client.js';
 
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
-interface GuestEntry {
-  guest: {
-    guest_id: number;
-    uuid: string;
-    first_name: string;
-    middle_name: string | null;
-    family_name: string;
-    relationship_type: string;
-    email_address: string | null;
-    mobile_phone: string | null;
-    address1: string | null;
-    address2: string | null;
-    city: string | null;
-    state_province: string | null;
-    postal_code: string | null;
-    country_code: string | null;
-    affiliation: string;
-    tier: string;
-    rsvp: string;
-  };
-  seating_chart_seat: unknown;
+// The live /v3/guestlists/directory response returns a FLAT guest shape:
+// fields sit directly on each guest object (no `{ guest: {...} }` wrapper).
+// See docs/zola-api-quirks.md §5.
+interface DirectoryGuest {
+  guest_id: number;
+  first_name: string;
+  family_name: string;
+  relationship_type: string;
+  address1: string | null;
+  address2: string | null;
+  city: string | null;
+  state_province: string | null;
+  postal_code: string | null;
+  country_code: string | null;
+  rsvp: string;
+  event_invitations: unknown[];
+  tags?: unknown[];
+  [key: string]: unknown;
 }
 
 interface GuestGroup {
@@ -38,7 +35,12 @@ interface GuestGroup {
   invited: boolean;
   invitation_sent: boolean;
   save_the_date_sent: boolean;
-  guests: GuestEntry[];
+  rsvp_question_answers?: unknown[];
+  gift_count?: number;
+  gift_group?: unknown;
+  thank_you_note_status?: string;
+  guests: DirectoryGuest[];
+  [key: string]: unknown;
 }
 
 interface DirectoryResponse {
@@ -160,39 +162,44 @@ export async function updateGuestAddress(args: {
     throw new Error(`Guest group with ID ${args.guest_group_id} not found`);
   }
 
-  const updatedGuests = group.guests.map((entry) => ({
-    ...entry.guest,
-    guest_id: entry.guest.guest_id,
-    address1: args.address1 ?? entry.guest.address1 ?? '',
-    address2: args.address2 !== undefined ? args.address2 : entry.guest.address2 ?? '',
-    city: args.city ?? entry.guest.city ?? '',
-    state_province: args.state_province ?? entry.guest.state_province ?? '',
-    postal_code: args.postal_code ?? entry.guest.postal_code ?? '',
-    country_code: args.country_code ?? entry.guest.country_code ?? 'US',
-    event_invitations: [],
-    tags: [],
+  // Full read-modify-write through the verified bulk/directory endpoint
+  // (docs/zola-api-quirks.md §5). Crucially, preserve each guest's existing
+  // event_invitations — blanking them here would wipe the group's invitations.
+  const updatedGuests = group.guests.map((guest) => ({
+    ...guest,
+    address1: args.address1 ?? guest.address1 ?? '',
+    address2: args.address2 !== undefined ? args.address2 : guest.address2 ?? '',
+    city: args.city ?? guest.city ?? '',
+    state_province: args.state_province ?? guest.state_province ?? '',
+    postal_code: args.postal_code ?? guest.postal_code ?? '',
+    country_code: args.country_code ?? guest.country_code ?? 'US',
+    event_invitations: guest.event_invitations ?? [],
+    tags: guest.tags ?? [],
   }));
 
   const body = {
-    guest_group_request: {
-      wedding_account_id: weddingAccountId,
-      guest_group_id: args.guest_group_id,
-      guest_group_uuid: group.guest_group_uuid,
-      guest_group_affiliation: group.guest_group_affiliation,
-      guest_group_tier: group.guest_group_tier,
-      invited: group.invited,
-      invitation_sent: group.invitation_sent,
-      save_the_date_sent: group.save_the_date_sent,
-      envelope_recipient: group.envelope_recipient ?? '',
-      addressing_style: group.addressing_style,
-      guests: updatedGuests,
-      gift_count: 0,
-    },
+    updated_guest_groups: [
+      {
+        ...group,
+        wedding_account_id: group.wedding_account_id ?? weddingAccountId,
+        envelope_recipient: group.envelope_recipient ?? '',
+        gift_group: group.gift_group ?? {
+          gift_count: 0,
+          modules: [],
+          gift_groups: [],
+          guest_group_uuid: '',
+        },
+        thank_you_note_status: group.thank_you_note_status ?? 'NOT_STARTED',
+        rsvp_question_answers: group.rsvp_question_answers ?? [],
+        gift_count: group.gift_count ?? 0,
+        guests: updatedGuests,
+      },
+    ],
   };
 
   const result = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
-    `/v3/guestlists/groups/wedding-accounts/id/${weddingAccountId}/suite`,
+    `/v3/guestlists/groups/wedding-accounts/${weddingAccountId}/bulk/directory`,
     body
   );
   return jsonResult(result.data);

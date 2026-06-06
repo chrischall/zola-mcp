@@ -41,6 +41,9 @@ MCP server for Zola — 27 tools for managing your entire wedding via the Zola m
 - `list_events` — All events with RSVP counts
 - `track_rsvps` — RSVP tracking per event
 - `update_event` — Update event details
+- `set_event_guests` — Bulk set which guest groups are invited to an event
+- `invite_guest_to_event` — Invite one guest or group to an event
+- `remove_event_invitation` — Remove an event invitation for a guest or group
 
 ### Registry & Gifts
 - `get_registry` — Registry categories and items
