@@ -26,6 +26,7 @@ src/
     seating.ts            seating charts, seat assignment, unseated guests
     inquiries.ts          vendor inquiry conversations, mark read
     events.ts             events, RSVPs, update event, gift tracker, registry summary
+    event-invitations.ts  set/invite/remove which guests are invited to which events
     discover.ts           wedding dashboard, storefront search/details, favorites
     registry-items.ts     registry item CRUD
     website.ts            wedding website settings

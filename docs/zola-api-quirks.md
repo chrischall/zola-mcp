@@ -160,6 +160,55 @@ The wrapper handles all this; callers see the flat write-side argument names
 
 ---
 
+## 5. Event invitations (mobile-api)
+
+**Verified by iOS-app proxy capture, June 2026.** Used by
+`src/tools/event-invitations.ts`.
+
+Event invitations are tracked **per guest**, embedded in the guest object the
+guest-list directory returns. Each element:
+
+```jsonc
+{
+  "id": 697189995,          // server-assigned; null when creating a new one
+  "event_id": 5108495,      // == event_entity_id from list_events
+  "meal_option_id": null,
+  "rsvp_type": "NO_RESPONSE",// inviting does NOT set an RSVP
+  "rsvp_at": null
+}
+```
+
+**Read.** `POST /v3/guestlists/directory/wedding-accounts/{acct}` (body
+`{ "sort_by_name_asc": true }`) returns `data.guest_groups[].guests[]` with a
+**flat** guest shape — fields directly on the guest object (`guest_id`,
+`first_name`, …, `event_invitations`, `tags`), NOT nested under a `guest` key.
+
+**Write.** `PUT /v3/guestlists/groups/wedding-accounts/{acct}/bulk/directory`:
+
+```jsonc
+{ "updated_guest_groups": [ { /* full group, full guests, full event_invitations */ } ] }
+```
+
+- Full-state **read-modify-write** per guest: send the complete desired
+  `event_invitations` array, not a delta. Accepts several groups in one call.
+- **Add** an invitation → append `{ "event_id": <id>, "id": null, "rsvp_type": "NO_RESPONSE" }`.
+- **Remove** → drop that element. **Keep** → include it with its existing `id`.
+- Counts (`num_guests_not_responded` etc.) are **recomputed server-side** from
+  invitations — the iOS app also fires a companion `PUT /v3/websites/events/{id}`,
+  but its client-sent counts are ignored, so this MCP does **not** replicate it.
+
+**Partial-update wipe risk (same family as §1).** Because the write replaces a
+guest's whole `event_invitations` array, any guest-group write that sends
+`event_invitations: []` will **wipe** that group's invitations. Both
+`event-invitations.ts` and `update_guest_address` (`src/tools/guests.ts`) defend
+against this by re-fetching the directory and preserving each guest's existing
+`event_invitations` (read-modify-write) before writing back through
+`bulk/directory`. `add_guest` legitimately sends `event_invitations: []` because
+it *creates* brand-new guests (nothing to preserve). Note the directory read
+returns the **flat** guest shape above — not a `{ guest: {...} }` wrapper.
+
+---
+
 ## Adding web-api support (future work)
 
 To make `header_color` and `nav_font_color` writable through this MCP:
