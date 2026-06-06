@@ -110,17 +110,17 @@ Version appears in SIX files — all must match:
 
 ### Important
 
-Do NOT manually bump versions or create tags unless the user explicitly asks. Versioning is handled by the **Tag & Bump** GitHub Action (`.github/workflows/tag-and-bump.yml`), which walks every JSON version field automatically.
+Do NOT manually bump versions or create tags unless the user explicitly asks. Versioning is handled by **release-please** (`.github/workflows/release-please.yml`), which bumps every file registered under `extra-files` in `release-please-config.json` automatically.
 
 ### Release workflow
 
-Main is always one version ahead of the latest tag. Releasing means running the **Tag & Bump** workflow, which:
+Releases are driven by **release-please** (`googleapis/release-please-action`) — there is no separate tag/bump step:
 
-1. Runs CI (build + test) via `ci.yml`
-2. Tags the current commit with the current `package.json` version
-3. `npm version patch --no-git-tag-version`, then a node script that walks every JSON version field; also `sed`s `src/index.ts`
-4. Rebuilds, commits `chore: bump version to vX.Y.Z`, pushes main and the tag
-5. The tag push triggers `release.yml`: build, `.skill` zip, `.mcpb` pack, `npm publish --provenance`, MCP Registry publish, optional ClawHub publish, GitHub Release with `generate_release_notes: true`
+1. On every push to `main`, release-please scans Conventional-Commit messages since the last `v*` tag. `feat:`/`fix:`/etc. commits cause it to open or update a **release PR** (`chore(main): release X.Y.Z`) that bumps every version file and updates `CHANGELOG.md`.
+2. The release PR is a human gate — `pr-auto-review.yml` deliberately skips it. Ship it by adding the `ready-to-merge` label (auto-merge arms it) or merging in the UI.
+3. When the release PR merges, release-please creates the `vX.Y.Z` tag + GitHub Release from the changelog, then the same workflow's `publish` job runs: `npm ci` + build, package the `.skill`, `mcpb pack` the `.mcpb`, `npm publish --provenance`, MCP Registry publish (OIDC), optional ClawHub publish, and attaches the `.skill`/`.mcpb` to the release.
+
+Because release-please keys on Conventional Commits, a PR that squash-merges **without** a `feat:`/`fix:` prefix won't trigger a release. To force a version (e.g. to ship a feature that merged without a prefix), put a `Release-As: X.Y.Z` footer in a commit on `main` — release-please proposes exactly that version on its next run. (Squash settings: title = PR title, body = PR body, so a `Release-As:` line in the PR body lands in the squashed commit.)
 
 <!-- pr-workflow:v1 -->
 ## Pull requests & release notes
