@@ -140,6 +140,28 @@ describe('ZolaClient', () => {
     );
   });
 
+  it('redacts a JWT echoed in a refresh-failure body', async () => {
+    // The refresh request body carries the refresh JWT; an echoing upstream or
+    // proxy would reflect it back in the error body. It must never reach the
+    // thrown (tool-result-visible) message.
+    const echoedJwt = makeMockJwt(FUTURE_EXP);
+    process.env.ZOLA_SESSION_TOKEN = makeMockJwt(PAST_EXP);
+    fetchMock.mockResolvedValueOnce(makeResponse({ error: `bad token ${echoedJwt}` }, 401));
+
+    const client = new ZolaClient();
+    const err = await client.requestMobile('GET', '/v3/test').then(
+      () => {
+        throw new Error('expected rejection');
+      },
+      (e: unknown) => e as Error
+    );
+    expect(err.message).toContain('Zola session refresh failed (401)');
+    expect(err.message).not.toContain(echoedJwt);
+    expect(err.message).toContain('[REDACTED]');
+    // The actionable guidance must survive redaction/truncation.
+    expect(err.message).toContain('ZOLA_REFRESH_TOKEN');
+  });
+
   it('throws on 429 after one retry', async () => {
     vi.spyOn(globalThis, 'setTimeout').mockImplementation((fn: TimerHandler) => {
       if (typeof fn === 'function') fn();

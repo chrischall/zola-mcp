@@ -6,6 +6,7 @@ import {
   decodeJwtExp,
   decodeJwtSessionId,
   formatApiError,
+  truncateErrorMessage,
 } from '@chrischall/mcp-utils';
 import { resolveRefreshToken } from './auth.js';
 
@@ -213,8 +214,11 @@ export class ZolaClient {
 
     if (!response.ok) {
       const text = await response.text();
+      // The refresh request body carries the refresh JWT — an echoing upstream
+      // or proxy could reflect it in the error body, so redact + truncate the
+      // untrusted body before it can reach a tool result.
       throw new Error(
-        `Zola session refresh failed (${response.status}): ${text}\n` +
+        `Zola session refresh failed (${response.status}): ${truncateErrorMessage(text)}\n` +
           'To fix: set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com.'
       );
     }
