@@ -1,4 +1,4 @@
-import { textResult, imageResult as imageResultBase64 } from '@chrischall/mcp-utils';
+import { buildOptionalBody, textResult, imageResult as imageResultBase64 } from '@chrischall/mcp-utils';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 /**
@@ -34,15 +34,13 @@ export function imageResult(bytes: Uint8Array, mimeType: string): ToolResult {
 /**
  * Build a partial-update body containing only keys from `args` that are not undefined.
  * Used by tools that send PATCH-style updates where omitting a key means "leave unchanged".
+ * The undefined-dropping is the shared `buildOptionalBody` from `@chrischall/mcp-utils`;
+ * this wrapper just merges the always-present `base` fields in front.
  */
 export function pickDefined<T extends Record<string, unknown>>(
   base: Record<string, unknown>,
   args: T,
   keys: readonly (keyof T)[]
 ): Record<string, unknown> {
-  const body: Record<string, unknown> = { ...base };
-  for (const key of keys) {
-    if (args[key] !== undefined) body[key as string] = args[key];
-  }
-  return body;
+  return { ...base, ...buildOptionalBody(args, keys) };
 }
