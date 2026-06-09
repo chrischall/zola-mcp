@@ -97,7 +97,9 @@ describe('resolveRefreshToken', () => {
       expect(result.source).toBe('fetchproxy');
     });
 
-    it('throws with a helpful message when `usr` cookie is missing', async () => {
+    it('throws the not-signed-in error (naming Zola + zola.com) when `usr` cookie is missing', async () => {
+      // createAuthResolver maps "bootstrap succeeded but the declared cookie
+      // is absent" to SessionNotAuthenticatedError(serviceName, signInHost).
       bootstrapMock.mockResolvedValue({
         cookies: {},
         localStorage: {},
@@ -105,8 +107,8 @@ describe('resolveRefreshToken', () => {
         capturedHeaders: {},
       });
 
-      await expect(resolveRefreshToken()).rejects.toThrow(/fetchproxy fallback failed/);
-      await expect(resolveRefreshToken()).rejects.toThrow(/Sign into zola.com/);
+      await expect(resolveRefreshToken()).rejects.toThrow(/Not signed in to Zola/);
+      await expect(resolveRefreshToken()).rejects.toThrow(/zola\.com/);
     });
 
     it('wraps bootstrap() errors with actionable context', async () => {
@@ -141,6 +143,17 @@ describe('resolveRefreshToken', () => {
 
       await expect(resolveRefreshToken()).rejects.toThrow(/fetchproxy bridge is down/);
       await expect(resolveRefreshToken()).rejects.toThrow(downErr.hint);
+
+      // The hint must also survive as the structured `.hint` on the thrown
+      // error (0.7.0 handles the bridge_down branch inside createAuthResolver
+      // — this pins that the bridge-down guidance reaches callers verbatim).
+      const thrown = await resolveRefreshToken().then(
+        () => undefined,
+        (e: unknown) => e as Error & { hint?: string },
+      );
+      expect(thrown).toBeDefined();
+      expect(thrown!.hint).toBe(downErr.hint);
+      expect(thrown!.message).toContain(downErr.hint);
     });
   });
 
