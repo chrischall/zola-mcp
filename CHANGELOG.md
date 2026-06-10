@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.1](https://github.com/chrischall/zola-mcp/compare/v1.4.0...v1.4.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* redact upstream body in session-refresh failure message ([#67](https://github.com/chrischall/zola-mcp/issues/67)) ([75036f4](https://github.com/chrischall/zola-mcp/commit/75036f4438d62f71019051efa0312651904cba65))
+
+
+### Refactor
+
+* adopt createAuthResolver and buildOptionalBody from mcp-utils 0.7.0 ([#69](https://github.com/chrischall/zola-mcp/issues/69)) ([dc2e445](https://github.com/chrischall/zola-mcp/commit/dc2e445d398e139efc2f7b4699ea9fced45dfce4))
+
 ## [1.4.0](https://github.com/chrischall/zola-mcp/compare/v1.3.2...v1.4.0) (2026-06-06)
 
 
