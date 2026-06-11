@@ -1,5 +1,9 @@
 # Zola MCP
 
+[![CI](https://github.com/chrischall/zola-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/chrischall/zola-mcp/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/zola-mcp)](https://www.npmjs.com/package/zola-mcp)
+[![license](https://img.shields.io/npm/l/zola-mcp)](LICENSE)
+
 A [Model Context Protocol](https://modelcontextprotocol.io) server that connects Claude to [Zola](https://www.zola.com), giving you natural-language access to your wedding vendors, budget, guest list, seating chart, events, registry, inquiries, and more.
 
 > [!WARNING]
