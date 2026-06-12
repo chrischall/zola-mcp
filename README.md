@@ -305,3 +305,4 @@ Releases are automated via GitHub Actions:
 ## License
 
 MIT
+
