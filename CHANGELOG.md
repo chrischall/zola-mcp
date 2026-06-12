@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.2](https://github.com/chrischall/zola-mcp/compare/v1.4.1...v1.4.2) (2026-06-12)
+
+
+### Bug Fixes
+
+* bot PRs bypass the CI gate unconditionally (upstream curtaincall[#86](https://github.com/chrischall/zola-mcp/issues/86) review) ([#73](https://github.com/chrischall/zola-mcp/issues/73)) ([2d8f807](https://github.com/chrischall/zola-mcp/commit/2d8f8079e06ffd8d49072596efb8a75581f7b6fc))
+
+
+### Documentation
+
+* add MIT LICENSE file and README badges ([#70](https://github.com/chrischall/zola-mcp/issues/70)) ([608ebf7](https://github.com/chrischall/zola-mcp/commit/608ebf7e602cc4b0788b8e01244efe9196be69a4))
+* cross-repo reusable review canary test ([#76](https://github.com/chrischall/zola-mcp/issues/76)) ([afd673a](https://github.com/chrischall/zola-mcp/commit/afd673a0a2eab6f3d8eecba64c36975704ec909a))
+
 ## [1.4.1](https://github.com/chrischall/zola-mcp/compare/v1.4.0...v1.4.1) (2026-06-09)
 
 
