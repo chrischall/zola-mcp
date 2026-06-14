@@ -122,7 +122,7 @@ Releases are driven by **release-please** (`googleapis/release-please-action`) �
 
 Because release-please keys on Conventional Commits, a PR that squash-merges **without** a `feat:`/`fix:` prefix won't trigger a release. To force a version (e.g. to ship a feature that merged without a prefix), put a `Release-As: X.Y.Z` footer in a commit on `main` — release-please proposes exactly that version on its next run. (Squash settings: title = PR title, body = PR body, so a `Release-As:` line in the PR body lands in the squashed commit.)
 
-<!-- pr-workflow:v1 -->
+<!-- pr-workflow:v2 -->
 ## Pull requests & release notes
 
 **Default workflow: branch + PR, even for solo work.** Open a PR rather than pushing to `main` — a direct push skips review and the auto-merge flow. Push directly to `main` only when the user explicitly asks for it (e.g. emergency hotfix).
