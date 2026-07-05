@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.3](https://github.com/chrischall/zola-mcp/compare/v1.4.2...v1.4.3) (2026-07-05)
+
+
+### Documentation
+
+* audit CLAUDE.md and add auto-review follow-up convention ([#82](https://github.com/chrischall/zola-mcp/issues/82)) ([f519bdb](https://github.com/chrischall/zola-mcp/commit/f519bdba33fa2ea68b00ee25f6c2e50baa883c14))
+* bump pr-workflow marker to v2 ([#78](https://github.com/chrischall/zola-mcp/issues/78)) ([071fd0a](https://github.com/chrischall/zola-mcp/commit/071fd0aa65568a32ded904038f42f6765bedca14))
+* fix .env.example to reference real auth flow, not nonexistent `npm run auth` ([#83](https://github.com/chrischall/zola-mcp/issues/83)) ([c4b1e38](https://github.com/chrischall/zola-mcp/commit/c4b1e38d2e38e60d036c765f89a4530a2221e22e))
+
 ## [1.4.2](https://github.com/chrischall/zola-mcp/compare/v1.4.1...v1.4.2) (2026-06-12)
 
 
