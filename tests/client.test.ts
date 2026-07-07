@@ -130,6 +130,55 @@ describe('ZolaClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it('single-flights the refresh across concurrent requests', async () => {
+    // Two requests racing from a cold client must trigger exactly one refresh —
+    // the single-flight guarantee the cached token source provides (the old
+    // hand-rolled cache issued one refresh per concurrent caller).
+    const newSessionToken = makeMockJwt(FUTURE_EXP);
+    let refreshCalls = 0;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes('/v3/sessions/refresh')) {
+        refreshCalls += 1;
+        return makeResponse({
+          data: { session_token: newSessionToken, refresh_token: 'r', session_id: 's' },
+        });
+      }
+      return makeResponse({ data: 'ok' });
+    });
+
+    const client = new ZolaClient();
+    await Promise.all([
+      client.requestMobile('GET', '/a'),
+      client.requestMobile('GET', '/b'),
+    ]);
+
+    expect(refreshCalls).toBe(1);
+  });
+
+  it('recomputes x-zola-user-session-id from the current token, updating after re-auth', async () => {
+    // The WAF header is derived per request from the live session token; after a
+    // 401 re-mint it must reflect the NEW token's session id, not the stale one.
+    const firstToken = makeMockJwt(FUTURE_EXP, 'session-A');
+    const secondToken = makeMockJwt(FUTURE_EXP, 'session-B');
+    process.env.ZOLA_SESSION_TOKEN = firstToken;
+
+    fetchMock.mockResolvedValueOnce(makeResponse({}, 401)); // first API call
+    fetchMock.mockResolvedValueOnce(
+      makeResponse({ data: { session_token: secondToken, refresh_token: 'r', session_id: 's' } })
+    ); // refresh
+    fetchMock.mockResolvedValueOnce(makeResponse({ data: 'ok' })); // replay
+
+    const client = new ZolaClient();
+    await client.requestMobile('GET', '/v3/test');
+
+    const firstHeaders = (fetchMock.mock.calls[0] as [string, RequestInit])[1]
+      .headers as Record<string, string>;
+    const replayHeaders = (fetchMock.mock.calls[2] as [string, RequestInit])[1]
+      .headers as Record<string, string>;
+    expect(firstHeaders['x-zola-user-session-id']).toBe('session-A');
+    expect(replayHeaders['x-zola-user-session-id']).toBe('session-B');
+  });
+
   it('throws with helpful message when refresh fails', async () => {
     process.env.ZOLA_SESSION_TOKEN = makeMockJwt(PAST_EXP);
     fetchMock.mockResolvedValueOnce(makeResponse({ error: 'invalid' }, 401));

@@ -7,7 +7,9 @@ import {
   decodeJwtSessionId,
   formatApiError,
   truncateErrorMessage,
+  createCachedTokenSource,
 } from '@chrischall/mcp-utils';
+import type { MintedToken } from '@chrischall/mcp-utils';
 import { resolveRefreshToken } from './auth.js';
 
 // Load `.env` next to the compiled entry point. `loadDotenvSafely` is a
@@ -27,19 +29,31 @@ export interface UserContext {
   weddingSlug: string | null;
 }
 
+// Refresh the session token this long before its JWT `exp` — the same 5-minute
+// comfort margin the hand-rolled cache used for both the "still valid" check and
+// the `ZOLA_SESSION_TOKEN` seed's freshness gate.
+const SESSION_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+
 export class ZolaClient {
-  private sessionToken: string | null = null;
-  private sessionExpiry: Date | null = null;
   private cachedContext: UserContext | null = null;
   // WAF requires x-zola-session-id on all mobile-api.zola.com requests
   private readonly deviceSessionId = crypto.randomUUID().toUpperCase();
+  // The `ZOLA_SESSION_TOKEN` seed is a cold-start-only shortcut, exactly as the
+  // old `ensureSession` gated it on `sessionToken === null`; a 401 re-mint goes
+  // straight to `refresh()`, never back to the env token.
+  private triedEnvSeed = false;
+  // Single-flight cached mint: caches the 30-min session JWT until 5 min before
+  // its `exp`, coalesces concurrent mints, and re-mints on demand after a 401.
+  private readonly session = createCachedTokenSource({
+    mint: () => this.mintSession(),
+    bufferMs: SESSION_REFRESH_BUFFER_MS,
+  });
 
   /**
    * Make a request to the Zola mobile API (mobile-api.zola.com).
    * Uses Bearer JWT auth with x-zola-session-id header.
    */
   async requestMobile<T>(method: string, path: string, body?: unknown): Promise<T> {
-    await this.ensureSession();
     return this.doRequest<T>(method, path, body);
   }
 
@@ -54,7 +68,6 @@ export class ZolaClient {
     path: string,
     body?: unknown
   ): Promise<{ bytes: Uint8Array; contentType: string }> {
-    await this.ensureSession();
     const response = await this.sendWithRetry(method, path, body, false, false, '*/*');
     const contentType = response.headers.get('content-type') ?? 'application/octet-stream';
     const bytes = new Uint8Array(await response.arrayBuffer());
@@ -120,10 +133,14 @@ export class ZolaClient {
     isRateRetry = false,
     accept = 'application/json'
   ): Promise<Response> {
-    const sessionId = decodeJwtSessionId(this.sessionToken!);
+    // Current session token from the cache (mints/refreshes as needed). The
+    // per-request `x-zola-user-session-id` is derived from it every call, so a
+    // re-minted token below carries its own session id on the replay.
+    const token = await this.session.getToken();
+    const sessionId = decodeJwtSessionId(token);
     const headers: Record<string, string> = {
       accept,
-      authorization: `Bearer ${this.sessionToken}`,
+      authorization: `Bearer ${token}`,
       'x-zola-platform-type': 'iphone_app',
       'x-zola-session-id': this.deviceSessionId,
       'user-agent': 'Zola/42.5.0 (iPad; iOS 26.4; Scale/2.0)',
@@ -138,9 +155,8 @@ export class ZolaClient {
     });
 
     if (response.status === 401 && !isAuthRetry) {
-      this.sessionToken = null;
-      this.sessionExpiry = null;
-      await this.refresh();
+      // Drop the cached token so the replay's getToken re-mints via refresh().
+      this.session.invalidate();
       return this.sendWithRetry(method, path, body, true, isRateRetry, accept);
     }
 
@@ -162,22 +178,24 @@ export class ZolaClient {
     return response;
   }
 
-  private async ensureSession(): Promise<void> {
-    // Session still valid with comfortable margin
-    if (this.sessionToken && this.sessionExpiry) {
-      if (this.sessionExpiry.getTime() - Date.now() > 5 * 60 * 1000) return;
-    }
-
-    // Check for session token in env (first load only)
-    if (this.sessionToken === null) {
+  /**
+   * Mint a session token for the cache. On the very first mint, use a valid
+   * `ZOLA_SESSION_TOKEN` if present (a cold-start shortcut that skips the
+   * initial refresh); otherwise, and on every later mint, refresh via the
+   * mobile API. Returns `{ token, expiresAt }` so the cache serves it until
+   * `SESSION_REFRESH_BUFFER_MS` before the JWT's `exp`.
+   */
+  private async mintSession(): Promise<MintedToken> {
+    // Cold-start seed: use ZOLA_SESSION_TOKEN if present and comfortably
+    // unexpired. Only attempted once — a 401 re-mint always goes to refresh().
+    if (!this.triedEnvSeed) {
+      this.triedEnvSeed = true;
       const envSession = readEnvVar('ZOLA_SESSION_TOKEN');
       if (envSession) {
         try {
           const exp = decodeJwtExp(envSession);
-          if (exp * 1000 - Date.now() > 5 * 60 * 1000) {
-            this.sessionToken = envSession;
-            this.sessionExpiry = new Date(exp * 1000);
-            return;
+          if (exp * 1000 - Date.now() > SESSION_REFRESH_BUFFER_MS) {
+            return { token: envSession, expiresAt: exp * 1000 };
           }
         } catch {
           // Invalid JWT in env — fall through to refresh
@@ -185,19 +203,19 @@ export class ZolaClient {
       }
     }
 
-    await this.refresh();
+    return this.refresh();
   }
 
   /**
    * Refresh the session using the mobile API endpoint.
    * POST /v3/sessions/refresh with the refresh token JWT.
-   * Returns a new session_token (30-min) and optionally a new refresh_token.
+   * Returns a new session_token (30-min) as a {@link MintedToken}.
    *
    * The refresh token comes from `resolveRefreshToken()`, which tries
    * (1) ZOLA_REFRESH_TOKEN env var, then (2) the fetchproxy 0.3.0 extension's
    * `usr` cookie on zola.com, then (3) errors with actionable guidance.
    */
-  private async refresh(): Promise<void> {
+  private async refresh(): Promise<MintedToken> {
     const { token: refreshToken } = await resolveRefreshToken();
 
     const response = await fetch(`${MOBILE_BASE_URL}/v3/sessions/refresh`, {
@@ -229,8 +247,7 @@ export class ZolaClient {
 
     const { session_token } = result.data;
     const exp = decodeJwtExp(session_token);
-    this.sessionToken = session_token;
-    this.sessionExpiry = new Date(exp * 1000);
+    return { token: session_token, expiresAt: exp * 1000 };
   }
 }
 
