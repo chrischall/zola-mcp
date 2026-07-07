@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.4](https://github.com/chrischall/zola-mcp/compare/v1.4.3...v1.4.4) (2026-07-07)
+
+
+### Bug Fixes
+
+* bump @chrischall/mcp-utils to 0.12.0 ([#95](https://github.com/chrischall/zola-mcp/issues/95)) ([2eb1f39](https://github.com/chrischall/zola-mcp/commit/2eb1f39eff926a40543cd8242693e47c93cfd3a0))
+
 ## [1.4.3](https://github.com/chrischall/zola-mcp/compare/v1.4.2...v1.4.3) (2026-07-05)
 
 
