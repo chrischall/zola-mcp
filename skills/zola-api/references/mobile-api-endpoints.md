@@ -5,7 +5,8 @@ carries `authorization: Bearer $SESSION_TOKEN`, `x-zola-platform-type:
 iphone_app`, `x-zola-session-id: $DEVICE_SESSION_ID`, `user-agent: $UA` (see
 `SKILL.md`); POST/PUT/DELETE-with-body also need `-H 'content-type:
 application/json'`. `$ACCT` = `wedding_account_id`, `$REG` = `registry_id`,
-both from `GET /v3/users/me/context`. Response envelope is `{"data": ...}`
+`$WEDDING_ID` = `wedding_id`, all three from `GET /v3/users/me/context` (see
+`SKILL.md`'s "resolve context first" section). Response envelope is `{"data": ...}`
 unless noted. Paths/bodies below are transcribed from `src/tools/*.ts` —
 each section names its source file.
 
