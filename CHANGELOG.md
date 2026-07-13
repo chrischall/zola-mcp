@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.5.0](https://github.com/chrischall/zola-mcp/compare/v1.4.4...v1.5.0) (2026-07-13)
+
+
+### Features
+
+* **skill:** add zola api access skill ([#100](https://github.com/chrischall/zola-mcp/issues/100)) ([beb339d](https://github.com/chrischall/zola-mcp/commit/beb339dddc5998bd884403cabeef3d8238edb8da))
+
+
+### Refactor
+
+* **skill:** move root SKILL.md into skills/, point plugin.json at ./skills/ ([#103](https://github.com/chrischall/zola-mcp/issues/103)) ([5e586cb](https://github.com/chrischall/zola-mcp/commit/5e586cbc192768394199d1228701117df8d60c2c))
+
+
+### Documentation
+
+* document $WEDDING_ID in mobile-api-endpoints reference ([#104](https://github.com/chrischall/zola-mcp/issues/104)) ([764545b](https://github.com/chrischall/zola-mcp/commit/764545b9cdb9ddd33e260d5ab867fb86eda89b57))
+
 ## [1.4.4](https://github.com/chrischall/zola-mcp/compare/v1.4.3...v1.4.4) (2026-07-07)
 
 
