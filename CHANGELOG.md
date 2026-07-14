@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/chrischall/zola-mcp/compare/v1.5.0...v1.6.0) (2026-07-14)
+
+
+### Features
+
+* add hosted Cloudflare Worker connector ([#105](https://github.com/chrischall/zola-mcp/issues/105)) ([4fa00f6](https://github.com/chrischall/zola-mcp/commit/4fa00f6b2ea0ae45551d4da3b61de22010c6d0e9))
+
 ## [1.5.0](https://github.com/chrischall/zola-mcp/compare/v1.4.4...v1.5.0) (2026-07-13)
 
 
