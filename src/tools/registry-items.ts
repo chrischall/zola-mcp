@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 const collectionIdCache = new Map<string, string>();
@@ -19,7 +19,7 @@ interface RegistryShape {
   };
 }
 
-async function getDefaultCollectionId(registryId: string): Promise<string> {
+async function getDefaultCollectionId(client: ZolaClient, registryId: string): Promise<string> {
   const cached = collectionIdCache.get(registryId);
   if (cached !== undefined) return cached;
   const response = await client.requestMobile<RegistryShape>(
@@ -45,7 +45,7 @@ async function getDefaultCollectionId(registryId: string): Promise<string> {
   return collectionId;
 }
 
-export async function searchRegistryProducts(args: {
+export async function searchRegistryProducts(client: ZolaClient, args: {
   category_id: number;
   offset?: number;
   limit?: number;
@@ -64,7 +64,7 @@ export async function searchRegistryProducts(args: {
   return jsonResult(response.data);
 }
 
-export async function addRegistryItem(args: {
+export async function addRegistryItem(client: ZolaClient, args: {
   sku_id: string;
   collection_id?: string;
   quantity?: number;
@@ -72,7 +72,7 @@ export async function addRegistryItem(args: {
   enable_group_gifting?: boolean;
 }): Promise<ToolResult> {
   const { registryId } = await client.getContext();
-  const collectionId = args.collection_id ?? (await getDefaultCollectionId(registryId));
+  const collectionId = args.collection_id ?? (await getDefaultCollectionId(client, registryId));
   const body = {
     sku_id: args.sku_id,
     quantity: args.quantity ?? 1,
@@ -87,7 +87,7 @@ export async function addRegistryItem(args: {
   return jsonResult(response.data);
 }
 
-export async function updateRegistryItem(args: {
+export async function updateRegistryItem(client: ZolaClient, args: {
   collection_item_id: string;
   collection_id: string;
   quantity: number;
@@ -113,7 +113,7 @@ export async function updateRegistryItem(args: {
   return jsonResult(response.data);
 }
 
-export async function removeRegistryItem(args: { collection_item_id: string }): Promise<ToolResult> {
+export async function removeRegistryItem(client: ZolaClient, args: { collection_item_id: string }): Promise<ToolResult> {
   const { registryId } = await client.getContext();
   await client.requestMobile<MobileEnvelope<unknown>>(
     'DELETE',
@@ -122,7 +122,7 @@ export async function removeRegistryItem(args: { collection_item_id: string }): 
   return jsonResult({ removed: args.collection_item_id });
 }
 
-export function registerRegistryItemTools(server: McpServer): void {
+export function registerRegistryItemTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('search_registry_products', {
     description: 'Browse Zola products in a category, scoped to your registry. Category IDs are Zola constants (e.g. 544 = Kitchen) — exposed via GET /v3/categories in the iOS app.',
     inputSchema: {
@@ -131,7 +131,7 @@ export function registerRegistryItemTools(server: McpServer): void {
       limit: z.number().optional().describe('Default 50'),
     },
     annotations: { readOnlyHint: true },
-  }, searchRegistryProducts);
+  }, (args) => searchRegistryProducts(client, args));
 
   server.registerTool('add_registry_item', {
     description: 'Add a product (by SKU) to the registry. If collection_id is omitted, the default collection is looked up automatically.',
@@ -143,7 +143,7 @@ export function registerRegistryItemTools(server: McpServer): void {
       enable_group_gifting: z.boolean().optional().describe('Allow multiple guests to chip in. Default false'),
     },
     annotations: { destructiveHint: false },
-  }, addRegistryItem);
+  }, (args) => addRegistryItem(client, args));
 
   server.registerTool('update_registry_item', {
     description: "Update an existing registry item — all fields must be supplied (it's a full replace)",
@@ -157,7 +157,7 @@ export function registerRegistryItemTools(server: McpServer): void {
       most_wanted: z.boolean(),
     },
     annotations: { destructiveHint: false },
-  }, updateRegistryItem);
+  }, (args) => updateRegistryItem(client, args));
 
   server.registerTool('remove_registry_item', {
     description: 'Remove an item from the registry',
@@ -165,5 +165,5 @@ export function registerRegistryItemTools(server: McpServer): void {
       collection_item_id: z.string(),
     },
     annotations: { destructiveHint: true },
-  }, removeRegistryItem);
+  }, (args) => removeRegistryItem(client, args));
 }

@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 interface SeatOccupant {
@@ -71,17 +71,17 @@ interface DirectoryResponse {
   guest_groups: GuestGroup[];
 }
 
-export async function listSeatingCharts(): Promise<ToolResult> {
+export async function listSeatingCharts(client: ZolaClient): Promise<ToolResult> {
   const charts = await client.requestMobile<SeatingChartSummary[]>('GET', '/v3/seating-charts/summaries');
   return jsonResult(charts);
 }
 
-export async function getSeatingChart(args: { uuid: string }): Promise<ToolResult> {
+export async function getSeatingChart(client: ZolaClient, args: { uuid: string }): Promise<ToolResult> {
   const chart = await client.requestMobile<SeatingChart>('GET', `/v3/seating-charts/${encodeURIComponent(args.uuid)}`);
   return jsonResult(chart);
 }
 
-export async function listUnseatedGuests(): Promise<ToolResult> {
+export async function listUnseatedGuests(client: ZolaClient): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<DirectoryResponse>>(
     'POST',
@@ -101,7 +101,7 @@ export async function listUnseatedGuests(): Promise<ToolResult> {
   return jsonResult(unseated);
 }
 
-export async function assignSeat(args: {
+export async function assignSeat(client: ZolaClient, args: {
   guest_uuid: string;
   seat_uuid: string;
   table_uuid: string;
@@ -116,22 +116,22 @@ export async function assignSeat(args: {
   return jsonResult(chart);
 }
 
-export function registerSeatingTools(server: McpServer): void {
+export function registerSeatingTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_seating_charts', {
     description: 'List all seating charts with their UUID and event name',
     annotations: { readOnlyHint: true },
-  }, listSeatingCharts);
+  }, () => listSeatingCharts(client));
 
   server.registerTool('get_seating_chart', {
     description: 'Get full seating chart with all tables, seats, and current occupants',
     inputSchema: { uuid: z.string().describe('Seating chart UUID from list_seating_charts') },
     annotations: { readOnlyHint: true },
-  }, getSeatingChart);
+  }, (args) => getSeatingChart(client, args));
 
   server.registerTool('list_unseated_guests', {
     description: 'List all guests who have not yet been assigned a seat',
     annotations: { readOnlyHint: true },
-  }, listUnseatedGuests);
+  }, () => listUnseatedGuests(client));
 
   server.registerTool('assign_seat', {
     description: 'Assign a guest to a specific seat in a seating chart',
@@ -142,5 +142,5 @@ export function registerSeatingTools(server: McpServer): void {
       seating_chart_uuid: z.string().describe('Seating chart UUID from list_seating_charts'),
     },
     annotations: { destructiveHint: false },
-  }, assignSeat);
+  }, (args) => assignSeat(client, args));
 }

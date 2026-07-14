@@ -1,4 +1,5 @@
 import { runMcp } from '@chrischall/mcp-utils';
+import { client } from './client.js';
 import { registerVendorTools } from './tools/vendors.js';
 import { registerBudgetTools } from './tools/budget.js';
 import { registerGuestTools } from './tools/guests.js';
@@ -19,6 +20,7 @@ await runMcp({
   name: 'zola-mcp',
   version: VERSION,
   banner: `zola-mcp ${VERSION} ready`,
+  deps: client,
   tools: [
     registerVendorTools,
     registerBudgetTools,

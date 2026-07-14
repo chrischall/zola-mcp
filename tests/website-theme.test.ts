@@ -24,7 +24,7 @@ describe('website-theme tools', () => {
     reqSpy.mockResolvedValueOnce({
       data: { customization_view: { theme_key: 'galata' } },
     } as never);
-    const result = await getWebsiteCustomizations();
+    const result = await getWebsiteCustomizations(client);
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/website-customizations/context');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.customization_view.theme_key).toBe('galata');
@@ -34,7 +34,7 @@ describe('website-theme tools', () => {
     reqSpy.mockResolvedValueOnce({
       data: { key: 'galata', name: 'Galata', swatch_color: 'FFFFFF' },
     } as never);
-    const result = await getCurrentTheme();
+    const result = await getCurrentTheme(client);
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/themes/current');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.key).toBe('galata');
@@ -44,7 +44,7 @@ describe('website-theme tools', () => {
     reqSpy.mockResolvedValueOnce({
       data: { offset: 0, limit: 50, total: 50, displayable_total: 1532, themes: [] },
     } as never);
-    await searchThemes({});
+    await searchThemes(client, {});
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/themes/search', {
       limit: 50,
       offset: 0,
@@ -54,7 +54,7 @@ describe('website-theme tools', () => {
 
   it('searchThemes: honors provided overrides', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
-    await searchThemes({ limit: 20, offset: 40, theme_layout_types: ['SINGLE_PAGE'] });
+    await searchThemes(client, { limit: 20, offset: 40, theme_layout_types: ['SINGLE_PAGE'] });
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/themes/search', {
       limit: 20,
       offset: 40,
@@ -66,7 +66,7 @@ describe('website-theme tools', () => {
     reqSpy.mockResolvedValueOnce({
       data: { key: 'galata', name: 'Galata' },
     } as never);
-    const result = await updateCurrentTheme({ theme_key: 'galata', theme_layout_type: 'MULTI_PAGE' });
+    const result = await updateCurrentTheme(client, { theme_key: 'galata', theme_layout_type: 'MULTI_PAGE' });
     expect(reqSpy).toHaveBeenCalledWith('PUT', '/v3/themes/current', {
       theme_key: 'galata',
       theme_layout_type: 'MULTI_PAGE',
@@ -77,7 +77,7 @@ describe('website-theme tools', () => {
 
   it('updateCurrentTheme: defaults layout_type to MULTI_PAGE when omitted', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
-    await updateCurrentTheme({ theme_key: 'blake-cranberry' });
+    await updateCurrentTheme(client, { theme_key: 'blake-cranberry' });
     expect(reqSpy).toHaveBeenCalledWith('PUT', '/v3/themes/current', {
       theme_key: 'blake-cranberry',
       theme_layout_type: 'MULTI_PAGE',
@@ -86,7 +86,7 @@ describe('website-theme tools', () => {
 
   it('updateWebsiteCustomization: POSTs only the fields provided', async () => {
     reqSpy.mockResolvedValueOnce({ data: { customization_view: {} } } as never);
-    await updateWebsiteCustomization({
+    await updateWebsiteCustomization(client, {
       accent_color: 'B20033',
       background_color: 'B51A00',
     });
@@ -98,7 +98,7 @@ describe('website-theme tools', () => {
 
   it('updateWebsiteCustomization: nests font/navigation when provided', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
-    await updateWebsiteCustomization({
+    await updateWebsiteCustomization(client, {
       body_font_color: '000000',
       navigation_background_color: 'B51A00',
     });
@@ -110,7 +110,7 @@ describe('website-theme tools', () => {
 
   it('updateWebsiteCustomization: merges body_font_color and body_font_family_id into one object', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
-    await updateWebsiteCustomization({ body_font_color: '000000', body_font_family_id: 68 });
+    await updateWebsiteCustomization(client, { body_font_color: '000000', body_font_family_id: 68 });
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/website-customizations/context', {
       body_font: { color: '000000', font_family_id: 68 },
     });
@@ -133,7 +133,7 @@ describe('website-theme tools', () => {
       } as never)
       .mockResolvedValueOnce({ data: {} } as never);
 
-    await updateWebsiteCustomization({ header_font_family_id: 7 });
+    await updateWebsiteCustomization(client, { header_font_family_id: 7 });
 
     expect(reqSpy).toHaveBeenNthCalledWith(
       1,
@@ -157,7 +157,7 @@ describe('website-theme tools', () => {
   it('updateWebsiteCustomization: bundles preserved fields only when header_font_family_id changes', async () => {
     // Simple color change should NOT trigger the bundling/fetch path.
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
-    await updateWebsiteCustomization({ accent_color: 'ABCDEF' });
+    await updateWebsiteCustomization(client, { accent_color: 'ABCDEF' });
     expect(reqSpy).toHaveBeenCalledTimes(1);
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/website-customizations/context', {
       accent_color: 'ABCDEF',
@@ -209,7 +209,7 @@ describe('website-theme tools', () => {
     };
     reqSpy.mockImplementation(wipeMock as never);
 
-    const result = await updateWebsiteCustomization({ header_font_family_id: 7 });
+    const result = await updateWebsiteCustomization(client, { header_font_family_id: 7 });
     const parsed = JSON.parse(result.content[0].text);
 
     expect(parsed.current_style_customizations.accent_color).toBe('B20033');
@@ -222,14 +222,14 @@ describe('website-theme tools', () => {
 
   it('updateWebsiteCustomization: rejects body_font_family_id outside the allowed set [68, 198]', async () => {
     await expect(
-      updateWebsiteCustomization({ body_font_family_id: 70 })
+      updateWebsiteCustomization(client, { body_font_family_id: 70 })
     ).rejects.toThrow(/body_font_family_id.*68.*198/);
     expect(reqSpy).not.toHaveBeenCalled();
   });
 
   it('updateWebsiteCustomization: accepts body_font_family_id=68 (Libre Baskerville)', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
-    await updateWebsiteCustomization({ body_font_family_id: 68 });
+    await updateWebsiteCustomization(client, { body_font_family_id: 68 });
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/website-customizations/context', {
       body_font: { font_family_id: 68 },
     });
@@ -237,7 +237,7 @@ describe('website-theme tools', () => {
 
   it('updateWebsiteCustomization: accepts body_font_family_id=198 (Circular)', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
-    await updateWebsiteCustomization({ body_font_family_id: 198 });
+    await updateWebsiteCustomization(client, { body_font_family_id: 198 });
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/website-customizations/context', {
       body_font: { font_family_id: 198 },
     });
@@ -245,14 +245,14 @@ describe('website-theme tools', () => {
 
   it('updateWebsiteCustomization: rejects header_color (web-api only) with a clear error', async () => {
     await expect(
-      updateWebsiteCustomization({ header_color: '000000' } as never)
+      updateWebsiteCustomization(client, { header_color: '000000' } as never)
     ).rejects.toThrow(/header_color.*not writable via the mobile-api/);
     expect(reqSpy).not.toHaveBeenCalled();
   });
 
   it('updateWebsiteCustomization: rejects nav_font_color (web-api only) with a clear error', async () => {
     await expect(
-      updateWebsiteCustomization({ nav_font_color: '000000' } as never)
+      updateWebsiteCustomization(client, { nav_font_color: '000000' } as never)
     ).rejects.toThrow(/nav_font_color.*not writable via the mobile-api/);
     expect(reqSpy).not.toHaveBeenCalled();
   });

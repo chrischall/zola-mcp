@@ -59,7 +59,7 @@ describe('budget tools', () => {
   it('getBudget: calls mobile API and returns flat summary with items', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_BUDGET_RESPONSE as never);
 
-    const result = await getBudget();
+    const result = await getBudget(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/budgets');
     expect(result.content[0].type).toBe('text');
@@ -80,7 +80,7 @@ describe('budget tools', () => {
       .mockResolvedValueOnce(MOCK_BUDGET_RESPONSE as never)
       .mockResolvedValueOnce({ data: updatedItem } as never);
 
-    const result = await updateBudgetItem({
+    const result = await updateBudgetItem(client, {
       uuid: '8b90d700-c891-46f9-87c5-f0f8b786b457',
       actual_cost_cents: 2600000,
       note: 'Updated note',
@@ -107,7 +107,7 @@ describe('budget tools', () => {
     reqSpy.mockResolvedValueOnce(emptyBudget as never);
 
     await expect(
-      updateBudgetItem({ uuid: 'nonexistent-uuid' })
+      updateBudgetItem(client, { uuid: 'nonexistent-uuid' })
     ).rejects.toThrow('Budget item with UUID "nonexistent-uuid" not found');
   });
 });

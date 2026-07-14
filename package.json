@@ -43,7 +43,11 @@
     "bundle": "esbuild src/index.ts --bundle --platform=node --format=esm --external:dotenv --banner:js='import { createRequire as __createRequire } from \"module\"; const require = __createRequire(import.meta.url);' --outfile=dist/bundle.js",
     "dev": "node --env-file=.env dist/index.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy",
+    "worker:test": "vitest run --config vitest.workers.config.ts"
   },
   "dependencies": {
     "@chrischall/mcp-utils": "^0.13.0",
@@ -54,10 +58,16 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@chrischall/mcp-connector": "^0.1.0",
+    "@cloudflare/vitest-pool-workers": "^0.18.4",
+    "@cloudflare/workers-oauth-provider": "^0.0.11",
+    "@cloudflare/workers-types": "^5.20260708.1",
     "@types/node": "^26.0.0",
     "@vitest/coverage-v8": "^4.1.8",
+    "agents": "^0.17.3",
     "esbuild": "^0.28.0",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "wrangler": "^4.110.0"
   }
 }

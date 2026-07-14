@@ -85,7 +85,7 @@ describe('discover tools', () => {
   it('getWeddingDashboard: GETs your-wedding overview', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_DASHBOARD as never);
 
-    const result = await getWeddingDashboard();
+    const result = await getWeddingDashboard(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v4/your-wedding');
     const parsed = JSON.parse(result.content[0].text);
@@ -96,7 +96,7 @@ describe('discover tools', () => {
   it('searchStorefronts: POSTs search with location and category', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_SEARCH_RESULT as never);
 
-    const result = await searchStorefronts({ taxonomy_node_id: 9, city: 'Charlotte', state_province: 'NC' });
+    const result = await searchStorefronts(client, { taxonomy_node_id: 9, city: 'Charlotte', state_province: 'NC' });
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/storefronts/search', expect.objectContaining({
       taxonomy_node_id: 9,
@@ -113,7 +113,7 @@ describe('discover tools', () => {
   it('getStorefront: GETs full storefront details by UUID', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_STOREFRONT as never);
 
-    const result = await getStorefront({ uuid: 'storefront-uuid-1' });
+    const result = await getStorefront(client, { uuid: 'storefront-uuid-1' });
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/storefronts/storefront-uuid-1');
     const parsed = JSON.parse(result.content[0].text);
@@ -123,7 +123,7 @@ describe('discover tools', () => {
   it('listFavorites: GETs saved vendors', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_FAVORITES as never);
 
-    const result = await listFavorites();
+    const result = await listFavorites(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/favorites/');
     const parsed = JSON.parse(result.content[0].text);

@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 // ─── Shapes (FLAT guest shape, as returned by the mobile-api directory) ────────
@@ -62,7 +62,7 @@ interface EventGroupLite {
 
 // ─── Live reads ────────────────────────────────────────────────────────────────
 
-async function fetchDirectory(acct: number): Promise<DirGroup[]> {
+async function fetchDirectory(client: ZolaClient, acct: number): Promise<DirGroup[]> {
   const resp = await client.requestMobile<MobileEnvelope<DirectoryResponse>>(
     'POST',
     `/v3/guestlists/directory/wedding-accounts/${acct}`,
@@ -71,7 +71,7 @@ async function fetchDirectory(acct: number): Promise<DirGroup[]> {
   return resp.data.guest_groups;
 }
 
-async function fetchEvents(acct: number): Promise<WeddingEventLite[]> {
+async function fetchEvents(client: ZolaClient, acct: number): Promise<WeddingEventLite[]> {
   const resp = await client.requestMobile<MobileEnvelope<EventGroupLite[]>>(
     'GET',
     `/v3/websites/events/wedding-accounts/${acct}/groups`
@@ -129,7 +129,7 @@ function buildWriteGroup(group: DirGroup, guests: DirGuest[], acct: number) {
   };
 }
 
-async function writeGroups(acct: number, groups: unknown[]): Promise<void> {
+async function writeGroups(client: ZolaClient, acct: number, groups: unknown[]): Promise<void> {
   await client.requestMobile(
     'PUT',
     `/v3/guestlists/groups/wedding-accounts/${acct}/bulk/directory`,
@@ -137,8 +137,8 @@ async function writeGroups(acct: number, groups: unknown[]): Promise<void> {
   );
 }
 
-async function requireEvent(acct: number, eventId: number): Promise<void> {
-  const events = await fetchEvents(acct);
+async function requireEvent(client: ZolaClient, acct: number, eventId: number): Promise<void> {
+  const events = await fetchEvents(client, acct);
   if (!events.some((e) => e.event_entity_id === eventId)) {
     throw new Error(`Event with ID ${eventId} not found`);
   }
@@ -146,15 +146,15 @@ async function requireEvent(acct: number, eventId: number): Promise<void> {
 
 // ─── Tool: set_event_guests (bulk) ──────────────────────────────────────────────
 
-export async function setEventGuests(args: {
+export async function setEventGuests(client: ZolaClient, args: {
   event_id: number;
   guest_groups: Array<{ guest_group_id: number; invited: boolean }>;
 }): Promise<ToolResult> {
   const { weddingAccountId: acct } = await client.getContext();
-  await requireEvent(acct, args.event_id);
+  await requireEvent(client, acct, args.event_id);
 
   const byId = new Map(
-    (await fetchDirectory(acct)).map((group) => [group.guest_group_id, group])
+    (await fetchDirectory(client, acct)).map((group) => [group.guest_group_id, group])
   );
 
   const updatedGroups: unknown[] = [];
@@ -176,13 +176,13 @@ export async function setEventGuests(args: {
     summary.push({ guest_group_id: req.guest_group_id, invited: req.invited, guests_changed: changed });
   }
 
-  await writeGroups(acct, updatedGroups);
+  await writeGroups(client, acct, updatedGroups);
   return jsonResult({ event_id: args.event_id, groups: summary });
 }
 
 // ─── Tools: invite_guest_to_event / remove_event_invitation (single) ─────────────
 
-async function mutateOne(opts: {
+async function mutateOne(client: ZolaClient, opts: {
   event_id: number;
   invited: boolean;
   guest_group_id?: number;
@@ -195,8 +195,8 @@ async function mutateOne(opts: {
   }
 
   const { weddingAccountId: acct } = await client.getContext();
-  await requireEvent(acct, opts.event_id);
-  const groups = await fetchDirectory(acct);
+  await requireEvent(client, acct, opts.event_id);
+  const groups = await fetchDirectory(client, acct);
 
   let target: DirGroup | undefined;
   let appliesTo: (guest: DirGuest) => boolean;
@@ -219,7 +219,7 @@ async function mutateOne(opts: {
     return toWriteGuest(guest, next);
   });
 
-  await writeGroups(acct, [buildWriteGroup(target, newGuests, acct)]);
+  await writeGroups(client, acct, [buildWriteGroup(target, newGuests, acct)]);
   return jsonResult({
     event_id: opts.event_id,
     invited: opts.invited,
@@ -228,25 +228,25 @@ async function mutateOne(opts: {
   });
 }
 
-export async function inviteGuestToEvent(args: {
+export async function inviteGuestToEvent(client: ZolaClient, args: {
   event_id: number;
   guest_group_id?: number;
   guest_id?: number;
 }): Promise<ToolResult> {
-  return mutateOne({ ...args, invited: true });
+  return mutateOne(client, { ...args, invited: true });
 }
 
-export async function removeEventInvitation(args: {
+export async function removeEventInvitation(client: ZolaClient, args: {
   event_id: number;
   guest_group_id?: number;
   guest_id?: number;
 }): Promise<ToolResult> {
-  return mutateOne({ ...args, invited: false });
+  return mutateOne(client, { ...args, invited: false });
 }
 
 // ─── MCP registration ────────────────────────────────────────────────────────
 
-export function registerEventInvitationTools(server: McpServer): void {
+export function registerEventInvitationTools(server: McpServer, client: ZolaClient): void {
   server.registerTool(
     'set_event_guests',
     {
@@ -265,7 +265,7 @@ export function registerEventInvitationTools(server: McpServer): void {
       },
       annotations: { destructiveHint: false },
     },
-    setEventGuests
+    (args) => setEventGuests(client, args)
   );
 
   server.registerTool(
@@ -280,7 +280,7 @@ export function registerEventInvitationTools(server: McpServer): void {
       },
       annotations: { destructiveHint: false },
     },
-    inviteGuestToEvent
+    (args) => inviteGuestToEvent(client, args)
   );
 
   server.registerTool(
@@ -295,6 +295,6 @@ export function registerEventInvitationTools(server: McpServer): void {
       },
       annotations: { destructiveHint: false },
     },
-    removeEventInvitation
+    (args) => removeEventInvitation(client, args)
   );
 }

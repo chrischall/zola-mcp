@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 interface VendorCard {
@@ -39,7 +39,7 @@ interface TypeaheadResult {
   address: { city: string | null; state_province_region: string | null } | null;
 }
 
-export async function listVendors(): Promise<ToolResult> {
+export async function listVendors(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
     '/v3/account-vendors/booked-list',
@@ -48,7 +48,7 @@ export async function listVendors(): Promise<ToolResult> {
   return jsonResult(response.data.booked_vendors);
 }
 
-export async function searchVendors(args: {
+export async function searchVendors(client: ZolaClient, args: {
   query: string;
   taxonomy_key?: string;
 }): Promise<ToolResult> {
@@ -63,7 +63,7 @@ export async function searchVendors(args: {
   return jsonResult(results.data);
 }
 
-export async function addVendor(args: {
+export async function addVendor(client: ZolaClient, args: {
   vendor_type: string;
   name: string;
   city: string;
@@ -116,7 +116,7 @@ export async function addVendor(args: {
   return jsonResult(result.data);
 }
 
-export async function updateVendor(args: {
+export async function updateVendor(client: ZolaClient, args: {
   uuid: string;
   name?: string;
   city?: string;
@@ -166,7 +166,7 @@ export async function updateVendor(args: {
   return jsonResult(result.data);
 }
 
-export async function removeVendor(args: { uuid: string }): Promise<ToolResult> {
+export async function removeVendor(client: ZolaClient, args: { uuid: string }): Promise<ToolResult> {
   await client.requestMobile(
     'POST',
     '/v3/account-vendors/vendor/unbook',
@@ -175,11 +175,11 @@ export async function removeVendor(args: { uuid: string }): Promise<ToolResult> 
   return { content: [{ type: 'text', text: `Unbooked vendor ${args.uuid}` }] };
 }
 
-export function registerVendorTools(server: McpServer): void {
+export function registerVendorTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_vendors', {
     description: 'List all booked vendors with details',
     annotations: { readOnlyHint: true },
-  }, listVendors);
+  }, () => listVendors(client));
 
   server.registerTool('search_vendors', {
     description: 'Search for vendors by name (typeahead) within a vendor category',
@@ -188,7 +188,7 @@ export function registerVendorTools(server: McpServer): void {
       taxonomy_key: z.string().optional().describe('Vendor category key (e.g. wedding-venues, wedding-photographers, wedding-planners, wedding-bands-djs). Default: wedding-venues'),
     },
     annotations: { readOnlyHint: true },
-  }, searchVendors);
+  }, (args) => searchVendors(client, args));
 
   server.registerTool('add_vendor', {
     description: 'Book a new vendor',
@@ -204,7 +204,7 @@ export function registerVendorTools(server: McpServer): void {
       reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
     },
     annotations: { destructiveHint: false },
-  }, addVendor);
+  }, (args) => addVendor(client, args));
 
   server.registerTool('update_vendor', {
     description: 'Update a booked vendor\'s details',
@@ -218,11 +218,11 @@ export function registerVendorTools(server: McpServer): void {
       event_date: z.string().optional().describe('ISO 8601 date'),
     },
     annotations: { destructiveHint: false },
-  }, updateVendor);
+  }, (args) => updateVendor(client, args));
 
   server.registerTool('remove_vendor', {
     description: 'Unbook a vendor',
     inputSchema: { uuid: z.string().describe('Vendor UUID from list_vendors') },
     annotations: { destructiveHint: true },
-  }, removeVendor);
+  }, (args) => removeVendor(client, args));
 }

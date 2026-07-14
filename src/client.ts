@@ -14,9 +14,16 @@ import { resolveRefreshToken } from './auth.js';
 
 // Load `.env` next to the compiled entry point. `loadDotenvSafely` is a
 // no-throw loader: in bundled mode (no resolvable `dotenv`) it returns false
-// and we fall back to process.env.
-const __dirname = dirname(fileURLToPath(import.meta.url));
-await loadDotenvSafely({ path: join(__dirname, '..', '.env'), override: false });
+// and we fall back to process.env. The try/catch additionally guards the
+// Cloudflare Worker runtime, where `import.meta.url` is undefined and
+// `fileURLToPath(undefined)` would otherwise throw at module init (Worker
+// startup validation) — there is no filesystem / .env to load there anyway.
+try {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  await loadDotenvSafely({ path: join(__dirname, '..', '.env'), override: false });
+} catch {
+  /* v8 ignore next -- only reached in a non-Node runtime (Workers): no .env to load */
+}
 
 const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
 
@@ -36,18 +43,46 @@ const SESSION_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
 export class ZolaClient {
   private cachedContext: UserContext | null = null;
-  // WAF requires x-zola-session-id on all mobile-api.zola.com requests
-  private readonly deviceSessionId = crypto.randomUUID().toUpperCase();
+  // WAF requires x-zola-session-id on all mobile-api.zola.com requests.
+  // Generated LAZILY: this class's module-level singleton (`export const client`
+  // below) is constructed at module load, and when that module graph is loaded
+  // inside a Cloudflare Worker (via src/worker.ts) `crypto.randomUUID()` would run
+  // in GLOBAL SCOPE, which the Workers runtime forbids ("Disallowed operation …
+  // generating random values … within global scope", startup validation code
+  // 10021). Deferring it to first use moves it into a request handler, where it's
+  // allowed. No effect on the stdio path.
+  private _deviceSessionId: string | undefined;
+  private get deviceSessionId(): string {
+    return (this._deviceSessionId ??= crypto.randomUUID().toUpperCase());
+  }
   // The `ZOLA_SESSION_TOKEN` seed is a cold-start-only shortcut, exactly as the
   // old `ensureSession` gated it on `sessionToken === null`; a 401 re-mint goes
   // straight to `refresh()`, never back to the env token.
   private triedEnvSeed = false;
   // Single-flight cached mint: caches the 30-min session JWT until 5 min before
   // its `exp`, coalesces concurrent mints, and re-mints on demand after a 401.
-  private readonly session = createCachedTokenSource({
-    mint: () => this.mintSession(),
-    bufferMs: SESSION_REFRESH_BUFFER_MS,
-  });
+  // LAZY for the same Worker-global-scope reason as deviceSessionId above.
+  private _session: ReturnType<typeof createCachedTokenSource> | undefined;
+  private get session(): ReturnType<typeof createCachedTokenSource> {
+    return (this._session ??= createCachedTokenSource({
+      mint: () => this.mintSession(),
+      bufferMs: SESSION_REFRESH_BUFFER_MS,
+    }));
+  }
+
+  // Optional injected refresh-token resolver. When set, `refresh()` uses it
+  // instead of the module-level global `resolveRefreshToken` (env-var →
+  // fetchproxy priority). A hosted per-user Cloudflare deployment injects its
+  // own resolver so each request carries that user's stored `usr` refresh
+  // token — see `src/worker.ts`. Left undefined by the stdio path, which falls
+  // back to the global resolver, keeping that behaviour byte-for-byte identical.
+  private readonly resolveRefreshToken:
+    | (() => Promise<{ token: string; source: string }>)
+    | undefined;
+
+  constructor(opts?: { resolveRefreshToken?: () => Promise<{ token: string; source: string }> }) {
+    this.resolveRefreshToken = opts?.resolveRefreshToken;
+  }
 
   /**
    * Make a request to the Zola mobile API (mobile-api.zola.com).
@@ -216,7 +251,7 @@ export class ZolaClient {
    * `usr` cookie on zola.com, then (3) errors with actionable guidance.
    */
   private async refresh(): Promise<MintedToken> {
-    const { token: refreshToken } = await resolveRefreshToken();
+    const { token: refreshToken } = await (this.resolveRefreshToken ?? resolveRefreshToken)();
 
     const response = await fetch(`${MOBILE_BASE_URL}/v3/sessions/refresh`, {
       method: 'POST',

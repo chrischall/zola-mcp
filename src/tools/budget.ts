@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 interface BudgetPayment {
@@ -48,7 +48,7 @@ function itemTypeKey(item_type: string | { key: string }): string {
   return typeof item_type === 'string' ? item_type : item_type.key;
 }
 
-export async function getBudget(): Promise<ToolResult> {
+export async function getBudget(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<Budget>>('GET', '/v3/budgets');
   const budget = response.data;
   const items = budget.taxonomy_nodes.flatMap((node) =>
@@ -76,7 +76,7 @@ export async function getBudget(): Promise<ToolResult> {
   return jsonResult(summary);
 }
 
-export async function updateBudgetItem(args: {
+export async function updateBudgetItem(client: ZolaClient, args: {
   uuid: string;
   actual_cost_cents?: number;
   note?: string;
@@ -101,11 +101,11 @@ export async function updateBudgetItem(args: {
   return jsonResult(result.data);
 }
 
-export function registerBudgetTools(server: McpServer): void {
+export function registerBudgetTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('get_budget', {
     description: 'Get the wedding budget summary including total budgeted, actual cost, paid, and all budget items',
     annotations: { readOnlyHint: true },
-  }, getBudget);
+  }, () => getBudget(client));
 
   server.registerTool('update_budget_item', {
     description: "Update a budget item's actual cost and/or note by UUID",
@@ -115,5 +115,5 @@ export function registerBudgetTools(server: McpServer): void {
       note: z.string().optional().describe('Note for the budget item'),
     },
     annotations: { destructiveHint: false },
-  }, updateBudgetItem);
+  }, (args) => updateBudgetItem(client, args));
 }

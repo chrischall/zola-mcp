@@ -95,7 +95,7 @@ describe('inquiry tools', () => {
   it('listInquiries: POSTs to unified-inquiries and returns flattened list', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_UNIFIED_RESPONSE as never);
 
-    const result = await listInquiries();
+    const result = await listInquiries(client);
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/inquiries/unified-inquiries', {});
     const parsed = JSON.parse(result.content[0].text);
@@ -110,7 +110,7 @@ describe('inquiry tools', () => {
   it('getInquiryConversation: GETs conversation by uuid', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_CONVERSATION as never);
 
-    const result = await getInquiryConversation({ uuid: 'inquiry-uuid-1' });
+    const result = await getInquiryConversation(client, { uuid: 'inquiry-uuid-1' });
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/inquiries/inquiry-uuid-1/conversation');
     const parsed = JSON.parse(result.content[0].text);
@@ -123,7 +123,7 @@ describe('inquiry tools', () => {
   it('markInquiryRead: PUTs to read endpoint', async () => {
     reqSpy.mockResolvedValueOnce({ status: 'success' } as never);
 
-    const result = await markInquiryRead({ uuid: 'inquiry-uuid-1' });
+    const result = await markInquiryRead(client, { uuid: 'inquiry-uuid-1' });
 
     expect(reqSpy).toHaveBeenCalledWith('PUT', '/v3/inquiries/inquiry-uuid-1/conversation/read');
     expect(result.content[0].text).toContain('inquiry-uuid-1');

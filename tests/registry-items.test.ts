@@ -39,7 +39,7 @@ describe('registry-items tools', () => {
 
   it('searchRegistryProducts: POSTs offset+limit+registry_id', async () => {
     reqSpy.mockResolvedValueOnce({ data: { entities: [] } } as never);
-    await searchRegistryProducts({ category_id: 544 });
+    await searchRegistryProducts(client, { category_id: 544 });
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/categories/544/entities', {
       offset: 0,
       limit: 50,
@@ -49,7 +49,7 @@ describe('registry-items tools', () => {
 
   it('searchRegistryProducts: honors pagination args', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
-    await searchRegistryProducts({ category_id: 544, offset: 100, limit: 25 });
+    await searchRegistryProducts(client, { category_id: 544, offset: 100, limit: 25 });
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/categories/544/entities', {
       offset: 100,
       limit: 25,
@@ -61,7 +61,7 @@ describe('registry-items tools', () => {
     reqSpy.mockResolvedValueOnce({
       data: { collection_item_id: 'item-99', sku_id: 'sku-1' },
     } as never);
-    await addRegistryItem({
+    await addRegistryItem(client, {
       sku_id: 'sku-1',
       collection_id: 'col-1',
       quantity: 2,
@@ -79,7 +79,7 @@ describe('registry-items tools', () => {
     reqSpy.mockResolvedValueOnce(MOCK_REGISTRY_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({ data: { collection_item_id: 'item-1' } } as never);
 
-    await addRegistryItem({ sku_id: 'sku-1' });
+    await addRegistryItem(client, { sku_id: 'sku-1' });
 
     expect(reqSpy).toHaveBeenCalledTimes(2);
     expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v4/shop/registry?registry_id=registry-1&updated_modules=true');
@@ -96,8 +96,8 @@ describe('registry-items tools', () => {
     reqSpy.mockResolvedValueOnce({ data: { collection_item_id: 'a' } } as never);
     reqSpy.mockResolvedValueOnce({ data: { collection_item_id: 'b' } } as never);
 
-    await addRegistryItem({ sku_id: 'sku-1' });
-    await addRegistryItem({ sku_id: 'sku-2' });
+    await addRegistryItem(client, { sku_id: 'sku-1' });
+    await addRegistryItem(client, { sku_id: 'sku-2' });
 
     const getCalls = reqSpy.mock.calls.filter((c) => c[0] === 'GET');
     expect(getCalls).toHaveLength(1);
@@ -105,7 +105,7 @@ describe('registry-items tools', () => {
 
   it('updateRegistryItem: PUTs to /items/{id}', async () => {
     reqSpy.mockResolvedValueOnce({ data: { collection_item_id: 'item-1' } } as never);
-    await updateRegistryItem({
+    await updateRegistryItem(client, {
       collection_item_id: 'item-1',
       collection_id: 'col-1',
       quantity: 3,
@@ -130,7 +130,7 @@ describe('registry-items tools', () => {
 
   it('removeRegistryItem: DELETEs /items/{id}', async () => {
     reqSpy.mockResolvedValueOnce({ data: null } as never);
-    await removeRegistryItem({ collection_item_id: 'item-1' });
+    await removeRegistryItem(client, { collection_item_id: 'item-1' });
     expect(reqSpy).toHaveBeenCalledWith('DELETE', '/v3/registries/registry-1/items/item-1');
   });
 
@@ -151,7 +151,7 @@ describe('registry-items tools', () => {
     } as never);
     reqSpy.mockResolvedValueOnce({ data: { collection_item_id: 'item-1' } } as never);
 
-    await addRegistryItem({ sku_id: 'sku-1' });
+    await addRegistryItem(client, { sku_id: 'sku-1' });
 
     const postCall = reqSpy.mock.calls.find((c) => c[0] === 'POST');
     expect(postCall).toBeDefined();
@@ -162,7 +162,7 @@ describe('registry-items tools', () => {
     reqSpy.mockResolvedValueOnce({
       data: { groups: [], default_collection_id: undefined },
     } as never);
-    await expect(addRegistryItem({ sku_id: 'sku-1' })).rejects.toThrow(
+    await expect(addRegistryItem(client, { sku_id: 'sku-1' })).rejects.toThrow(
       /Could not determine default collection ID/
     );
   });

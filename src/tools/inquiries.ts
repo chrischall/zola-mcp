@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { ToolResult, jsonResult } from '../types.js';
 
 interface VendorCard {
@@ -71,7 +71,7 @@ interface ConversationResponse {
   };
 }
 
-export async function listInquiries(): Promise<ToolResult> {
+export async function listInquiries(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<UnifiedResponse>(
     'POST',
     '/v3/inquiries/unified-inquiries',
@@ -95,7 +95,7 @@ export async function listInquiries(): Promise<ToolResult> {
   return jsonResult(inquiries);
 }
 
-export async function getInquiryConversation(args: { uuid: string }): Promise<ToolResult> {
+export async function getInquiryConversation(client: ZolaClient, args: { uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<ConversationResponse>(
     'GET',
     `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation`
@@ -103,28 +103,28 @@ export async function getInquiryConversation(args: { uuid: string }): Promise<To
   return jsonResult(response.data);
 }
 
-export async function markInquiryRead(args: { uuid: string }): Promise<ToolResult> {
+export async function markInquiryRead(client: ZolaClient, args: { uuid: string }): Promise<ToolResult> {
   await client.requestMobile('PUT', `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation/read`);
   return {
     content: [{ type: 'text', text: `Marked inquiry ${args.uuid} as read` }],
   };
 }
 
-export function registerInquiryTools(server: McpServer): void {
+export function registerInquiryTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_inquiries', {
     description: 'List all vendor inquiries with status, vendor name, and unread flag',
     annotations: { readOnlyHint: true },
-  }, listInquiries);
+  }, () => listInquiries(client));
 
   server.registerTool('get_inquiry_conversation', {
     description: 'Get full conversation for a vendor inquiry including messages and inquiry details',
     inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
     annotations: { readOnlyHint: true },
-  }, getInquiryConversation);
+  }, (args) => getInquiryConversation(client, args));
 
   server.registerTool('mark_inquiry_read', {
     description: 'Mark a vendor inquiry conversation as read',
     inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
     annotations: { destructiveHint: false },
-  }, markInquiryRead);
+  }, (args) => markInquiryRead(client, args));
 }
