@@ -149,7 +149,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await setEventGuests({
+    await setEventGuests(client, {
       event_id: CEREMONY,
       guest_groups: [{ guest_group_id: 152644475, invited: true }],
     });
@@ -177,7 +177,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await setEventGuests({
+    await setEventGuests(client, {
       event_id: CEREMONY,
       guest_groups: [{ guest_group_id: 152644475, invited: false }],
     });
@@ -200,7 +200,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await setEventGuests({
+    await setEventGuests(client, {
       event_id: CEREMONY,
       guest_groups: [{ guest_group_id: 152644475, invited: true }],
     });
@@ -219,7 +219,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await setEventGuests({
+    await setEventGuests(client, {
       event_id: CEREMONY,
       guest_groups: [{ guest_group_id: 152644475, invited: true }],
     });
@@ -234,7 +234,7 @@ describe('event-invitation tools (mobile API)', () => {
       group(2, 'Group Two', [guest(20, 'B', 'PRIMARY', [])]),
     ]);
 
-    await setEventGuests({
+    await setEventGuests(client, {
       event_id: CEREMONY,
       guest_groups: [
         { guest_group_id: 1, invited: true },
@@ -253,14 +253,14 @@ describe('event-invitation tools (mobile API)', () => {
   it('setEventGuests: rejects an unknown event_id', async () => {
     wire(reqSpy, () => [group(152644475, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
     await expect(
-      setEventGuests({ event_id: 99999, guest_groups: [{ guest_group_id: 152644475, invited: true }] })
+      setEventGuests(client, { event_id: 99999, guest_groups: [{ guest_group_id: 152644475, invited: true }] })
     ).rejects.toThrow(/99999/);
   });
 
   it('setEventGuests: rejects an unknown guest_group_id', async () => {
     wire(reqSpy, () => [group(152644475, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
     await expect(
-      setEventGuests({ event_id: CEREMONY, guest_groups: [{ guest_group_id: 999, invited: true }] })
+      setEventGuests(client, { event_id: CEREMONY, guest_groups: [{ guest_group_id: 999, invited: true }] })
     ).rejects.toThrow(/999/);
   });
 
@@ -274,7 +274,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await inviteGuestToEvent({ event_id: CEREMONY, guest_id: 280379459 });
+    await inviteGuestToEvent(client, { event_id: CEREMONY, guest_id: 280379459 });
 
     const { body } = putBody(reqSpy);
     const guests = body.updated_guest_groups[0].guests;
@@ -292,7 +292,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await inviteGuestToEvent({ event_id: CEREMONY, guest_group_id: 152644475 });
+    await inviteGuestToEvent(client, { event_id: CEREMONY, guest_group_id: 152644475 });
 
     const { body } = putBody(reqSpy);
     for (const gu of body.updated_guest_groups[0].guests) {
@@ -302,9 +302,9 @@ describe('event-invitation tools (mobile API)', () => {
 
   it('inviteGuestToEvent: requires exactly one of guest_group_id / guest_id', async () => {
     wire(reqSpy, () => [group(1, 'X', [guest(10, 'A', 'PRIMARY', [])])]);
-    await expect(inviteGuestToEvent({ event_id: CEREMONY })).rejects.toThrow();
+    await expect(inviteGuestToEvent(client, { event_id: CEREMONY })).rejects.toThrow();
     await expect(
-      inviteGuestToEvent({ event_id: CEREMONY, guest_group_id: 1, guest_id: 10 })
+      inviteGuestToEvent(client, { event_id: CEREMONY, guest_group_id: 1, guest_id: 10 })
     ).rejects.toThrow();
   });
 
@@ -323,7 +323,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await removeEventInvitation({ event_id: CEREMONY, guest_group_id: 152644475 });
+    await removeEventInvitation(client, { event_id: CEREMONY, guest_group_id: 152644475 });
 
     const { body } = putBody(reqSpy);
     for (const gu of body.updated_guest_groups[0].guests) {
@@ -344,7 +344,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await removeEventInvitation({ event_id: CEREMONY, guest_id: 280379459 });
+    await removeEventInvitation(client, { event_id: CEREMONY, guest_id: 280379459 });
 
     const { body } = putBody(reqSpy);
     const guests = body.updated_guest_groups[0].guests;

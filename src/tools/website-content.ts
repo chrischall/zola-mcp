@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
 
 type PageType = 'HOME' | 'FAQ' | 'POI' | 'TRAVEL';
@@ -21,7 +21,7 @@ export function _resetPageIdCache(): void {
   pageIdCache.clear();
 }
 
-async function getPageId(pageType: PageType): Promise<number> {
+async function getPageId(client: ZolaClient, pageType: PageType): Promise<number> {
   const { weddingAccountId } = await client.getContext();
   let perAccount = pageIdCache.get(weddingAccountId);
   if (!perAccount) {
@@ -47,14 +47,14 @@ async function getPageId(pageType: PageType): Promise<number> {
   return pageId;
 }
 
-async function removeEntity(pageType: PageType, entityId: number): Promise<ToolResult> {
-  await deletePageEntity(pageType, entityId);
+async function removeEntity(client: ZolaClient, pageType: PageType, entityId: number): Promise<ToolResult> {
+  await deletePageEntity(client, pageType, entityId);
   return jsonResult({ removed: entityId });
 }
 
-async function deletePageEntity(pageType: PageType, entityId: number): Promise<void> {
+async function deletePageEntity(client: ZolaClient, pageType: PageType, entityId: number): Promise<void> {
   const { weddingAccountId } = await client.getContext();
-  const pageId = await getPageId(pageType);
+  const pageId = await getPageId(client, pageType);
   await client.requestMobile<MobileEnvelope<unknown>>(
     'DELETE',
     `/v3/websites/pages/${pageId}/entities/${entityId}/wedding-accounts/${weddingAccountId}`
@@ -63,7 +63,7 @@ async function deletePageEntity(pageType: PageType, entityId: number): Promise<v
 
 // ===== FAQs =====
 
-export async function listFaqs(): Promise<ToolResult> {
+export async function listFaqs(client: ZolaClient): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
@@ -72,7 +72,7 @@ export async function listFaqs(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export async function addFaq(args: {
+export async function addFaq(client: ZolaClient, args: {
   question: string;
   answer: string;
   display_order?: number;
@@ -93,7 +93,7 @@ export async function addFaq(args: {
   return jsonResult(response.data);
 }
 
-export async function updateFaq(args: {
+export async function updateFaq(client: ZolaClient, args: {
   faq_entity_id: number;
   question: string;
   answer: string;
@@ -115,13 +115,13 @@ export async function updateFaq(args: {
   return jsonResult(response.data);
 }
 
-export async function removeFaq(args: { faq_entity_id: number }): Promise<ToolResult> {
-  return removeEntity('FAQ', args.faq_entity_id);
+export async function removeFaq(client: ZolaClient, args: { faq_entity_id: number }): Promise<ToolResult> {
+  return removeEntity(client, 'FAQ', args.faq_entity_id);
 }
 
 // ===== Home page sections (story blocks) =====
 
-export async function listHomeSections(): Promise<ToolResult> {
+export async function listHomeSections(client: ZolaClient): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
@@ -130,7 +130,7 @@ export async function listHomeSections(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export async function addHomeSection(args: {
+export async function addHomeSection(client: ZolaClient, args: {
   title: string;
   subtitle: string;
   description: string;
@@ -155,7 +155,7 @@ export async function addHomeSection(args: {
   return jsonResult(response.data);
 }
 
-export async function updateHomeSection(args: {
+export async function updateHomeSection(client: ZolaClient, args: {
   homepage_entity_id: number;
   title: string;
   subtitle: string;
@@ -181,8 +181,8 @@ export async function updateHomeSection(args: {
   return jsonResult(response.data);
 }
 
-export async function removeHomeSection(args: { homepage_entity_id: number }): Promise<ToolResult> {
-  return removeEntity('HOME', args.homepage_entity_id);
+export async function removeHomeSection(client: ZolaClient, args: { homepage_entity_id: number }): Promise<ToolResult> {
+  return removeEntity(client, 'HOME', args.homepage_entity_id);
 }
 
 // ===== Points of Interest =====
@@ -214,7 +214,7 @@ function buildPoiBody(args: PoiFields, weddingAccountId: number, poiEntityId: nu
   );
 }
 
-export async function listPois(): Promise<ToolResult> {
+export async function listPois(client: ZolaClient): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
@@ -223,7 +223,7 @@ export async function listPois(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export async function addPoi(args: PoiFields & { title: string }): Promise<ToolResult> {
+export async function addPoi(client: ZolaClient, args: PoiFields & { title: string }): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const body = buildPoiBody(args, weddingAccountId, 0);
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
@@ -234,7 +234,7 @@ export async function addPoi(args: PoiFields & { title: string }): Promise<ToolR
   return jsonResult(response.data);
 }
 
-export async function updatePoi(args: PoiFields & { poi_entity_id: number }): Promise<ToolResult> {
+export async function updatePoi(client: ZolaClient, args: PoiFields & { poi_entity_id: number }): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const body = buildPoiBody(args, weddingAccountId, args.poi_entity_id);
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
@@ -245,8 +245,8 @@ export async function updatePoi(args: PoiFields & { poi_entity_id: number }): Pr
   return jsonResult(response.data);
 }
 
-export async function removePoi(args: { poi_entity_id: number }): Promise<ToolResult> {
-  return removeEntity('POI', args.poi_entity_id);
+export async function removePoi(client: ZolaClient, args: { poi_entity_id: number }): Promise<ToolResult> {
+  return removeEntity(client, 'POI', args.poi_entity_id);
 }
 
 // ===== Travel items (hotels, flights, transportation) =====
@@ -285,7 +285,7 @@ function buildTravelBody(args: TravelFields, weddingAccountId: number, travelEnt
   );
 }
 
-export async function listTravelItems(): Promise<ToolResult> {
+export async function listTravelItems(client: ZolaClient): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
@@ -294,7 +294,7 @@ export async function listTravelItems(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export async function addTravelItem(args: TravelFields & { type: TravelType; name: string }): Promise<ToolResult> {
+export async function addTravelItem(client: ZolaClient, args: TravelFields & { type: TravelType; name: string }): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const body = buildTravelBody(args, weddingAccountId, 0);
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
@@ -305,7 +305,7 @@ export async function addTravelItem(args: TravelFields & { type: TravelType; nam
   return jsonResult(response.data);
 }
 
-export async function updateTravelItem(args: TravelFields & { travel_entity_id: number }): Promise<ToolResult> {
+export async function updateTravelItem(client: ZolaClient, args: TravelFields & { travel_entity_id: number }): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const body = buildTravelBody(args, weddingAccountId, args.travel_entity_id);
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
@@ -316,15 +316,15 @@ export async function updateTravelItem(args: TravelFields & { travel_entity_id: 
   return jsonResult(response.data);
 }
 
-export async function removeTravelItem(args: { travel_entity_id: number }): Promise<ToolResult> {
-  return removeEntity('TRAVEL', args.travel_entity_id);
+export async function removeTravelItem(client: ZolaClient, args: { travel_entity_id: number }): Promise<ToolResult> {
+  return removeEntity(client, 'TRAVEL', args.travel_entity_id);
 }
 
-export function registerWebsiteContentTools(server: McpServer): void {
+export function registerWebsiteContentTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_faqs', {
     description: 'List all FAQs on the wedding website',
     annotations: { readOnlyHint: true },
-  }, listFaqs);
+  }, () => listFaqs(client));
 
   server.registerTool('add_faq', {
     description: 'Add a new FAQ (question + answer) to the website FAQ page',
@@ -334,7 +334,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       display_order: z.number().optional().describe('Position in the FAQ list (defaults to 0)'),
     },
     annotations: { destructiveHint: false },
-  }, addFaq);
+  }, (args) => addFaq(client, args));
 
   server.registerTool('update_faq', {
     description: 'Update an existing FAQ — all three fields (question, answer, display_order) must be supplied',
@@ -345,7 +345,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       display_order: z.number(),
     },
     annotations: { destructiveHint: false },
-  }, updateFaq);
+  }, (args) => updateFaq(client, args));
 
   server.registerTool('remove_faq', {
     description: 'Remove an FAQ from the website',
@@ -353,12 +353,12 @@ export function registerWebsiteContentTools(server: McpServer): void {
       faq_entity_id: z.number().describe('FAQ entity ID from list_faqs'),
     },
     annotations: { destructiveHint: true },
-  }, removeFaq);
+  }, (args) => removeFaq(client, args));
 
   server.registerTool('list_home_sections', {
     description: 'List the story sections on the website home page',
     annotations: { readOnlyHint: true },
-  }, listHomeSections);
+  }, () => listHomeSections(client));
 
   server.registerTool('add_home_section', {
     description: 'Add a story section to the home page (title + subtitle + description block)',
@@ -370,7 +370,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       hidden: z.boolean().optional(),
     },
     annotations: { destructiveHint: false },
-  }, addHomeSection);
+  }, (args) => addHomeSection(client, args));
 
   server.registerTool('update_home_section', {
     description: 'Update a home page story section — all fields must be supplied',
@@ -383,7 +383,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       hidden: z.boolean(),
     },
     annotations: { destructiveHint: false },
-  }, updateHomeSection);
+  }, (args) => updateHomeSection(client, args));
 
   server.registerTool('remove_home_section', {
     description: 'Remove a story section from the home page',
@@ -391,12 +391,12 @@ export function registerWebsiteContentTools(server: McpServer): void {
       homepage_entity_id: z.number(),
     },
     annotations: { destructiveHint: true },
-  }, removeHomeSection);
+  }, (args) => removeHomeSection(client, args));
 
   server.registerTool('list_pois', {
     description: 'List points-of-interest on the "Things to Do" page',
     annotations: { readOnlyHint: true },
-  }, listPois);
+  }, () => listPois(client));
 
   server.registerTool('add_poi', {
     description: 'Add a point-of-interest to the Things-to-Do page (restaurant, attraction, etc.)',
@@ -417,7 +417,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       display_order: z.number().optional(),
     },
     annotations: { destructiveHint: false },
-  }, addPoi);
+  }, (args) => addPoi(client, args));
 
   server.registerTool('update_poi', {
     description: 'Update a point-of-interest. Provide only the fields you want to change.',
@@ -439,7 +439,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       display_order: z.number().optional(),
     },
     annotations: { destructiveHint: false },
-  }, updatePoi);
+  }, (args) => updatePoi(client, args));
 
   server.registerTool('remove_poi', {
     description: 'Remove a point-of-interest from the Things-to-Do page',
@@ -447,12 +447,12 @@ export function registerWebsiteContentTools(server: McpServer): void {
       poi_entity_id: z.number(),
     },
     annotations: { destructiveHint: true },
-  }, removePoi);
+  }, (args) => removePoi(client, args));
 
   server.registerTool('list_travel_items', {
     description: 'List hotels, flights, and transportation on the website Travel page',
     annotations: { readOnlyHint: true },
-  }, listTravelItems);
+  }, () => listTravelItems(client));
 
   server.registerTool('add_travel_item', {
     description: 'Add a travel item (hotel, flight, train, car, bus) to the Travel page',
@@ -478,7 +478,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       display_order: z.number().optional(),
     },
     annotations: { destructiveHint: false },
-  }, addTravelItem);
+  }, (args) => addTravelItem(client, args));
 
   server.registerTool('update_travel_item', {
     description: 'Update a travel item. Provide only the fields you want to change.',
@@ -505,7 +505,7 @@ export function registerWebsiteContentTools(server: McpServer): void {
       display_order: z.number().optional(),
     },
     annotations: { destructiveHint: false },
-  }, updateTravelItem);
+  }, (args) => updateTravelItem(client, args));
 
   server.registerTool('remove_travel_item', {
     description: 'Remove a travel item from the Travel page',
@@ -513,5 +513,5 @@ export function registerWebsiteContentTools(server: McpServer): void {
       travel_entity_id: z.number(),
     },
     annotations: { destructiveHint: true },
-  }, removeTravelItem);
+  }, (args) => removeTravelItem(client, args));
 }

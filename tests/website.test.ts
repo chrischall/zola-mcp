@@ -39,7 +39,7 @@ describe('website tools', () => {
 
   it('listPages: GETs pages/wedding-accounts/full and returns the data object', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
-    const result = await listPages();
+    const result = await listPages(client);
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/pages/wedding-accounts/full');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.faq_page.page_id).toBe(41938921);
@@ -48,7 +48,7 @@ describe('website tools', () => {
 
   it('setPageHidden: PUTs hidden flag and returns response data', async () => {
     reqSpy.mockResolvedValueOnce({ data: { page_id: 41938920, hidden: true } } as never);
-    const result = await setPageHidden({ page_id: 41938920, hidden: true });
+    const result = await setPageHidden(client, { page_id: 41938920, hidden: true });
     expect(reqSpy).toHaveBeenCalledWith('PUT', '/v3/websites/pages/41938920/hidden/true');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.hidden).toBe(true);
@@ -57,7 +57,7 @@ describe('website tools', () => {
   it('reorderPages: PUTs ids array against the wedding-accounts reorder endpoint', async () => {
     const newOrder = [41938915, 41938918, 41938917];
     reqSpy.mockResolvedValueOnce({ data: [] } as never);
-    const result = await reorderPages({ page_ids: newOrder });
+    const result = await reorderPages(client, { page_ids: newOrder });
     expect(reqSpy).toHaveBeenCalledWith(
       'PUT',
       '/v3/websites/pages/wedding-accounts/4664323/reorder',
@@ -68,7 +68,7 @@ describe('website tools', () => {
 
   it('updatePage: PUTs partial fields to pages-v2/{id}', async () => {
     reqSpy.mockResolvedValueOnce({ data: { page_id: 41938922, title: 'Things To Do' } } as never);
-    const result = await updatePage({
+    const result = await updatePage(client, {
       page_id: 41938922,
       title: 'Things To Do',
       intro_copy: 'Stuff to see and do nearby.',
@@ -88,7 +88,7 @@ describe('website tools', () => {
 
   it('updatePage: omits undefined fields from the request body', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
-    await updatePage({ page_id: 41938922, title: 'Just title' });
+    await updatePage(client, { page_id: 41938922, title: 'Just title' });
     const callBody = reqSpy.mock.calls[0][2] as Record<string, unknown>;
     expect(callBody.title).toBe('Just title');
     expect(callBody).not.toHaveProperty('intro_copy');
@@ -122,7 +122,7 @@ describe('website tools', () => {
 
   it('getWeddingSettings: GETs /v3/users/me/context and returns wedding object', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_CONTEXT_RESPONSE as never);
-    const result = await getWeddingSettings();
+    const result = await getWeddingSettings(client);
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/users/me/context');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.title).toBe('Meredith & Chris');
@@ -136,7 +136,7 @@ describe('website tools', () => {
       data: { ...MOCK_CONTEXT_RESPONSE.data.wedding, title: 'New Title' },
     } as never);
 
-    const result = await updateWeddingSettings({ title: 'New Title', hashtag: '#mer-chris' });
+    const result = await updateWeddingSettings(client, { title: 'New Title', hashtag: '#mer-chris' });
 
     expect(reqSpy).toHaveBeenCalledTimes(2);
     expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/users/me/context');
@@ -176,7 +176,7 @@ describe('website tools', () => {
     reqSpy.mockResolvedValueOnce(ctxWithNullHashtag as never);
     reqSpy.mockResolvedValueOnce({ data: ctxWithNullHashtag.data.wedding } as never);
 
-    await updateWeddingSettings({ title: 'X' }); // no hashtag arg
+    await updateWeddingSettings(client, { title: 'X' }); // no hashtag arg
 
     const putBody = reqSpy.mock.calls[1][2] as Record<string, unknown>;
     expect(putBody.hashtag).toBe('');
@@ -188,7 +188,7 @@ describe('website tools', () => {
     reqSpy.mockResolvedValueOnce(MOCK_CONTEXT_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({ data: MOCK_CONTEXT_RESPONSE.data.wedding } as never);
 
-    await updateWeddingSettings({ enable_search_engine: true });
+    await updateWeddingSettings(client, { enable_search_engine: true });
 
     const putBody = reqSpy.mock.calls[1][2] as Record<string, unknown>;
     expect(putBody.enable_search_engine).toBe(true);

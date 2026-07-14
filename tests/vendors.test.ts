@@ -57,7 +57,7 @@ describe('vendor tools (mobile API)', () => {
   it('listVendors: POSTs to booked-list and returns vendors', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_LIST_RESPONSE as never);
 
-    const result = await listVendors();
+    const result = await listVendors(client);
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/account-vendors/booked-list', {});
     const parsed = JSON.parse(result.content[0].text);
@@ -74,7 +74,7 @@ describe('vendor tools (mobile API)', () => {
     };
     reqSpy.mockResolvedValueOnce(mockResults as never);
 
-    const result = await searchVendors({ query: 'Zoom', taxonomy_key: 'wedding-photographers' });
+    const result = await searchVendors(client, { query: 'Zoom', taxonomy_key: 'wedding-photographers' });
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/reference-vendors/typeahead-taxonomy', {
       query: 'Zoom',
@@ -90,7 +90,7 @@ describe('vendor tools (mobile API)', () => {
       .mockResolvedValueOnce(MOCK_LIST_RESPONSE as never)
       .mockResolvedValueOnce({ data: { budget_sync_resolution: {} } } as never);
 
-    await addVendor({
+    await addVendor(client, {
       vendor_type: 'PHOTOGRAPHER',
       name: 'Zoom Wedding Studio',
       city: 'Charlotte',
@@ -116,7 +116,7 @@ describe('vendor tools (mobile API)', () => {
     reqSpy.mockResolvedValueOnce(noSlots as never);
 
     await expect(
-      addVendor({ vendor_type: 'PHOTOGRAPHER', name: 'Test', city: 'NYC', state: 'NY' })
+      addVendor(client, { vendor_type: 'PHOTOGRAPHER', name: 'Test', city: 'NYC', state: 'NY' })
     ).rejects.toThrow('No unbooked slot for vendor type "PHOTOGRAPHER"');
   });
 
@@ -125,7 +125,7 @@ describe('vendor tools (mobile API)', () => {
       .mockResolvedValueOnce(MOCK_LIST_RESPONSE as never)
       .mockResolvedValueOnce({ data: {} } as never);
 
-    await updateVendor({ uuid: 'vendor-uuid-1', price_cents: 3000000 });
+    await updateVendor(client, { uuid: 'vendor-uuid-1', price_cents: 3000000 });
 
     expect(reqSpy).toHaveBeenNthCalledWith(2, 'PUT', '/v5/account-vendors/vendor', expect.objectContaining({
       uuid: 'vendor-uuid-1',
@@ -141,14 +141,14 @@ describe('vendor tools (mobile API)', () => {
     reqSpy.mockResolvedValueOnce({ data: { booked_vendors: [] } } as never);
 
     await expect(
-      updateVendor({ uuid: 'nonexistent' })
+      updateVendor(client, { uuid: 'nonexistent' })
     ).rejects.toThrow('Vendor with UUID "nonexistent" not found');
   });
 
   it('removeVendor: POSTs unbook with uuid', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
 
-    const result = await removeVendor({ uuid: 'vendor-uuid-1' });
+    const result = await removeVendor(client, { uuid: 'vendor-uuid-1' });
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/account-vendors/vendor/unbook', { uuid: 'vendor-uuid-1' });
     expect(result.content[0].text).toContain('vendor-uuid-1');

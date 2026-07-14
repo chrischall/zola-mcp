@@ -1,16 +1,16 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 type ThemeLayoutType = 'MULTI_PAGE' | 'SINGLE_PAGE';
 
-export async function getCurrentTheme(): Promise<ToolResult> {
+export async function getCurrentTheme(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>('GET', '/v3/themes/current');
   return jsonResult(response.data);
 }
 
-export async function getWebsiteCustomizations(): Promise<ToolResult> {
+export async function getWebsiteCustomizations(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     '/v3/websites/website-customizations/context'
@@ -18,7 +18,7 @@ export async function getWebsiteCustomizations(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export async function searchThemes(args: {
+export async function searchThemes(client: ZolaClient, args: {
   limit?: number;
   offset?: number;
   theme_layout_types?: ThemeLayoutType[];
@@ -36,7 +36,7 @@ export async function searchThemes(args: {
   return jsonResult(response.data);
 }
 
-export async function updateCurrentTheme(args: {
+export async function updateCurrentTheme(client: ZolaClient, args: {
   theme_key: string;
   theme_layout_type?: ThemeLayoutType;
 }): Promise<ToolResult> {
@@ -76,7 +76,7 @@ interface CustomizationsReadShape {
   };
 }
 
-export async function updateWebsiteCustomization(args: {
+export async function updateWebsiteCustomization(client: ZolaClient, args: {
   accent_color?: string;
   background_color?: string;
   body_font_color?: string;
@@ -159,16 +159,16 @@ export async function updateWebsiteCustomization(args: {
   return jsonResult(response.data);
 }
 
-export function registerWebsiteThemeTools(server: McpServer): void {
+export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('get_current_theme', {
     description: 'Get the currently-selected website theme: key, name, swatch color, layout type',
     annotations: { readOnlyHint: true },
-  }, getCurrentTheme);
+  }, () => getCurrentTheme(client));
 
   server.registerTool('get_website_customizations', {
     description: 'Get current website colors, font settings, and available font/color options',
     annotations: { readOnlyHint: true },
-  }, getWebsiteCustomizations);
+  }, () => getWebsiteCustomizations(client));
 
   server.registerTool('search_themes', {
     description: 'Browse the catalog of available wedding-website themes',
@@ -178,7 +178,7 @@ export function registerWebsiteThemeTools(server: McpServer): void {
       theme_layout_types: z.array(z.enum(['MULTI_PAGE', 'SINGLE_PAGE'])).optional().describe('Default ["MULTI_PAGE"]'),
     },
     annotations: { readOnlyHint: true },
-  }, searchThemes);
+  }, (args) => searchThemes(client, args));
 
   server.registerTool('update_current_theme', {
     description: 'Switch the wedding website to a different theme template',
@@ -187,7 +187,7 @@ export function registerWebsiteThemeTools(server: McpServer): void {
       theme_layout_type: z.enum(['MULTI_PAGE', 'SINGLE_PAGE']).optional().describe('Default MULTI_PAGE'),
     },
     annotations: { destructiveHint: false },
-  }, updateCurrentTheme);
+  }, (args) => updateCurrentTheme(client, args));
 
   server.registerTool('update_website_customization', {
     description:
@@ -207,5 +207,5 @@ export function registerWebsiteThemeTools(server: McpServer): void {
       nav_font_color: z.string().optional().describe('Writable only via Zola\'s web-api (cookie+CSRF), not the mobile-api this MCP uses. Passing this throws.'),
     },
     annotations: { destructiveHint: false },
-  }, updateWebsiteCustomization);
+  }, (args) => updateWebsiteCustomization(client, args));
 }

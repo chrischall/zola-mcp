@@ -1,11 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, imageResult } from '../types.js';
 
 // ─── Tier 1: read-only ───────────────────────────────────────────────────────
 
-export async function listCardProjects(args: {
+export async function listCardProjects(client: ZolaClient, args: {
   include_completed?: boolean;
   limit?: number;
 }): Promise<ToolResult> {
@@ -27,7 +27,7 @@ export async function listCardProjects(args: {
   return jsonResult(response.data);
 }
 
-export async function getCardProject(args: { project_uuid: string }): Promise<ToolResult> {
+export async function getCardProject(client: ZolaClient, args: { project_uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     `/v3/card-projects/${args.project_uuid}`
@@ -35,7 +35,7 @@ export async function getCardProject(args: { project_uuid: string }): Promise<To
   return jsonResult(response.data);
 }
 
-export async function validateCardProject(args: { project_uuid: string }): Promise<ToolResult> {
+export async function validateCardProject(client: ZolaClient, args: { project_uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     `/v3/card-projects/${args.project_uuid}/validate`
@@ -43,7 +43,7 @@ export async function validateCardProject(args: { project_uuid: string }): Promi
   return jsonResult(response.data);
 }
 
-export async function getCardProjectGuests(args: { project_uuid: string }): Promise<ToolResult> {
+export async function getCardProjectGuests(client: ZolaClient, args: { project_uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     `/v3/card-projects/${args.project_uuid}/project-guest-groups`
@@ -51,7 +51,7 @@ export async function getCardProjectGuests(args: { project_uuid: string }): Prom
   return jsonResult(response.data);
 }
 
-export async function getCardSuite(args: { suite_uuid: string }): Promise<ToolResult> {
+export async function getCardSuite(client: ZolaClient, args: { suite_uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'POST',
     `/v4/card-catalog/suites/details/${args.suite_uuid}`
@@ -59,7 +59,7 @@ export async function getCardSuite(args: { suite_uuid: string }): Promise<ToolRe
   return jsonResult(response.data);
 }
 
-export async function searchCardCatalog(args: {
+export async function searchCardCatalog(client: ZolaClient, args: {
   card_type?: string;
   limit?: number;
 }): Promise<ToolResult> {
@@ -80,7 +80,7 @@ export async function searchCardCatalog(args: {
   return jsonResult(response.data);
 }
 
-export async function listFavoriteCardSuites(): Promise<ToolResult> {
+export async function listFavoriteCardSuites(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     '/v3/favorites/card-suites/'
@@ -88,7 +88,7 @@ export async function listFavoriteCardSuites(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export async function getRsvpPage(): Promise<ToolResult> {
+export async function getRsvpPage(client: ZolaClient): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
@@ -99,7 +99,7 @@ export async function getRsvpPage(): Promise<ToolResult> {
 
 // ─── Tier 2: writes ──────────────────────────────────────────────────────────
 
-export async function createCardProject(args: {
+export async function createCardProject(client: ZolaClient, args: {
   suite_uuid: string;
   lead_variation_uuid: string;
   quantity?: number;
@@ -119,7 +119,7 @@ export async function createCardProject(args: {
   return jsonResult(response.data);
 }
 
-export async function swapCardProjectVariation(args: {
+export async function swapCardProjectVariation(client: ZolaClient, args: {
   project_uuid: string;
   customizations: Record<string, string>;
 }): Promise<ToolResult> {
@@ -135,7 +135,7 @@ export async function swapCardProjectVariation(args: {
   return jsonResult(response.data);
 }
 
-export async function setCardProjectGuests(args: {
+export async function setCardProjectGuests(client: ZolaClient, args: {
   project_uuid: string;
   guest_groups: Array<{
     guest_group_id: number;
@@ -152,7 +152,7 @@ export async function setCardProjectGuests(args: {
   return jsonResult(response.data);
 }
 
-export async function previewCardTemplate(args: {
+export async function previewCardTemplate(client: ZolaClient, args: {
   variation_uuids: string[];
   first_name?: string;
   last_name?: string;
@@ -186,7 +186,7 @@ export async function previewCardTemplate(args: {
 
 // ─── QR code ─────────────────────────────────────────────────────────────────
 
-export async function previewQrcode(args: {
+export async function previewQrcode(client: ZolaClient, args: {
   url: string;
   dimension?: string;
   url_type?: string;
@@ -217,7 +217,7 @@ function sniffImageType(bytes: Uint8Array): string | null {
   return null;
 }
 
-export async function setCardProjectQrcode(args: {
+export async function setCardProjectQrcode(client: ZolaClient, args: {
   project_uuid: string;
   page_uuid: string;
   url: string;
@@ -242,7 +242,7 @@ export async function setCardProjectQrcode(args: {
 
 // ─── MCP registration ────────────────────────────────────────────────────────
 
-export function registerInvitationTools(server: McpServer): void {
+export function registerInvitationTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_card_projects', {
     description: 'List your invitation / save-the-date / shower-invite "card" projects (paper or digital). Returns project UUID, name, customizations, suite, and quantity.',
     inputSchema: {
@@ -250,7 +250,7 @@ export function registerInvitationTools(server: McpServer): void {
       limit: z.number().optional().describe('Max projects to return. Default: 30.'),
     },
     annotations: { readOnlyHint: true },
-  }, listCardProjects);
+  }, (args) => listCardProjects(client, args));
 
   server.registerTool('get_card_project', {
     description: 'Get full details for one invitation project including all customizations (invitation, envelope, RSVP card, details card), paper/color options, and per-customization pages.',
@@ -258,7 +258,7 @@ export function registerInvitationTools(server: McpServer): void {
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
     },
     annotations: { readOnlyHint: true },
-  }, getCardProject);
+  }, (args) => getCardProject(client, args));
 
   server.registerTool('validate_card_project', {
     description: 'Validate an invitation project — reports any text-fit, image, or guest-addressing errors per customization. Use before placing an order.',
@@ -266,7 +266,7 @@ export function registerInvitationTools(server: McpServer): void {
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
     },
     annotations: { readOnlyHint: true },
-  }, validateCardProject);
+  }, (args) => validateCardProject(client, args));
 
   server.registerTool('get_card_project_guests', {
     description: 'List the guest groups assigned to an invitation project, including per-group font-size overrides for printed addressing.',
@@ -274,7 +274,7 @@ export function registerInvitationTools(server: McpServer): void {
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
     },
     annotations: { readOnlyHint: true },
-  }, getCardProjectGuests);
+  }, (args) => getCardProjectGuests(client, args));
 
   server.registerTool('get_card_suite', {
     description: 'Get details for an invitation design "suite" (the family of matching invitation + RSVP + details cards), including paper types, sizes, and price range.',
@@ -282,7 +282,7 @@ export function registerInvitationTools(server: McpServer): void {
       suite_uuid: z.string().describe('Suite UUID (e.g. from search_card_catalog or list_favorite_card_suites)'),
     },
     annotations: { readOnlyHint: true },
-  }, getCardSuite);
+  }, (args) => getCardSuite(client, args));
 
   server.registerTool('search_card_catalog', {
     description: 'Search the invitation design catalog. Faceted search returning suites matching the requested card type.',
@@ -291,17 +291,17 @@ export function registerInvitationTools(server: McpServer): void {
       limit: z.number().optional().describe('Max suites to return. Default: 50.'),
     },
     annotations: { readOnlyHint: true },
-  }, searchCardCatalog);
+  }, (args) => searchCardCatalog(client, args));
 
   server.registerTool('list_favorite_card_suites', {
     description: 'List invitation design suites you have favorited (hearted).',
     annotations: { readOnlyHint: true },
-  }, listFavoriteCardSuites);
+  }, () => listFavoriteCardSuites(client));
 
   server.registerTool('get_rsvp_page', {
     description: 'Get the RSVP page settings on the wedding website (title, intro copy, visibility, customization).',
     annotations: { readOnlyHint: true },
-  }, getRsvpPage);
+  }, () => getRsvpPage(client));
 
   server.registerTool('create_card_project', {
     description: 'Create a new invitation project from a design suite and a lead variation (specific size/paper).',
@@ -311,7 +311,7 @@ export function registerInvitationTools(server: McpServer): void {
       quantity: z.number().optional().describe('Quantity to order. Default: 150.'),
     },
     annotations: { destructiveHint: false },
-  }, createCardProject);
+  }, (args) => createCardProject(client, args));
 
   server.registerTool('swap_card_project_variation', {
     description: 'Swap one or more customizations on a project to different variations (e.g. switch paper type, color, or size). Pass a map of customization UUID → new variation UUID.',
@@ -320,7 +320,7 @@ export function registerInvitationTools(server: McpServer): void {
       customizations: z.record(z.string(), z.string()).describe('{ customization_uuid: new_variation_uuid }'),
     },
     annotations: { destructiveHint: false },
-  }, swapCardProjectVariation);
+  }, (args) => swapCardProjectVariation(client, args));
 
   server.registerTool('set_card_project_guests', {
     description: 'Enable / disable guest groups for an invitation project and optionally override font sizes for printed names and addresses. Pass the full list of guest groups you want recorded.',
@@ -334,7 +334,7 @@ export function registerInvitationTools(server: McpServer): void {
       })).describe('Full list of guest groups to record. Omitted groups are not affected by this call.'),
     },
     annotations: { destructiveHint: false },
-  }, setCardProjectGuests);
+  }, (args) => setCardProjectGuests(client, args));
 
   server.registerTool('preview_card_template', {
     description: 'Render an invitation template preview with text substituted in. Use to see how a design would look with your couple\'s names and wedding date. Returns the template structure including page layouts.',
@@ -347,7 +347,7 @@ export function registerInvitationTools(server: McpServer): void {
       wedding_date: z.string().optional().describe('Substitute for {{wedding_date}}, YYYY-MM-DD. Defaults to the wedding date on file.'),
     },
     annotations: { readOnlyHint: true },
-  }, previewCardTemplate);
+  }, (args) => previewCardTemplate(client, args));
 
   server.registerTool('preview_qrcode', {
     description: 'Generate a QR-code PNG for an invitation. Returns the image so it can be inspected. Use set_card_project_qrcode to actually place it on a card.',
@@ -358,7 +358,7 @@ export function registerInvitationTools(server: McpServer): void {
       enabled: z.boolean().optional().describe('Whether the QR code is enabled. Default: true.'),
     },
     annotations: { readOnlyHint: true },
-  }, previewQrcode);
+  }, (args) => previewQrcode(client, args));
 
   server.registerTool('set_card_project_qrcode', {
     description: 'Place (or update) a QR code on a specific page of an invitation project. The page UUID comes from get_card_project (look under the customization\'s pages array).',
@@ -372,5 +372,5 @@ export function registerInvitationTools(server: McpServer): void {
       enabled: z.boolean().optional().describe('Whether to enable the QR code. Default: true.'),
     },
     annotations: { destructiveHint: false },
-  }, setCardProjectQrcode);
+  }, (args) => setCardProjectQrcode(client, args));
 }

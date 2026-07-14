@@ -76,7 +76,7 @@ describe('guest tools (mobile API)', () => {
   it('listGuests: POSTs to directory and returns stats + groups', async () => {
     reqSpy.mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never);
 
-    const result = await listGuests();
+    const result = await listGuests(client);
 
     expect(reqSpy).toHaveBeenCalledWith(
       'POST',
@@ -92,7 +92,7 @@ describe('guest tools (mobile API)', () => {
   it('addGuest: POSTs to groups with correct body', async () => {
     reqSpy.mockResolvedValueOnce({ data: { guest_group_id: 999 } } as never);
 
-    await addGuest({ first_name: 'Test', last_name: 'Guest', affiliation: 'PRIMARY_FRIEND' });
+    await addGuest(client, { first_name: 'Test', last_name: 'Guest', affiliation: 'PRIMARY_FRIEND' });
 
     expect(reqSpy).toHaveBeenCalledWith(
       'POST',
@@ -112,7 +112,7 @@ describe('guest tools (mobile API)', () => {
   it('addGuest: includes plus-one with PARTNER relationship', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
 
-    await addGuest({
+    await addGuest(client, {
       first_name: 'Jennifer',
       last_name: 'Acerra',
       plus_one_first_name: 'Jason',
@@ -133,7 +133,7 @@ describe('guest tools (mobile API)', () => {
       .mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never)
       .mockResolvedValueOnce({ data: {} } as never);
 
-    await updateGuestAddress({ guest_group_id: 152644475, city: 'Evanston' });
+    await updateGuestAddress(client, { guest_group_id: 152644475, city: 'Evanston' });
 
     expect(reqSpy).toHaveBeenCalledTimes(2);
     expect(reqSpy).toHaveBeenNthCalledWith(
@@ -159,7 +159,7 @@ describe('guest tools (mobile API)', () => {
       .mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never)
       .mockResolvedValueOnce({ data: {} } as never);
 
-    await updateGuestAddress({ guest_group_id: 152644475, city: 'Evanston' });
+    await updateGuestAddress(client, { guest_group_id: 152644475, city: 'Evanston' });
 
     const body = reqSpy.mock.calls[1][2] as {
       updated_guest_groups: Array<{ guests: Array<{ event_invitations: Array<{ event_id: number }> }> }>;
@@ -172,7 +172,7 @@ describe('guest tools (mobile API)', () => {
     const empty = { data: { num_invited_guests: 0, num_guests: 0, num_addresses_missing: 0, guest_groups: [] } };
     reqSpy.mockResolvedValueOnce(empty as never);
 
-    await expect(updateGuestAddress({ guest_group_id: 999 })).rejects.toThrow(
+    await expect(updateGuestAddress(client, { guest_group_id: 999 })).rejects.toThrow(
       'Guest group with ID 999 not found'
     );
   });
@@ -180,7 +180,7 @@ describe('guest tools (mobile API)', () => {
   it('removeGuest: PUTs to delete endpoint with guest_group_ids', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
 
-    const result = await removeGuest({ guest_group_id: 152644475 });
+    const result = await removeGuest(client, { guest_group_id: 152644475 });
 
     expect(reqSpy).toHaveBeenCalledWith(
       'PUT',

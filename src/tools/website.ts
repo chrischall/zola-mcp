@@ -1,9 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
 
-export async function listPages(): Promise<ToolResult> {
+export async function listPages(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     '/v3/websites/pages/wedding-accounts/full'
@@ -11,7 +11,7 @@ export async function listPages(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export async function setPageHidden(args: {
+export async function setPageHidden(client: ZolaClient, args: {
   page_id: number;
   hidden: boolean;
 }): Promise<ToolResult> {
@@ -22,7 +22,7 @@ export async function setPageHidden(args: {
   return jsonResult(response.data);
 }
 
-export async function reorderPages(args: { page_ids: number[] }): Promise<ToolResult> {
+export async function reorderPages(client: ZolaClient, args: { page_ids: number[] }): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
@@ -32,7 +32,7 @@ export async function reorderPages(args: { page_ids: number[] }): Promise<ToolRe
   return jsonResult(response.data);
 }
 
-export async function updatePage(args: {
+export async function updatePage(client: ZolaClient, args: {
   page_id: number;
   title?: string;
   nav_title?: string;
@@ -78,17 +78,17 @@ interface UserContextResponse {
   };
 }
 
-async function fetchWeddingFields(): Promise<WeddingFields> {
+async function fetchWeddingFields(client: ZolaClient): Promise<WeddingFields> {
   const response = await client.requestMobile<UserContextResponse>('GET', '/v3/users/me/context');
   return response.data.wedding;
 }
 
-export async function getWeddingSettings(): Promise<ToolResult> {
-  const wedding = await fetchWeddingFields();
+export async function getWeddingSettings(client: ZolaClient): Promise<ToolResult> {
+  const wedding = await fetchWeddingFields(client);
   return jsonResult(wedding);
 }
 
-export async function updateWeddingSettings(args: {
+export async function updateWeddingSettings(client: ZolaClient, args: {
   title?: string;
   slug?: string;
   owner_first_name?: string;
@@ -103,7 +103,7 @@ export async function updateWeddingSettings(args: {
   enable_search_engine?: boolean;
   enable_search_zola?: boolean;
 }): Promise<ToolResult> {
-  const current = await fetchWeddingFields();
+  const current = await fetchWeddingFields(client);
   const body = {
     wedding_id: current.wedding_id,
     account_id: current.account_id,
@@ -130,11 +130,11 @@ export async function updateWeddingSettings(args: {
   return jsonResult(response.data);
 }
 
-export function registerWebsiteTools(server: McpServer): void {
+export function registerWebsiteTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_pages', {
     description: 'List all wedding-website pages with their IDs, types, display order, visibility, and theme info',
     annotations: { readOnlyHint: true },
-  }, listPages);
+  }, () => listPages(client));
 
   server.registerTool('set_page_hidden', {
     description: 'Show or hide a page on the wedding website (e.g., hide the RSVP page until invites go out)',
@@ -143,7 +143,7 @@ export function registerWebsiteTools(server: McpServer): void {
       hidden: z.boolean().describe('true to hide the page, false to show it'),
     },
     annotations: { destructiveHint: false },
-  }, setPageHidden);
+  }, (args) => setPageHidden(client, args));
 
   server.registerTool('reorder_pages', {
     description: 'Reorder pages in the website navigation. Pass the complete ordered list of page IDs.',
@@ -151,7 +151,7 @@ export function registerWebsiteTools(server: McpServer): void {
       page_ids: z.array(z.number()).describe('Full ordered list of page IDs in desired nav order'),
     },
     annotations: { destructiveHint: false },
-  }, reorderPages);
+  }, (args) => reorderPages(client, args));
 
   server.registerTool('update_page', {
     description: 'Update page-level metadata (title, intro copy, nav title, visibility, layout customization)',
@@ -166,12 +166,12 @@ export function registerWebsiteTools(server: McpServer): void {
       customization: z.unknown().optional().describe('Layout customization object (see list_pages for shape)'),
     },
     annotations: { destructiveHint: false },
-  }, updatePage);
+  }, (args) => updatePage(client, args));
 
   server.registerTool('get_wedding_settings', {
     description: 'Get top-level wedding settings: title, URL slug, partner names, date, city, hashtag, guest count, search visibility',
     annotations: { readOnlyHint: true },
-  }, getWeddingSettings);
+  }, () => getWeddingSettings(client));
 
   server.registerTool('update_wedding_settings', {
     description: 'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
@@ -191,5 +191,5 @@ export function registerWebsiteTools(server: McpServer): void {
       enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),
     },
     annotations: { destructiveHint: false },
-  }, updateWeddingSettings);
+  }, (args) => updateWeddingSettings(client, args));
 }
