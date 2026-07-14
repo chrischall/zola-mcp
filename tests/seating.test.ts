@@ -102,7 +102,7 @@ describe('seating tools', () => {
   it('listSeatingCharts: GETs summaries and returns array', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_SUMMARIES as never);
 
-    const result = await listSeatingCharts();
+    const result = await listSeatingCharts(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/seating-charts/summaries');
     const parsed = JSON.parse(result.content[0].text);
@@ -113,7 +113,7 @@ describe('seating tools', () => {
   it('getSeatingChart: GETs by uuid and returns chart with seats', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_CHART as never);
 
-    const result = await getSeatingChart({ uuid: 'chart-uuid-1' });
+    const result = await getSeatingChart(client, { uuid: 'chart-uuid-1' });
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/seating-charts/chart-uuid-1');
     const parsed = JSON.parse(result.content[0].text);
@@ -125,7 +125,7 @@ describe('seating tools', () => {
   it('listUnseatedGuests: filters directory to guests with null seating_chart_seat', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_DIRECTORY as never);
 
-    const result = await listUnseatedGuests();
+    const result = await listUnseatedGuests(client);
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/guestlists/directory/wedding-accounts/4664323', { sort_by_name_asc: true });
     const parsed = JSON.parse(result.content[0].text);
@@ -137,7 +137,7 @@ describe('seating tools', () => {
   it('assignSeat: PUTs correct body and returns confirmation', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_CHART as never);
 
-    const result = await assignSeat({
+    const result = await assignSeat(client, {
       guest_uuid: 'guest-uuid-2',
       seat_uuid: 'seat-uuid-1',
       table_uuid: 'table-uuid-1',

@@ -49,7 +49,7 @@ describe('website-content: faqs', () => {
       ],
     } as never);
 
-    const result = await listFaqs();
+    const result = await listFaqs(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/faqs/wedding-accounts/4664323');
     const parsed = JSON.parse(result.content[0].text);
@@ -62,7 +62,7 @@ describe('website-content: faqs', () => {
       data: { faq_entity_id: 9999, question: 'New?', answer: 'Yes', display_order: 0 },
     } as never);
 
-    const result = await addFaq({ question: 'New?', answer: 'Yes', display_order: 0 });
+    const result = await addFaq(client, { question: 'New?', answer: 'Yes', display_order: 0 });
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/faqs', {
       wedding_account_id: 4664323,
@@ -80,7 +80,7 @@ describe('website-content: faqs', () => {
       data: { faq_entity_id: 6522901, question: 'Updated?', answer: 'Updated.', display_order: 3 },
     } as never);
 
-    const result = await updateFaq({
+    const result = await updateFaq(client, {
       faq_entity_id: 6522901,
       question: 'Updated?',
       answer: 'Updated.',
@@ -102,7 +102,7 @@ describe('website-content: faqs', () => {
     reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never); // pages lookup
     reqSpy.mockResolvedValueOnce({ data: null } as never); // DELETE
 
-    await removeFaq({ faq_entity_id: 6522901 });
+    await removeFaq(client, { faq_entity_id: 6522901 });
 
     expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/websites/pages/wedding-accounts/full');
     expect(reqSpy).toHaveBeenNthCalledWith(
@@ -117,8 +117,8 @@ describe('website-content: faqs', () => {
     reqSpy.mockResolvedValueOnce({ data: null } as never); // first DELETE
     reqSpy.mockResolvedValueOnce({ data: null } as never); // second DELETE
 
-    await removeFaq({ faq_entity_id: 6522901 });
-    await removeFaq({ faq_entity_id: 6522902 });
+    await removeFaq(client, { faq_entity_id: 6522901 });
+    await removeFaq(client, { faq_entity_id: 6522902 });
 
     expect(reqSpy).toHaveBeenCalledTimes(3);
     const getCalls = reqSpy.mock.calls.filter((c) => c[0] === 'GET');
@@ -136,7 +136,7 @@ describe('website-content: faqs', () => {
     };
     reqSpy.mockResolvedValueOnce(pagesWithoutFaq as never);
 
-    await expect(removeFaq({ faq_entity_id: 999 })).rejects.toThrow(/Page of type FAQ not found/);
+    await expect(removeFaq(client, { faq_entity_id: 999 })).rejects.toThrow(/Page of type FAQ not found/);
   });
 
   // Gap 6: addFaq default display_order when omitted
@@ -145,7 +145,7 @@ describe('website-content: faqs', () => {
       data: { faq_entity_id: 9999, question: 'Default order?', answer: 'Yes', display_order: 0 },
     } as never);
 
-    await addFaq({ question: 'Default order?', answer: 'Yes' }); // no display_order
+    await addFaq(client, { question: 'Default order?', answer: 'Yes' }); // no display_order
 
     const body = reqSpy.mock.calls[0][2] as Record<string, unknown>;
     expect(body.display_order).toBe(0);
@@ -156,7 +156,7 @@ describe('website-content: faqs', () => {
     reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({ data: null } as never);
 
-    const result = await removeFaq({ faq_entity_id: 6522901 });
+    const result = await removeFaq(client, { faq_entity_id: 6522901 });
 
     expect(JSON.parse(result.content[0].text).removed).toBe(6522901);
   });
@@ -169,10 +169,10 @@ describe('website-content: faqs', () => {
     reqSpy.mockResolvedValueOnce({ data: null } as never); // removePoi DELETE
     reqSpy.mockResolvedValueOnce({ data: null } as never); // removeTravelItem DELETE
 
-    await removeFaq({ faq_entity_id: 6522901 });
-    await removeHomeSection({ homepage_entity_id: 1381564 });
-    await removePoi({ poi_entity_id: 5506041 });
-    await removeTravelItem({ travel_entity_id: 4 });
+    await removeFaq(client, { faq_entity_id: 6522901 });
+    await removeHomeSection(client, { homepage_entity_id: 1381564 });
+    await removePoi(client, { poi_entity_id: 5506041 });
+    await removeTravelItem(client, { travel_entity_id: 4 });
 
     expect(reqSpy).toHaveBeenCalledTimes(5);
     const getCalls = reqSpy.mock.calls.filter((c) => c[0] === 'GET');
@@ -199,7 +199,7 @@ describe('website-content: home sections', () => {
       ],
     } as never);
 
-    const result = await listHomeSections();
+    const result = await listHomeSections(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/home-sections/wedding-accounts/4664323');
     const parsed = JSON.parse(result.content[0].text);
@@ -211,7 +211,7 @@ describe('website-content: home sections', () => {
       data: { homepage_entity_id: 1422067, title: 'New', subtitle: 'sub', description: 'd', display_order: 2, hidden: false },
     } as never);
 
-    await addHomeSection({
+    await addHomeSection(client, {
       title: 'New',
       subtitle: 'sub',
       description: 'd',
@@ -234,7 +234,7 @@ describe('website-content: home sections', () => {
       data: { homepage_entity_id: 1381564, title: 'Edited' },
     } as never);
 
-    await updateHomeSection({
+    await updateHomeSection(client, {
       homepage_entity_id: 1381564,
       title: 'Edited',
       subtitle: 'sub',
@@ -258,7 +258,7 @@ describe('website-content: home sections', () => {
     reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({ data: null } as never);
 
-    await removeHomeSection({ homepage_entity_id: 1381564 });
+    await removeHomeSection(client, { homepage_entity_id: 1381564 });
 
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
@@ -273,7 +273,7 @@ describe('website-content: home sections', () => {
       data: { homepage_entity_id: 1422067, title: 'No defaults', subtitle: 'sub', description: 'd', display_order: 0, hidden: false },
     } as never);
 
-    await addHomeSection({ title: 'No defaults', subtitle: 'sub', description: 'd' });
+    await addHomeSection(client, { title: 'No defaults', subtitle: 'sub', description: 'd' });
 
     const body = reqSpy.mock.calls[0][2] as Record<string, unknown>;
     expect(body.display_order).toBe(0);
@@ -285,7 +285,7 @@ describe('website-content: home sections', () => {
     reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({ data: null } as never);
 
-    const result = await removeHomeSection({ homepage_entity_id: 1381564 });
+    const result = await removeHomeSection(client, { homepage_entity_id: 1381564 });
 
     expect(JSON.parse(result.content[0].text).removed).toBe(1381564);
   });
@@ -308,7 +308,7 @@ describe('website-content: points of interest', () => {
       data: [{ poi_entity_id: 5506041, title: 'Rhino Market' }],
     } as never);
 
-    const result = await listPois();
+    const result = await listPois(client);
 
     expect(reqSpy).toHaveBeenCalledWith(
       'GET',
@@ -323,7 +323,7 @@ describe('website-content: points of interest', () => {
       data: { poi_entity_id: 5506041, title: 'Rhino Market' },
     } as never);
 
-    await addPoi({
+    await addPoi(client, {
       title: 'Rhino Market',
       address1: '1414 South Tryon Street',
       city: 'Charlotte',
@@ -352,7 +352,7 @@ describe('website-content: points of interest', () => {
 
   it('addPoi: omits unset optional fields', async () => {
     reqSpy.mockResolvedValueOnce({ data: { poi_entity_id: 1 } } as never);
-    await addPoi({ title: 'Bare POI' });
+    await addPoi(client, { title: 'Bare POI' });
     const body = reqSpy.mock.calls[0][2] as Record<string, unknown>;
     expect(body.title).toBe('Bare POI');
     expect(body.poi_entity_id).toBe(0);
@@ -365,7 +365,7 @@ describe('website-content: points of interest', () => {
       data: { poi_entity_id: 5506041, title: 'Renamed' },
     } as never);
 
-    await updatePoi({ poi_entity_id: 5506041, title: 'Renamed' });
+    await updatePoi(client, { poi_entity_id: 5506041, title: 'Renamed' });
 
     expect(reqSpy).toHaveBeenCalledWith(
       'PUT',
@@ -382,7 +382,7 @@ describe('website-content: points of interest', () => {
     reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({ data: null } as never);
 
-    await removePoi({ poi_entity_id: 5506041 });
+    await removePoi(client, { poi_entity_id: 5506041 });
 
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
@@ -396,7 +396,7 @@ describe('website-content: points of interest', () => {
     reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({ data: null } as never);
 
-    const result = await removePoi({ poi_entity_id: 5506041 });
+    const result = await removePoi(client, { poi_entity_id: 5506041 });
 
     expect(JSON.parse(result.content[0].text).removed).toBe(5506041);
   });
@@ -418,7 +418,7 @@ describe('website-content: travel items', () => {
     reqSpy.mockResolvedValueOnce({
       data: [{ travel_entity_id: 4752577, type: 'HOTEL', name: 'DoubleTree' }],
     } as never);
-    const result = await listTravelItems();
+    const result = await listTravelItems(client);
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/travel/wedding-accounts/4664323');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed[0].name).toBe('DoubleTree');
@@ -428,7 +428,7 @@ describe('website-content: travel items', () => {
     reqSpy.mockResolvedValueOnce({
       data: { travel_entity_id: 4752577, name: 'DoubleTree' },
     } as never);
-    await addTravelItem({
+    await addTravelItem(client, {
       type: 'HOTEL',
       name: 'DoubleTree Suites',
       address1: '6300 Carnegie Blvd',
@@ -456,7 +456,7 @@ describe('website-content: travel items', () => {
 
   it('addTravelItem: omits unset optional fields', async () => {
     reqSpy.mockResolvedValueOnce({ data: { travel_entity_id: 1 } } as never);
-    await addTravelItem({ type: 'HOTEL', name: 'Bare Hotel' });
+    await addTravelItem(client, { type: 'HOTEL', name: 'Bare Hotel' });
     const body = reqSpy.mock.calls[0][2] as Record<string, unknown>;
     expect(body.travel_entity_id).toBe(0);
     expect(body.type).toBe('HOTEL');
@@ -469,7 +469,7 @@ describe('website-content: travel items', () => {
     reqSpy.mockResolvedValueOnce({
       data: { travel_entity_id: 4752577, name: 'Renamed' },
     } as never);
-    await updateTravelItem({ travel_entity_id: 4752577, name: 'Renamed' });
+    await updateTravelItem(client, { travel_entity_id: 4752577, name: 'Renamed' });
     expect(reqSpy).toHaveBeenCalledWith(
       'PUT',
       '/v3/websites/travel/4752577',
@@ -484,7 +484,7 @@ describe('website-content: travel items', () => {
   it('removeTravelItem: looks up TRAVEL page_id then DELETEs', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({ data: null } as never);
-    await removeTravelItem({ travel_entity_id: 4752577 });
+    await removeTravelItem(client, { travel_entity_id: 4752577 });
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
       'DELETE',

@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 
 interface WeddingEvent {
   event_entity_id: number;
@@ -62,7 +62,7 @@ interface GiftTracker {
 
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
-export async function listEvents(): Promise<ToolResult> {
+export async function listEvents(client: ZolaClient): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<EventGroup[]>>(
     'GET',
@@ -72,7 +72,7 @@ export async function listEvents(): Promise<ToolResult> {
   return jsonResult(events);
 }
 
-export async function trackRsvps(): Promise<ToolResult> {
+export async function trackRsvps(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<{ modules: RsvpModule[] }>>(
     'GET',
     '/v3/websites/events/track-rsvps'
@@ -80,7 +80,7 @@ export async function trackRsvps(): Promise<ToolResult> {
   return jsonResult(response.data.modules);
 }
 
-export async function getGiftTracker(): Promise<ToolResult> {
+export async function getGiftTracker(client: ZolaClient): Promise<ToolResult> {
   const { registryId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<GiftTracker>>(
     'GET',
@@ -90,7 +90,7 @@ export async function getGiftTracker(): Promise<ToolResult> {
   return jsonResult(tracker);
 }
 
-export async function getRegistry(): Promise<ToolResult> {
+export async function getRegistry(client: ZolaClient): Promise<ToolResult> {
   const { registryId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
@@ -99,7 +99,7 @@ export async function getRegistry(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export async function updateEvent(args: {
+export async function updateEvent(client: ZolaClient, args: {
   event_id: number;
   name?: string;
   start_at?: string;
@@ -162,26 +162,26 @@ export async function updateEvent(args: {
   return jsonResult(result.data);
 }
 
-export function registerEventTools(server: McpServer): void {
+export function registerEventTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_events', {
     description: 'List all wedding events (ceremony, reception, rehearsal dinner, etc.) with RSVP counts',
     annotations: { readOnlyHint: true },
-  }, listEvents);
+  }, () => listEvents(client));
 
   server.registerTool('track_rsvps', {
     description: 'Get RSVP tracking summary per event (attending, declined, not responded)',
     annotations: { readOnlyHint: true },
-  }, trackRsvps);
+  }, () => trackRsvps(client));
 
   server.registerTool('get_gift_tracker', {
     description: 'View gift tracking: total gifts received, values, thank-you note status',
     annotations: { readOnlyHint: true },
-  }, getGiftTracker);
+  }, () => getGiftTracker(client));
 
   server.registerTool('get_registry', {
     description: 'View the wedding registry with categories and items',
     annotations: { readOnlyHint: true },
-  }, getRegistry);
+  }, () => getRegistry(client));
 
   server.registerTool('update_event', {
     description: 'Update a wedding event (name, time, venue, location, dress code, RSVP settings)',
@@ -201,5 +201,5 @@ export function registerEventTools(server: McpServer): void {
       collect_rsvps: z.boolean().optional().describe('Whether to collect RSVPs for this event'),
     },
     annotations: { destructiveHint: false },
-  }, updateEvent);
+  }, (args) => updateEvent(client, args));
 }

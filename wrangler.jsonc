@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "zola-connector",
+  "main": "src/worker.ts",
+  "compatibility_date": "2025-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Zola is stateless — only the per-session MCP agent Durable Object is
+  // declared (no local cache, so no cache DO like the OFW connector has).
+  "durable_objects": {
+    "bindings": [{ "name": "MCP_OBJECT", "class_name": "ZolaMcpAgent" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ZolaMcpAgent"] }],
+  // zola-connector's own OAuth token store (title: zola-connector-oauth).
+  // Kept separate from any other connector's OAUTH_KV so their OAuth grants/tokens
+  // never cross-wire. To stand up a fresh deployment, create your own
+  // (wrangler kv namespace create zola-connector-oauth) and replace this id.
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "be330ef94918440d9e2004e98b6937e2" }],
+  // Production custom domain (matches ofw-mcp's connector.ofw.nullnet.app and
+  // splitwise-mcp's connector.splitwise.nullnet.app). The zone must be in the
+  // deploying account's Cloudflare; wrangler provisions the hostname on deploy.
+  // Remove this route to deploy to *.workers.dev only.
+  "routes": [{ "pattern": "connector.zola.nullnet.app", "custom_domain": true }],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  }
+}

@@ -42,7 +42,7 @@ describe('invitation (card-project) tools', () => {
         data: [{ project_uuid: PROJECT_UUID, project_name: 'Invitation - Blake Frame' }],
       } as never);
 
-      const result = await listCardProjects({});
+      const result = await listCardProjects(client, {});
 
       expect(reqSpy).toHaveBeenCalledWith(
         'POST',
@@ -65,7 +65,7 @@ describe('invitation (card-project) tools', () => {
 
     it('listCardProjects passes through include_completed and limit', async () => {
       reqSpy.mockResolvedValueOnce({ data: [] } as never);
-      await listCardProjects({ include_completed: true, limit: 100 });
+      await listCardProjects(client, { include_completed: true, limit: 100 });
       const body = reqSpy.mock.calls[0]![2] as { completed: boolean; limit: number };
       expect(body.completed).toBe(true);
       expect(body.limit).toBe(100);
@@ -73,7 +73,7 @@ describe('invitation (card-project) tools', () => {
 
     it('getCardProject GETs /v3/card-projects/{uuid}', async () => {
       reqSpy.mockResolvedValueOnce({ data: { uuid: PROJECT_UUID, name: 'Inv' } } as never);
-      await getCardProject({ project_uuid: PROJECT_UUID });
+      await getCardProject(client, { project_uuid: PROJECT_UUID });
       expect(reqSpy).toHaveBeenCalledWith('GET', `/v3/card-projects/${PROJECT_UUID}`);
     });
 
@@ -86,7 +86,7 @@ describe('invitation (card-project) tools', () => {
           ],
         },
       } as never);
-      const r = await validateCardProject({ project_uuid: PROJECT_UUID });
+      const r = await validateCardProject(client, { project_uuid: PROJECT_UUID });
       expect(reqSpy).toHaveBeenCalledWith('GET', `/v3/card-projects/${PROJECT_UUID}/validate`);
       const payload = JSON.parse(r.content[0]!.type === 'text' ? r.content[0].text : '');
       expect(payload.customizations_with_errors[0].card_type).toBe('INVITATION');
@@ -94,19 +94,19 @@ describe('invitation (card-project) tools', () => {
 
     it('getCardProjectGuests GETs project-guest-groups', async () => {
       reqSpy.mockResolvedValueOnce({ data: [] } as never);
-      await getCardProjectGuests({ project_uuid: PROJECT_UUID });
+      await getCardProjectGuests(client, { project_uuid: PROJECT_UUID });
       expect(reqSpy).toHaveBeenCalledWith('GET', `/v3/card-projects/${PROJECT_UUID}/project-guest-groups`);
     });
 
     it('getCardSuite POSTs to v4 suites/details with no body', async () => {
       reqSpy.mockResolvedValueOnce({ data: { uuid: SUITE_UUID, name: 'Invitation - Blake Frame' } } as never);
-      await getCardSuite({ suite_uuid: SUITE_UUID });
+      await getCardSuite(client, { suite_uuid: SUITE_UUID });
       expect(reqSpy).toHaveBeenCalledWith('POST', `/v4/card-catalog/suites/details/${SUITE_UUID}`);
     });
 
     it('searchCardCatalog defaults to INVITATION lead card type', async () => {
       reqSpy.mockResolvedValueOnce({ data: { suites: [] } } as never);
-      await searchCardCatalog({});
+      await searchCardCatalog(client, {});
       const [, path, body] = reqSpy.mock.calls[0]!;
       expect(path).toBe('/v3/card-catalog/search/faceted');
       expect((body as { lead_card_type: string }).lead_card_type).toBe('INVITATION');
@@ -115,7 +115,7 @@ describe('invitation (card-project) tools', () => {
 
     it('searchCardCatalog accepts card_type override', async () => {
       reqSpy.mockResolvedValueOnce({ data: { suites: [] } } as never);
-      await searchCardCatalog({ card_type: 'SAVE_THE_DATE', limit: 20 });
+      await searchCardCatalog(client, { card_type: 'SAVE_THE_DATE', limit: 20 });
       const body = reqSpy.mock.calls[0]![2] as { lead_card_type: string; limit: number };
       expect(body.lead_card_type).toBe('SAVE_THE_DATE');
       expect(body.limit).toBe(20);
@@ -123,13 +123,13 @@ describe('invitation (card-project) tools', () => {
 
     it('listFavoriteCardSuites GETs /v3/favorites/card-suites/', async () => {
       reqSpy.mockResolvedValueOnce({ data: { search_results: { suites: [] } } } as never);
-      await listFavoriteCardSuites();
+      await listFavoriteCardSuites(client);
       expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/favorites/card-suites/');
     });
 
     it('getRsvpPage uses weddingAccountId from context', async () => {
       reqSpy.mockResolvedValueOnce({ data: { page_id: 41938923, type: 'RSVP', hidden: true } } as never);
-      await getRsvpPage();
+      await getRsvpPage(client);
       expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/rsvps/wedding-accounts/4664323');
     });
   });
@@ -138,7 +138,7 @@ describe('invitation (card-project) tools', () => {
     it('createCardProject POSTs with quantity, suite, and lead variation', async () => {
       reqSpy.mockResolvedValueOnce({ data: { uuid: PROJECT_UUID, account_id: 7585875 } } as never);
 
-      await createCardProject({
+      await createCardProject(client, {
         suite_uuid: SUITE_UUID,
         lead_variation_uuid: LEAD_VARIATION_UUID,
         quantity: 150,
@@ -155,14 +155,14 @@ describe('invitation (card-project) tools', () => {
 
     it('createCardProject defaults quantity to suite-typical 150', async () => {
       reqSpy.mockResolvedValueOnce({ data: {} } as never);
-      await createCardProject({ suite_uuid: SUITE_UUID, lead_variation_uuid: LEAD_VARIATION_UUID });
+      await createCardProject(client, { suite_uuid: SUITE_UUID, lead_variation_uuid: LEAD_VARIATION_UUID });
       const body = reqSpy.mock.calls[0]![2] as { quantity: number };
       expect(body.quantity).toBe(150);
     });
 
     it('swapCardProjectVariation PUTs customizations map', async () => {
       reqSpy.mockResolvedValueOnce({ data: { uuid: PROJECT_UUID } } as never);
-      await swapCardProjectVariation({
+      await swapCardProjectVariation(client, {
         project_uuid: PROJECT_UUID,
         customizations: { [CUSTOMIZATION_UUID]: NEW_VARIATION_UUID },
       });
@@ -175,7 +175,7 @@ describe('invitation (card-project) tools', () => {
 
     it('setCardProjectGuests PUTs guest_group_requests with overrides', async () => {
       reqSpy.mockResolvedValueOnce({ data: [] } as never);
-      await setCardProjectGuests({
+      await setCardProjectGuests(client, {
         project_uuid: PROJECT_UUID,
         guest_groups: [
           { guest_group_id: 152644460, enabled: true, guest_name_font_size_override: 17, address_font_size_override: 10 },
@@ -196,7 +196,7 @@ describe('invitation (card-project) tools', () => {
 
     it('previewCardTemplate POSTs variation_uuids + substitutions', async () => {
       reqSpy.mockResolvedValueOnce({ data: { templates_by_variation: {} } } as never);
-      await previewCardTemplate({
+      await previewCardTemplate(client, {
         variation_uuids: ['ee423186-65e0-49b9-8edb-763b3f703e50'],
         first_name: 'Meredith',
         last_name: 'Suffron',
@@ -225,7 +225,7 @@ describe('invitation (card-project) tools', () => {
 
     it('previewCardTemplate auto-populates wedding_date from context when missing', async () => {
       reqSpy.mockResolvedValueOnce({ data: {} } as never);
-      await previewCardTemplate({
+      await previewCardTemplate(client, {
         variation_uuids: ['v1'],
         first_name: 'Alex',
       });
@@ -245,7 +245,7 @@ describe('invitation (card-project) tools', () => {
         weddingSlug: null,
       });
       reqSpy.mockResolvedValueOnce({ data: {} } as never);
-      await previewCardTemplate({ variation_uuids: ['v1'] });
+      await previewCardTemplate(client, { variation_uuids: ['v1'] });
       const body = reqSpy.mock.calls[0]![2] as { substitutions?: Record<string, string> };
       expect(body.substitutions).toEqual({});
     });
@@ -260,7 +260,7 @@ describe('invitation (card-project) tools', () => {
         contentType: 'image/jpeg',
       });
 
-      const result = await previewQrcode({ url: 'https://mywedding.website' });
+      const result = await previewQrcode(client, { url: 'https://mywedding.website' });
 
       expect(binSpy).toHaveBeenCalledWith('PUT', '/v3/card-projects/qrcode/preview', {
         dimension: 'MEDIUM',
@@ -282,7 +282,7 @@ describe('invitation (card-project) tools', () => {
         bytes: new Uint8Array([0x00, 0x01, 0x02, 0x03]),
         contentType: 'image/svg+xml',
       });
-      const r = await previewQrcode({ url: 'https://x' });
+      const r = await previewQrcode(client, { url: 'https://x' });
       const block = r.content[0]!;
       if (block.type === 'image') expect(block.mimeType).toBe('image/svg+xml');
     });
@@ -292,7 +292,7 @@ describe('invitation (card-project) tools', () => {
         bytes: new Uint8Array([0]),
         contentType: 'image/png',
       });
-      await previewQrcode({
+      await previewQrcode(client, {
         url: 'https://x',
         dimension: 'LARGE',
         url_type: 'WEDDING_WEBSITE_RSVP',
@@ -309,7 +309,7 @@ describe('invitation (card-project) tools', () => {
     it('setCardProjectQrcode PUTs to project/customization/page/qrcode', async () => {
       reqSpy.mockResolvedValueOnce({ data: { uuid: 'qr-element' } } as never);
 
-      await setCardProjectQrcode({
+      await setCardProjectQrcode(client, {
         project_uuid: PROJECT_UUID,
         page_uuid: PAGE_UUID,
         url: 'https://www.zola.com/wedding/foo/rsvp',

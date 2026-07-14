@@ -1,10 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { client } from '../client.js';
+import type { ZolaClient } from '../client.js';
 
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
-export async function getWeddingDashboard(): Promise<ToolResult> {
+export async function getWeddingDashboard(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     '/v4/your-wedding'
@@ -12,7 +12,7 @@ export async function getWeddingDashboard(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export async function searchStorefronts(args: {
+export async function searchStorefronts(client: ZolaClient, args: {
   taxonomy_node_id: number;
   city: string;
   state_province: string;
@@ -41,7 +41,7 @@ export async function searchStorefronts(args: {
   return jsonResult(response.data);
 }
 
-export async function getStorefront(args: { uuid: string }): Promise<ToolResult> {
+export async function getStorefront(client: ZolaClient, args: { uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     `/v3/storefronts/${encodeURIComponent(args.uuid)}`
@@ -49,7 +49,7 @@ export async function getStorefront(args: { uuid: string }): Promise<ToolResult>
   return jsonResult(response.data);
 }
 
-export async function listFavorites(): Promise<ToolResult> {
+export async function listFavorites(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
     '/v3/favorites/'
@@ -57,11 +57,11 @@ export async function listFavorites(): Promise<ToolResult> {
   return jsonResult(response.data);
 }
 
-export function registerDiscoverTools(server: McpServer): void {
+export function registerDiscoverTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('get_wedding_dashboard', {
     description: 'Get the wedding planning dashboard overview (invites, paper, planning progress)',
     annotations: { readOnlyHint: true },
-  }, getWeddingDashboard);
+  }, () => getWeddingDashboard(client));
 
   server.registerTool('search_storefronts', {
     description: 'Search Zola vendor marketplace by category and location (1=Venues, 2=Photographers, 3=Florists, 7=Planners, 9=Bands/DJs)',
@@ -73,16 +73,16 @@ export function registerDiscoverTools(server: McpServer): void {
       offset: z.number().optional().describe('Pagination offset (default 0)'),
     },
     annotations: { readOnlyHint: true },
-  }, searchStorefronts);
+  }, (args) => searchStorefronts(client, args));
 
   server.registerTool('get_storefront', {
     description: 'Get full details for a vendor storefront (pricing, reviews, photos, about, FAQs)',
     inputSchema: { uuid: z.string().describe('Storefront UUID from search_storefronts or list_favorites') },
     annotations: { readOnlyHint: true },
-  }, getStorefront);
+  }, (args) => getStorefront(client, args));
 
   server.registerTool('list_favorites', {
     description: 'List all favorited/saved vendors',
     annotations: { readOnlyHint: true },
-  }, listFavorites);
+  }, () => listFavorites(client));
 }

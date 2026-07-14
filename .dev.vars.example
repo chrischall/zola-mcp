@@ -1,0 +1,7 @@
+# Local Worker dev overrides for `wrangler dev` (copy to `.dev.vars`).
+#
+# Zola has NO app-level API credentials — each user's own Zola refresh token
+# (the long-lived `usr` cookie value) arrives through the connector's OAuth
+# login form (served at /authorize), not from here. There is nothing required
+# in this file to run the hosted connector locally; it exists only as the
+# conventional place for any future Worker-only dev override.

@@ -104,7 +104,7 @@ describe('events & wedding tools', () => {
   it('listEvents: GETs event groups and flattens to event list', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_EVENTS_RESPONSE as never);
 
-    const result = await listEvents();
+    const result = await listEvents(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/events/wedding-accounts/4664323/groups');
     const parsed = JSON.parse(result.content[0].text);
@@ -117,7 +117,7 @@ describe('events & wedding tools', () => {
   it('trackRsvps: GETs RSVP tracking per event', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_RSVPS_RESPONSE as never);
 
-    const result = await trackRsvps();
+    const result = await trackRsvps(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/events/track-rsvps');
     const parsed = JSON.parse(result.content[0].text);
@@ -130,7 +130,7 @@ describe('events & wedding tools', () => {
   it('getGiftTracker: GETs gift tracking summary and gifts', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_GIFT_TRACKER_RESPONSE as never);
 
-    const result = await getGiftTracker();
+    const result = await getGiftTracker(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/gift_tracker/registry-1');
     const parsed = JSON.parse(result.content[0].text);
@@ -142,7 +142,7 @@ describe('events & wedding tools', () => {
   it('getRegistry: GETs registry items', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_REGISTRY_RESPONSE as never);
 
-    const result = await getRegistry();
+    const result = await getRegistry(client);
 
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v4/shop/registry?registry_id=registry-1&updated_modules=true');
     const parsed = JSON.parse(result.content[0].text);
@@ -153,7 +153,7 @@ describe('events & wedding tools', () => {
     // Return an empty group array — no events at all
     reqSpy.mockResolvedValueOnce({ data: [] } as never);
 
-    await expect(updateEvent({ event_id: 999, name: 'X' })).rejects.toThrow(
+    await expect(updateEvent(client, { event_id: 999, name: 'X' })).rejects.toThrow(
       'Event with ID 999 not found'
     );
   });
@@ -165,7 +165,7 @@ describe('events & wedding tools', () => {
     const updatedEvent = { ...MOCK_EVENT, name: 'Updated Reception' };
     reqSpy.mockResolvedValueOnce({ data: updatedEvent } as never);
 
-    const result = await updateEvent({ event_id: 5108495, name: 'Updated Reception' });
+    const result = await updateEvent(client, { event_id: 5108495, name: 'Updated Reception' });
 
     expect(reqSpy).toHaveBeenCalledTimes(2);
     expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/websites/events/wedding-accounts/4664323/groups');
