@@ -124,63 +124,17 @@ Releases are driven by **release-please** (`googleapis/release-please-action`) �
 
 Because release-please keys on Conventional Commits, a PR that squash-merges **without** a `feat:`/`fix:` prefix won't trigger a release. To force a version (e.g. to ship a feature that merged without a prefix), put a `Release-As: X.Y.Z` footer in a commit on `main` — release-please proposes exactly that version on its next run. (Squash settings: title = PR title, body = PR body, so a `Release-As:` line in the PR body lands in the squashed commit.)
 
-<!-- pr-workflow:v2 -->
+<!-- pr-workflow:v3 -->
 ## Pull requests & release notes
 
-**Default workflow: branch + PR, even for solo work.** Open a PR rather than pushing to `main` — a direct push skips review and the auto-merge flow. Push directly to `main` only when the user explicitly asks for it (e.g. emergency hotfix).
+Fleet policy — Conventional-Commit PR titles, labels, the auto-review /
+auto-merge ladder, auto-review follow-up issues, PR timing, and release PRs —
+lives in `~/.claude/CLAUDE.md`. Don't restate it here; the copies drifted.
 
-**The PR title MUST be a Conventional Commit.** The repo squash-merges with `squash_commit_title = PR_TITLE`, so the **PR title becomes the commit subject**, and release-please derives *both* the version bump and the changelog section from its prefix. A prefix-less title (e.g. "Add event invitations") silently produces **no release and no changelog entry** — the change still lands on `main`, but it's invisible to release-please. Write the title as `type: user-facing summary`; the text after the prefix becomes the changelog bullet.
-
-| Prefix | Section | Bump |
-|--------|---------|------|
-| `feat:` | Features | minor |
-| `fix:` | Bug Fixes | patch |
-| `perf:` | Performance | patch |
-| `refactor:` | Refactor | patch |
-| `revert:` | Reverts | patch |
-| `docs:` | Documentation | patch |
-| `test:` / `build:` / `ci:` / `chore:` | hidden | **none — no release** |
-
-(Sections/visibility live in `release-please-config.json` → `changelog-sections`.)
-
-**Labels drive the automation, not the changelog.** The changelog section comes from the commit **prefix** above. Labels are for tooling: `ready-to-merge` (arms `auto-merge.yml`), `auto-review`, `ignore-for-release`, and the dependabot categories. A category label (`enhancement`/`bug`/`documentation`/…) is fine for triage but does not affect release notes.
-
-**Exception for first-party dependency bumps.** When bumping a package we own (`@chrischall/mcp-utils`, `@fetchproxy/*` — anything from a chrischall-owned repo), use a `feat:`/`fix:` prefix, **not** `chore(deps):`. Those bumps deliver real fixes/features through us, so they should drive a release and land under Features/Bug Fixes — a `chore(deps):` bump is hidden and triggers no release.
-
-### How PRs merge
-
-**Don't run `gh pr merge` yourself.** The automation does it:
-
-1. `pr-auto-review.yml` (a thin stub calling `chrischall/workflows`) runs a Claude review on every PR **except** the release-please release PR (which it deliberately skips). A `pass` **or** `warn` verdict adds the `ready-to-merge` label; a `warn` or `fail` verdict also opens/updates an `auto-review-followup` issue capturing the findings. Only `fail` blocks the merge.
-2. `auto-merge.yml`, on the `ready-to-merge` label (or on a dependabot PR), arms `gh pr merge --auto --squash`. The moment CI is green the PR squash-merges itself.
-
-For ordinary feature/fix PRs, opening with `gh pr create --label <label>` (or `--label ignore-for-release` for chores not worth a release-notes line) is the whole job. If Claude's verdict was `warn`/`fail` but you've decided to ship anyway, add the label yourself: `gh pr edit <num> --add-label ready-to-merge`.
-
-### Auto-review follow-up issues
-
-When a PR's auto-review verdict is `warn` or `fail`, the `chrischall/workflows` pipeline opens or updates a single `auto-review-followup` issue ("Auto-review follow-ups for PR #N") whose checklist captures every finding, and links it from the PR's `<!-- auto-review-verdict -->` comment (`📋 Tracking follow-ups: #N`). `warn` (nits only) still auto-merges — the issue carries the nits forward, so most nits are fixed in a *later* PR; `fail` blocks until the important findings are addressed on the PR itself.
-
-When asked to address the auto-review comments / review findings on a PR:
-
-1. Read the verdict comment, open the linked `auto-review-followup` issue, and treat its checklist as the work list (alongside any inline review comments).
-2. Resolve each item, checking off only what you've **verified** is genuinely fixed.
-3. If every item is resolved on the current PR, add `Closes #<issue>` to that PR's body so the merge closes it; if some are deferred, check off only the resolved ones and leave the issue open.
-4. For nits whose `warn` PR already auto-merged, address them in a follow-up PR that references `Closes #<issue>`.
-
-(Mirrors the fleet-wide convention in `~/.claude/CLAUDE.md`.)
-
-### PR timing — only open when the feature is done
-
-Because PRs auto-merge as soon as auto-review passes, **do not open a PR until the feature is genuinely complete**. There's no draft-PR safety net here:
-
-- Don't open a PR to "stage" work while live verification, follow-up fixes, or final passes are still pending — by the time you finish those, the half-baked PR may already be in `main`.
-- Push commits to the branch first; only run `gh pr create` once tests pass, live verification (if applicable) is green, and you'd be comfortable with the change shipping as-is.
-- If follow-ups land after a PR is already open, they need to land on the same branch *before* auto-review flips to `pass`. Once the PR squash-merges, late commits orphan onto a stale branch and become their own follow-up PR.
-- If you genuinely need a checkpoint review without shipping, open the PR as a GitHub draft (`gh pr create --draft …`) — auto-review skips drafts. Mark it ready-for-review only when the feature is truly done.
-
-**Release PRs are the one manual touch.** release-please opens its own release PR and leaves it open as your staging artifact — `pr-auto-review.yml` skips it on purpose, so it sits there accumulating changes until you decide to ship. When you're ready, add `ready-to-merge` to it the same way: `gh pr edit <num> --add-label ready-to-merge`. The `auto-merge.yml` arm then takes over and the publish job fires the moment the release PR lands.
-
-The repo allows squash-merge only — `--merge` and `--rebase` are blocked at the branch-protection ruleset level.
+Shared technical conventions (publishing, bundling, versioning guards,
+write-verification, transport archetypes, testing traps) live in
+[`chrischall/workflows`](https://github.com/chrischall/workflows):
+`docs/fleet-conventions.md`, plus `README.md` for the CI pipeline contract.
 
 ## Gotchas
 
