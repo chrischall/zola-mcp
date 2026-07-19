@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.1](https://github.com/chrischall/zola-mcp/compare/v1.6.0...v1.6.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **ci:** run the Workers test pool in CI ([#110](https://github.com/chrischall/zola-mcp/issues/110)) ([5d604fd](https://github.com/chrischall/zola-mcp/commit/5d604fd9e89e53d9a33a1a65da1cde7e9440af8e))
+
+
+### Documentation
+
+* replace duplicated fleet policy with a pointer ([#107](https://github.com/chrischall/zola-mcp/issues/107)) ([8c1bf8d](https://github.com/chrischall/zola-mcp/commit/8c1bf8de239534b3901a365a34aaf9986cc7e907))
+
 ## [1.6.0](https://github.com/chrischall/zola-mcp/compare/v1.5.0...v1.6.0) (2026-07-14)
 
 
