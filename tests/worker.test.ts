@@ -54,7 +54,17 @@ describe('Zola Cloudflare connector — OAuth surface', () => {
   it('GET /authorize renders the Zola login page with the refresh-token field', async () => {
     // No `client_id` query param: the login page renders without needing a
     // registered OAuth client, which is all we verify here.
-    const res = await SELF.fetch('https://example.com/authorize?response_type=code&state=abc');
+    //
+    // `redirect_uri` IS required though — don't drop it. workers-oauth-provider
+    // 0.8.x calls validateRedirectUriScheme() unconditionally from
+    // parseAuthRequest(), and that rejects any value without a scheme, including
+    // the empty string an absent `redirect_uri` becomes ("Invalid redirect URI").
+    // 0.0.x only screened for dangerous schemes, so omitting it used to work.
+    const res = await SELF.fetch(
+      'https://example.com/authorize?response_type=code&state=abc' +
+        '&redirect_uri=' +
+        encodeURIComponent('https://example.com/callback'),
+    );
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/html');
     const html = await res.text();
