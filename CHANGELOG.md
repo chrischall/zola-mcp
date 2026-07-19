@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/chrischall/zola-mcp/compare/v1.6.1...v1.6.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **deps:** move to workers-oauth-provider 0.8.x and mcp-connector 1.0.0 ([#111](https://github.com/chrischall/zola-mcp/issues/111)) ([d78e10f](https://github.com/chrischall/zola-mcp/commit/d78e10fe32a075de3b5b0907a8f13916593287bc))
+
 ## [1.6.1](https://github.com/chrischall/zola-mcp/compare/v1.6.0...v1.6.1) (2026-07-19)
 
 
