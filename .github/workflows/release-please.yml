@@ -52,6 +52,13 @@ jobs:
         with:
           version: ${{ needs.release-please.outputs.version }}
           tag-name: ${{ needs.release-please.outputs.tag_name }}
+          # REQUIRED here: mcp-publish auto-resolves a single skills/*/SKILL.md,
+          # but this repo ships two (zola, zola-api) and the action refuses to
+          # guess. Without this the publish job dies at "Resolve skill path" —
+          # step 2, before npm publish — so releases tag cleanly while nothing
+          # ships. That is exactly what happened to 1.6.0, 1.6.1 and 1.6.2.
+          # `zola` is the MCP server's own skill, matching .claude-plugin/plugin.json.
+          skill-path: skills/zola/SKILL.md
           clawhub-token: ${{ secrets.CLAWHUB_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
