@@ -14,7 +14,7 @@ import { registerRegistryItemTools } from './tools/registry-items.js';
 import { registerInvitationTools } from './tools/invitations.js';
 import { registerEventInvitationTools } from './tools/event-invitations.js';
 
-const VERSION = '1.6.2'; // x-release-please-version
+const VERSION = '1.6.3'; // x-release-please-version
 
 await runMcp({
   name: 'zola-mcp',

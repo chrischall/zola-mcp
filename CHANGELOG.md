@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.3](https://github.com/chrischall/zola-mcp/compare/v1.6.2...v1.6.3) (2026-07-20)
+
+
+### Bug Fixes
+
+* **release:** publish again by disambiguating the skill path ([#117](https://github.com/chrischall/zola-mcp/issues/117)) ([9350a7f](https://github.com/chrischall/zola-mcp/commit/9350a7f826272a2020f650062c424dc90cf53464))
+
 ## [1.6.2](https://github.com/chrischall/zola-mcp/compare/v1.6.1...v1.6.2) (2026-07-19)
 
 
