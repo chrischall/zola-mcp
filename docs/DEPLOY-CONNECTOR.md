@@ -3,9 +3,12 @@
 This is the operator runbook for standing up `zola-mcp` as a hosted Cloudflare
 Worker — a "remote connector" that anyone you share the URL with can add to
 claude.ai (web, desktop, or mobile), each logging in with their own Zola refresh
-token. It's a manual, one-time (per operator) process; there is no CI/CD path for
-it, and none of the steps below can be done by an agent since they require your
-own Cloudflare account.
+token. The setup below is a manual, one-time (per operator) process — none of it
+can be done by an agent, since it requires your own Cloudflare account. Once it's
+done, deploys are automated: the `deploy-connector` job in `release-please.yml`
+redeploys the Worker at every release tag (via the shared
+`chrischall/workflows` reusable workflow), and **Actions → deploy-connector →
+Run workflow** deploys any ref on demand.
 
 If you just want the server on your own machine talking only to your own Zola
 account, you don't need any of this — see the main [README](../README.md) for the
@@ -112,6 +115,11 @@ confirm it bundles without deploying:
 ```sh
 npx wrangler deploy --dry-run
 ```
+
+This local `wrangler deploy` is only needed for the first deploy (and for
+debugging). Afterwards CI owns it: every release redeploys the Worker at its tag,
+and `Actions → deploy-connector → Run workflow` redeploys any ref on demand —
+both using the `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` repo secrets.
 
 and run the Worker-specific test suite (Miniflare / real Workers runtime) with:
 
