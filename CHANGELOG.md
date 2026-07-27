@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.5](https://github.com/chrischall/zola-mcp/compare/v1.6.4...v1.6.5) (2026-07-27)
+
+
+### Documentation
+
+* restore the squash-merge-only fact dropped by the pointer rewrite ([#131](https://github.com/chrischall/zola-mcp/issues/131)) ([055952c](https://github.com/chrischall/zola-mcp/commit/055952cccf9d6d37dd04cf7b8de7b33bde4e243e))
+
 ## [1.6.4](https://github.com/chrischall/zola-mcp/compare/v1.6.3...v1.6.4) (2026-07-27)
 
 
