@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.4](https://github.com/chrischall/zola-mcp/compare/v1.6.3...v1.6.4) (2026-07-27)
+
+
+### Bug Fixes
+
+* **deps:** require @chrischall/mcp-connector &gt;=1.1.1 ([#126](https://github.com/chrischall/zola-mcp/issues/126)) ([f40652b](https://github.com/chrischall/zola-mcp/commit/f40652b011443a9d5e1a10a5d675aa941fc86f22))
+
 ## [1.6.3](https://github.com/chrischall/zola-mcp/compare/v1.6.2...v1.6.3) (2026-07-20)
 
 
