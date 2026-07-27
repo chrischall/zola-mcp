@@ -122,7 +122,7 @@ Releases are driven by **release-please** (`googleapis/release-please-action`) �
 2. The release PR is a human gate — `pr-auto-review.yml` deliberately skips it. Ship it by adding the `ready-to-merge` label (auto-merge arms it) or merging in the UI.
 3. When the release PR merges, release-please creates the `vX.Y.Z` tag + GitHub Release from the changelog, then the same workflow's `publish` job runs: `npm ci` + build, package the `.skill`, `mcpb pack` the `.mcpb`, `npm publish --provenance`, MCP Registry publish (OIDC), optional ClawHub publish, and attaches the `.skill`/`.mcpb` to the release.
 
-Because release-please keys on Conventional Commits, a PR that squash-merges **without** a `feat:`/`fix:` prefix won't trigger a release. To force a version (e.g. to ship a feature that merged without a prefix), put a `Release-As: X.Y.Z` footer in a commit on `main` — release-please proposes exactly that version on its next run. (Squash settings: title = PR title, body = PR body, so a `Release-As:` line in the PR body lands in the squashed commit.)
+Because release-please keys on Conventional Commits, a PR that squash-merges **without** a `feat:`/`fix:` prefix won't trigger a release. To force a version (e.g. to ship a feature that merged without a prefix), put a `Release-As: X.Y.Z` footer in a commit on `main` — release-please proposes exactly that version on its next run. (Squash settings: title = PR title, body = PR body, so a `Release-As:` line in the PR body lands in the squashed commit.) The repo allows **squash-merge only** — `--merge` and `--rebase` are blocked at the branch-protection ruleset level, so a merged branch's commits are never ancestors of `main`.
 
 <!-- pr-workflow:v3 -->
 ## Pull requests & release notes
