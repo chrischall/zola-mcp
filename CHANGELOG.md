@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.6](https://github.com/chrischall/zola-mcp/compare/v1.6.5...v1.6.6) (2026-07-30)
+
+
+### Bug Fixes
+
+* **deps:** bump @fetchproxy/* to 1.7.0 and @chrischall/mcp-utils to 0.14.0 ([#133](https://github.com/chrischall/zola-mcp/issues/133)) ([bc5232f](https://github.com/chrischall/zola-mcp/commit/bc5232f33a28c9b65a875fd1c86191ec4b6a4afc))
+
 ## [1.6.5](https://github.com/chrischall/zola-mcp/compare/v1.6.4...v1.6.5) (2026-07-27)
 
 
