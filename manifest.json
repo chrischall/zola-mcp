@@ -140,7 +140,11 @@
     },
     {
       "name": "get_registry",
-      "description": "View the wedding registry"
+      "description": "View registry items with per-item purchase state (requested vs purchased quantity, marked_fulfilled, availability, inconsistent)"
+    },
+    {
+      "name": "reconcile_registry",
+      "description": "Reconcile the registry against the gift tracker: items flagged fulfilled but never purchased, purchased items with no order behind them, and orders with no matching registry item"
     },
     {
       "name": "get_wedding_dashboard",
