@@ -279,11 +279,13 @@ describe('reconcile reads the whole registry, never a page', () => {
     }
   }
 
-  it('accepts no paging arguments, so it cannot be paged by accident', () => {
-    // The earlier fix removed limit/offset from the tool schema but left the
-    // function defaulting to limit: 500 — invisible on a 75-item registry.
-    expect(reconcileRegistry.length).toBe(1);
-  });
+  // NOTE: there is deliberately no `reconcileRegistry.length` assertion here.
+  // Function.length counts parameters before the first *defaulted* one, so the
+  // buggy `(client, args = {})` signature also had length 1 — such a test is
+  // green against the exact regression it claims to catch. The real guards are
+  // in tests/reconcile-invariant.test.ts: one asserts the read is unbounded
+  // (limit === MAX_SAFE_INTEGER, no offset), and one asserts reconcile throws
+  // when items.length !== total, which fires however a page got introduced.
 
   it('reconciles against the full 75-item collection', async () => {
     const report = await runReconcile();

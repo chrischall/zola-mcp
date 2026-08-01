@@ -1,6 +1,6 @@
 import { truncateErrorMessage } from '@chrischall/mcp-utils';
 import type { ZolaClient } from './client.js';
-import { formatBytes } from './client.js';
+import { byteLength, formatBytes } from './client.js';
 import { MobileEnvelope } from './types.js';
 
 /**
@@ -264,7 +264,7 @@ export function extractItemsFromHtml(html: string): RawRegistryItem[] {
           'mobile API has no GET for it.'
         : 'Registry page did not contain a __NEXT_DATA__ block — the page shape changed, ' +
           'or the response was an error page rather than the registry.',
-      `received ${formatBytes(html.length)} of HTML`
+      `received ${formatBytes(byteLength(html))} of HTML`
     );
   }
 
