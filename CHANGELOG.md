@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.3](https://github.com/chrischall/zola-mcp/compare/v1.7.2...v1.7.3) (2026-08-01)
+
+
+### Bug Fixes
+
+* **registry:** retry the intermittent 403 and measure cash funds against their goal ([#144](https://github.com/chrischall/zola-mcp/issues/144)) ([016a557](https://github.com/chrischall/zola-mcp/commit/016a557e007623c1f2f9da45e3701ae3bef104a8))
+
 ## [1.7.2](https://github.com/chrischall/zola-mcp/compare/v1.7.1...v1.7.2) (2026-08-01)
 
 
