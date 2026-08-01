@@ -5,7 +5,7 @@ description: This skill should be used when the user asks about Zola wedding pla
 
 # zola-mcp
 
-MCP server for Zola — 30 tools for managing your entire wedding via the Zola mobile API.
+MCP server for Zola — 31 tools for managing your entire wedding via the Zola mobile API.
 
 ## Tools
 
