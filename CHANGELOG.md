@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.1](https://github.com/chrischall/zola-mcp/compare/v1.7.0...v1.7.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **registry:** assert reconcile reads the whole registry, and document the new tools ([#139](https://github.com/chrischall/zola-mcp/issues/139)) ([0d7d173](https://github.com/chrischall/zola-mcp/commit/0d7d173adfde24e9bad600dc43eb4a9d3c95afb1))
+
 ## [1.7.0](https://github.com/chrischall/zola-mcp/compare/v1.6.6...v1.7.0) (2026-08-01)
 
 
