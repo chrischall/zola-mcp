@@ -242,6 +242,19 @@ export async function reconcileRegistry(client: ZolaClient): Promise<ToolResult>
   // limit/offset for browsing; this tool always reads everything.
   const collection = await fetchRegistryCollection(client, { limit: Number.MAX_SAFE_INTEGER });
 
+  // Assert it, don't just ask for it. The unpaged read above is a default, and a
+  // default can drift; this makes "reconciled the whole registry" a property the
+  // report cannot be published without. Failing loudly beats a partial
+  // reconciliation that reads as a complete one — the same argument this module
+  // makes for never returning an empty collection.
+  if (collection.items.length !== collection.total) {
+    throw new Error(
+      `Refusing to reconcile a partial registry: read ${collection.items.length} of ` +
+        `${collection.total} items. Reconciliation joins against the whole collection ` +
+        '— a slice turns every order for a truncated item into a fabricated ORPHAN_ORDER.'
+    );
+  }
+
   const trackerResponse = await client.requestMobile<MobileEnvelope<RawGiftTracker>>(
     'GET',
     `/v3/gift_tracker/${registryId}`
