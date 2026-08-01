@@ -27,6 +27,65 @@ try {
 
 const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
 
+/**
+ * A request that failed anywhere between "we called fetch" and "we have parsed
+ * JSON", carrying enough context to tell the three failure modes apart.
+ *
+ * This type exists because they were previously indistinguishable. A tool that
+ * surfaced only "Error occurred during tool execution" gave no way to tell an
+ * expired credential from a 403 WAF rejection from a body too large to parse —
+ * all three needed different fixes and looked identical. Every field below is
+ * something that was missing at the moment it was most needed.
+ *
+ * `bytes` earns its place: the failure that motivated this class was a 4 MB
+ * success response, where the status code alone (200) said nothing useful.
+ */
+export class ZolaApiError extends Error {
+  readonly stage: 'transport' | 'http' | 'parse';
+  readonly status: number | null;
+  readonly method: string;
+  readonly path: string;
+  readonly bytes: number | null;
+  readonly bodyPreview: string | null;
+
+  constructor(init: {
+    stage: 'transport' | 'http' | 'parse';
+    status?: number | null;
+    method: string;
+    path: string;
+    bytes?: number | null;
+    bodyPreview?: string | null;
+    message: string;
+    cause?: unknown;
+  }) {
+    super(init.message, init.cause !== undefined ? { cause: init.cause } : undefined);
+    this.name = 'ZolaApiError';
+    this.stage = init.stage;
+    this.status = init.status ?? null;
+    this.method = init.method;
+    this.path = init.path;
+    this.bytes = init.bytes ?? null;
+    this.bodyPreview = init.bodyPreview ?? null;
+  }
+}
+
+/**
+ * Byte length of a string as sent over the wire.
+ *
+ * `String.length` counts UTF-16 code units, so a body full of multi-byte
+ * characters under-reports — misleading in a field literally named `bytes`.
+ */
+export function byteLength(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
+
+/** Human-readable byte count for diagnostics (`4.0 MB`, `154.0 KB`, `812 B`). */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export interface UserContext {
   weddingAccountId: number;
   weddingId: number;
@@ -157,7 +216,28 @@ export class ZolaClient {
   private async doRequest<T>(method: string, path: string, body: unknown): Promise<T> {
     const response = await this.sendWithRetry(method, path, body);
     const text = await response.text();
-    return (text ? JSON.parse(text) : null) as T;
+    if (!text) return null as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch (cause) {
+      // A 2xx whose body will not parse. Previously this surfaced as a bare
+      // "Unexpected token …" with no hint of which endpoint produced it or how
+      // big the body was — the two facts that actually identify the problem.
+      const size = byteLength(text);
+      throw new ZolaApiError({
+        stage: 'parse',
+        status: response.status,
+        method,
+        path,
+        bytes: size,
+        bodyPreview: truncateErrorMessage(text, 300),
+        message:
+          `Zola API returned unparseable JSON for ${method.toUpperCase()} ${path} ` +
+          `(HTTP ${response.status}, ${formatBytes(size)}): ` +
+          `${truncateErrorMessage(text, 300)}`,
+        cause,
+      });
+    }
   }
 
   private async sendWithRetry(
@@ -183,11 +263,27 @@ export class ZolaClient {
     };
     if (body !== undefined) headers['content-type'] = 'application/json';
 
-    const response = await fetch(`${MOBILE_BASE_URL}${path}`, {
-      method,
-      headers,
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${MOBILE_BASE_URL}${path}`, {
+        method,
+        headers,
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      });
+    } catch (cause) {
+      // DNS failure, TLS error, socket reset, abort. There is no status code to
+      // report here, and saying so explicitly is the point: "transport" tells
+      // the reader not to go looking for one.
+      throw new ZolaApiError({
+        stage: 'transport',
+        method,
+        path,
+        message:
+          `Zola API transport failure for ${method.toUpperCase()} ${path}: ` +
+          truncateErrorMessage(cause instanceof Error ? cause.message : String(cause)),
+        cause,
+      });
+    }
 
     if (response.status === 401 && !isAuthRetry) {
       // Drop the cached token so the replay's getToken re-mints via refresh().
@@ -200,14 +296,30 @@ export class ZolaClient {
         await new Promise<void>((r) => setTimeout(r, 2000));
         return this.sendWithRetry(method, path, body, isAuthRetry, true, accept);
       }
-      throw new Error('Rate limited by Zola API');
+      throw new ZolaApiError({
+        stage: 'http',
+        status: 429,
+        method,
+        path,
+        message: `Zola API error 429 for ${method.toUpperCase()} ${path}: rate limited (retried once after 2s)`,
+      });
     }
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(
-        formatApiError(response.status, method, path, text, { service: 'Zola API' })
-      );
+      // `formatApiError` already yields "Zola API error <status> for <METHOD>
+      // <path>: <redacted body>" and runs the body through redaction *then*
+      // truncation. Keep it as the message, and additionally carry the parts as
+      // structured fields so callers can branch on status without regex.
+      throw new ZolaApiError({
+        stage: 'http',
+        status: response.status,
+        method,
+        path,
+        bytes: byteLength(text),
+        bodyPreview: truncateErrorMessage(text),
+        message: formatApiError(response.status, method, path, text, { service: 'Zola API' }),
+      });
     }
 
     return response;

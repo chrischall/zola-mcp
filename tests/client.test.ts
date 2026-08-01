@@ -221,9 +221,80 @@ describe('ZolaClient', () => {
     fetchMock.mockResolvedValue(makeResponse({}, 429));
 
     const client = new ZolaClient();
+    // The 429 message now carries status, method and path like every other
+    // failure, so a rate-limited tool call is diagnosable from its text alone.
     await expect(client.requestMobile('GET', '/v3/test')).rejects.toThrow(
-      'Rate limited by Zola API'
+      'Zola API error 429 for GET /v3/test'
     );
+  });
+
+  describe('error diagnostics', () => {
+    it('an HTTP failure names status, method and path', async () => {
+      process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+      fetchMock.mockResolvedValue(makeResponse({ code: 404, message: 'not found' }, 404));
+
+      const client = new ZolaClient();
+      const err = await client.requestMobile('GET', '/v3/registries/abc').catch((e) => e);
+
+      expect(err.name).toBe('ZolaApiError');
+      expect(err.stage).toBe('http');
+      expect(err.status).toBe(404);
+      expect(err.path).toBe('/v3/registries/abc');
+      expect(err.message).toContain('404');
+      expect(err.message).toContain('/v3/registries/abc');
+    });
+
+    it('a transport failure says so instead of inventing a status', async () => {
+      process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+      fetchMock.mockRejectedValue(new Error('ECONNRESET'));
+
+      const client = new ZolaClient();
+      const err = await client.requestMobile('GET', '/v3/test').catch((e) => e);
+
+      expect(err.stage).toBe('transport');
+      expect(err.status).toBeNull();
+      expect(err.message).toContain('transport failure');
+      expect(err.message).toContain('/v3/test');
+      expect(err.message).toContain('ECONNRESET');
+    });
+
+    it('an unparseable 2xx reports status, path and body size', async () => {
+      // The failure that motivated all of this was a *successful* response too
+      // large to handle: status 200 alone said nothing useful.
+      process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+      fetchMock.mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers({ 'content-type': 'application/json' }),
+        text: async () => 'x'.repeat(5000),
+      } as unknown as Response);
+
+      const client = new ZolaClient();
+      const err = await client.requestMobile('GET', '/v4/shop/registry').catch((e) => e);
+
+      expect(err.stage).toBe('parse');
+      expect(err.status).toBe(200);
+      expect(err.bytes).toBe(5000);
+      expect(err.message).toContain('unparseable JSON');
+      expect(err.message).toContain('/v4/shop/registry');
+      expect(err.message).toContain('4.9 KB');
+    });
+
+    it('still redacts credentials from a diagnostic body', async () => {
+      const jwt = `${'a'.repeat(20)}.${'b'.repeat(20)}.${'c'.repeat(20)}`;
+      process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+      fetchMock.mockResolvedValue(makeResponse({ error: `bad token ${jwt}` }, 403));
+
+      const client = new ZolaClient();
+      const err = await client.requestMobile('GET', '/v3/test').catch((e) => e);
+
+      // Redaction must not cost us the status code.
+      expect(err.message).not.toContain(jwt);
+      expect(err.status).toBe(403);
+      expect(err.message).toContain('403');
+      expect(err.message).toContain('/v3/test');
+    });
   });
 
   it('getContext: returns weddingId from context response', async () => {

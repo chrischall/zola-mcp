@@ -61,6 +61,7 @@ interface GiftTracker {
 }
 
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
+import { fetchRegistryCollection } from '../registry-collection.js';
 
 export async function listEvents(client: ZolaClient): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
@@ -80,6 +81,38 @@ export async function trackRsvps(client: ZolaClient): Promise<ToolResult> {
   return jsonResult(response.data.modules);
 }
 
+/**
+ * Collapse an item's `image_links` map to a single canonical URL.
+ *
+ * The map holds ~15 keys (`A_84`, `A_96`, `A_138`, `A_300`, `A_640`, `A_1242`,
+ * …) that are all the same base URL with different `w`/`h` query params. They
+ * differ only in size, so one is enough. The widest is kept, matching
+ * `canonicalImageUrl` on the registry side.
+ */
+function collapseImageLinks(item: Record<string, unknown>): Record<string, unknown> {
+  const { image_links: links, ...rest } = item;
+  let imageUrl: string | null = null;
+
+  if (links && typeof links === 'object') {
+    // Keys are `A_<width>`. Taking the first entry yielded the 84px thumbnail,
+    // while `canonicalImageUrl` on the registry side prefers the largest — so
+    // the two projections disagreed about which URL is "the" image. Pick the
+    // widest here so they match.
+    let widest = -1;
+    for (const [key, value] of Object.entries(links as Record<string, unknown>)) {
+      if (typeof value !== 'string' || value === '') continue;
+      const width = Number(/^A_(\d+)$/.exec(key)?.[1] ?? Number.NaN);
+      const rank = Number.isFinite(width) ? width : 0;
+      if (rank > widest) {
+        widest = rank;
+        imageUrl = value;
+      }
+    }
+  }
+
+  return { ...rest, image_url: imageUrl };
+}
+
 export async function getGiftTracker(client: ZolaClient): Promise<ToolResult> {
   const { registryId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<GiftTracker>>(
@@ -87,16 +120,67 @@ export async function getGiftTracker(client: ZolaClient): Promise<ToolResult> {
     `/v3/gift_tracker/${registryId}`
   );
   const { info_modules: _, ...tracker } = response.data;
-  return jsonResult(tracker);
+  return jsonResult(projectGiftTracker(tracker));
 }
 
-export async function getRegistry(client: ZolaClient): Promise<ToolResult> {
-  const { registryId } = await client.getContext();
-  const response = await client.requestMobile<MobileEnvelope<unknown>>(
-    'GET',
-    `/v4/shop/registry?registry_id=${registryId}&updated_modules=true`
-  );
-  return jsonResult(response.data);
+/**
+ * Strip presentation payloads from a gift-tracker response.
+ *
+ * Two things dominate this endpoint's size, and neither is gift data:
+ *
+ *  - `order_groups[].modules` — a `THANK_YOU_CARDS_PROMO` block per order, each
+ *    carrying a full card-suite catalog. **26.5 KB per order**, ~106 KB of a
+ *    154 KB response. This is the real bulk, not the image links.
+ *  - `image_links` — ~15 keys per item, all the same base URL with different
+ *    `w`/`h` params. ~1.3 KB per item.
+ *
+ * `info_modules` is dropped by the caller for the same reason. Together these
+ * take the response from ~154 KB to ~12 KB without losing a single field the
+ * reconciler reads.
+ */
+export function projectGiftTracker<T extends Record<string, unknown>>(tracker: T): T {
+  const groups = (tracker as { order_groups?: unknown }).order_groups;
+  if (!Array.isArray(groups)) return tracker;
+
+  const projected = groups.map((group) => {
+    const { modules: _promo, ...g } = group as Record<string, unknown>;
+    const containers = Array.isArray(g.containers) ? g.containers : [];
+    return {
+      ...g,
+      containers: containers.map((container) => {
+        const c = container as Record<string, unknown>;
+        const items = Array.isArray(c.items) ? c.items : [];
+        return { ...c, items: items.map((i) => collapseImageLinks(i as Record<string, unknown>)) };
+      }),
+    };
+  });
+
+  return { ...tracker, order_groups: projected };
+}
+
+/**
+ * Read the couple's registry collection, with per-item purchase state.
+ *
+ * This does **not** call `GET /v4/shop/registry` any more. That endpoint
+ * returns HTTP 200 and ~4 MB of Shop *browse* content (search widgets,
+ * carousels, partner retailers) containing zero registry items — which is why
+ * this tool previously failed 100% of the time: the request succeeded and the
+ * 4 MB result then died at the MCP boundary, surfacing only "Error occurred
+ * during tool execution". The mobile API exposes no GET for the collection at
+ * all; `OPTIONS /v3/registries/{id}/collections` reports `allow: POST, OPTIONS`.
+ *
+ * See `src/registry-collection.ts` for the full diagnosis and the source now
+ * used instead.
+ */
+export async function getRegistry(
+  client: ZolaClient,
+  args: { limit?: number; offset?: number } = {}
+): Promise<ToolResult> {
+  const collection = await fetchRegistryCollection(client, {
+    limit: args.limit ?? 100,
+    offset: args.offset ?? 0,
+  });
+  return jsonResult(collection);
 }
 
 export async function updateEvent(client: ZolaClient, args: {
@@ -179,9 +263,16 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
   }, () => getGiftTracker(client));
 
   server.registerTool('get_registry', {
-    description: 'View the wedding registry with categories and items',
+    description:
+      "View the couple's registry items with derived purchase state per item " +
+      '(requested_qty, purchased_qty, marked_fulfilled, availability, inconsistent). ' +
+      'Paged via limit/offset.',
+    inputSchema: {
+      limit: z.number().optional().describe('Max items to return. Default 100'),
+      offset: z.number().optional().describe('Item offset. Default 0'),
+    },
     annotations: { readOnlyHint: true },
-  }, () => getRegistry(client));
+  }, (args) => getRegistry(client, args));
 
   server.registerTool('update_event', {
     description: 'Update a wedding event (name, time, venue, location, dress code, RSVP settings)',

@@ -1,0 +1,68 @@
+{
+  "groups": [
+    {
+      "modules": [
+        {
+          "type": "SEARCH",
+          "title": null,
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "CIRCLE_GRID",
+          "title": "All Categories",
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "SHOP_ENTITIES_CAROUSEL",
+          "title": "New Arrivals",
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "REGISTRY_EXTERNAL",
+          "title": "Registry Checklist",
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "SHOP_ENTITIES_CAROUSEL",
+          "title": "Registry Essentials",
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "IMAGE_GRID_ITEMS",
+          "title": "Top brands",
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "FEATURED_STARTER_COLLECTIONS",
+          "title": "Curated collections",
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "STARTER_COLLECTION",
+          "title": null,
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "THANK_YOU_CROSS_SELL",
+          "title": null,
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "PARTNER_RETAILERS",
+          "title": "Partner Stores",
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "ROW",
+          "title": "Expert Advice",
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        },
+        {
+          "type": "ROW",
+          "title": "Barcode scanner",
+          "note": "body omitted; the point of this fixture is the absence of registry items"
+        }
+      ]
+    }
+  ]
+}

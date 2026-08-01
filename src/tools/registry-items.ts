@@ -10,37 +10,51 @@ export function _resetRegistryCollectionCache(): void {
   collectionIdCache.clear();
 }
 
-interface RegistryShape {
-  data: {
-    groups?: Array<{
-      modules?: Array<{ type?: string; id?: string }>;
-    }>;
-    default_collection_id?: string;
-  };
+/** `GET /v3/registries/{id}` — registry metadata, ~1.3 KB. */
+interface RegistryMetaShape {
+  data?: {
+    default_collection_id?: string | null;
+    collection_ids?: string[] | null;
+  } | null;
 }
 
+/**
+ * Resolve the registry's default collection id.
+ *
+ * This reads `GET /v3/registries/{id}`, **not** `GET /v4/shop/registry`.
+ *
+ * The shop endpoint was the original source and could never have worked: it
+ * returns the Shop *browse* page (~4 MB of SEARCH / CIRCLE_GRID /
+ * SHOP_ENTITIES_CAROUSEL / PARTNER_RETAILERS modules) and carries neither a
+ * `default_collection_id` field nor any module of type `COLLECTION`. Both the
+ * primary lookup and its group-scanning fallback therefore resolved to
+ * `undefined` on every call, so `add_registry_item` threw "Could not determine
+ * default collection ID" any time the caller omitted `collection_id` — while
+ * also downloading 4 MB to fail. Verified against the live account 2026-08-01.
+ *
+ * `/v3/registries/{id}` returns the id directly and costs ~1.3 KB.
+ */
 async function getDefaultCollectionId(client: ZolaClient, registryId: string): Promise<string> {
   const cached = collectionIdCache.get(registryId);
   if (cached !== undefined) return cached;
-  const response = await client.requestMobile<RegistryShape>(
+
+  const response = await client.requestMobile<RegistryMetaShape>(
     'GET',
-    `/v4/shop/registry?registry_id=${registryId}&updated_modules=true`
+    `/v3/registries/${registryId}`
   );
-  let collectionId = response.data.default_collection_id;
+
+  const collectionId =
+    response.data?.default_collection_id ||
+    response.data?.collection_ids?.find((id) => typeof id === 'string' && id !== '');
+
   if (!collectionId) {
-    for (const group of response.data.groups ?? []) {
-      for (const mod of group.modules ?? []) {
-        if (mod.type === 'COLLECTION' && mod.id) {
-          collectionId = mod.id;
-          break;
-        }
-      }
-      if (collectionId) break;
-    }
+    throw new Error(
+      `Could not determine the default collection ID for registry ${registryId}: ` +
+        `GET /v3/registries/${registryId} returned no default_collection_id and no ` +
+        'collection_ids. Pass collection_id explicitly to work around this.'
+    );
   }
-  if (!collectionId) {
-    throw new Error('Could not determine default collection ID for registry');
-  }
+
   collectionIdCache.set(registryId, collectionId);
   return collectionId;
 }
