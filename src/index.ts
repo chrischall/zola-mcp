@@ -11,6 +11,7 @@ import { registerWebsiteTools } from './tools/website.js';
 import { registerWebsiteContentTools } from './tools/website-content.js';
 import { registerWebsiteThemeTools } from './tools/website-theme.js';
 import { registerRegistryItemTools } from './tools/registry-items.js';
+import { registerReconcileTools } from './tools/reconcile-registry.js';
 import { registerInvitationTools } from './tools/invitations.js';
 import { registerEventInvitationTools } from './tools/event-invitations.js';
 
@@ -33,6 +34,7 @@ await runMcp({
     registerWebsiteContentTools,
     registerWebsiteThemeTools,
     registerRegistryItemTools,
+    registerReconcileTools,
     registerInvitationTools,
     registerEventInvitationTools,
   ],

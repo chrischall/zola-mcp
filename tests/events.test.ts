@@ -71,25 +71,6 @@ const MOCK_GIFT_TRACKER_RESPONSE = {
   },
 };
 
-const MOCK_REGISTRY_RESPONSE = {
-  data: {
-    groups: [
-      {
-        modules: [
-          {
-            type: 'CIRCLE_GRID',
-            title: 'All Categories',
-            items: [
-              { title: 'Kitchen', deep_link_url: 'zola://category?id=544' },
-              { title: 'Dining', deep_link_url: 'zola://category?id=545' },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
 describe('events & wedding tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
@@ -139,14 +120,16 @@ describe('events & wedding tools', () => {
     expect(parsed.gifts[0].title).toBe('Le Creuset Dutch Oven');
   });
 
-  it('getRegistry: GETs registry items', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_REGISTRY_RESPONSE as never);
+  it('getRegistry: no longer calls the shop-browse endpoint that never returned items', async () => {
+    // GET /v4/shop/registry returns 200 + ~4MB of Shop browse content with zero
+    // registry items; the registry now comes from the collection reader.
+    reqSpy.mockResolvedValue({ data: { key: null, public: true } } as never);
 
-    const result = await getRegistry(client);
+    await expect(getRegistry(client)).rejects.toThrow(/no public key/);
 
-    expect(reqSpy).toHaveBeenCalledWith('GET', '/v4/shop/registry?registry_id=registry-1&updated_modules=true');
-    const parsed = JSON.parse(result.content[0].text);
-    expect(parsed).toBeDefined();
+    for (const [, path] of reqSpy.mock.calls as unknown as [string, string][]) {
+      expect(path).not.toContain('/v4/shop/registry');
+    }
   });
 
   it('updateEvent: throws when event_id not found', async () => {
