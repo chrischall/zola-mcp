@@ -210,8 +210,9 @@ Ask Claude: *"How's wedding planning going?"* — it should show your wedding da
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `get_registry` | Registry categories and items | Auto |
+| `get_registry` | Registry items with per-item purchase state (`requested_qty`, `purchased_qty`, `marked_fulfilled`, `availability`, `inconsistent`); paged via `limit`/`offset` | Auto |
 | `get_gift_tracker` | Gifts received, thank-you status | Auto |
+| `reconcile_registry` | Joins the registry against the gift tracker: `DUPLICATE_RISK` (flagged fulfilled but nothing purchased — still buyable), `UNATTRIBUTED` (purchased with no order, so giver and value are lost), `ORPHAN_ORDER`, `MATCHED` | Auto |
 
 ### Discovery
 

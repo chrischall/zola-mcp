@@ -46,8 +46,9 @@ MCP server for Zola — 30 tools for managing your entire wedding via the Zola m
 - `remove_event_invitation` — Remove an event invitation for a guest or group
 
 ### Registry & Gifts
-- `get_registry` — Registry categories and items
+- `get_registry` — Registry items with per-item purchase state (requested vs purchased quantity, `marked_fulfilled`, `availability`, `inconsistent`); paged via `limit`/`offset`
 - `get_gift_tracker` — Gifts received and thank-you status
+- `reconcile_registry` — Joins the registry against the gift tracker and reports DUPLICATE_RISK (flagged fulfilled but nothing purchased, so still buyable), UNATTRIBUTED (purchased with no order behind it), ORPHAN_ORDER and a MATCHED count
 
 ### Discovery
 - `get_wedding_dashboard` — Planning overview
