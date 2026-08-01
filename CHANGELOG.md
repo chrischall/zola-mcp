@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.2](https://github.com/chrischall/zola-mcp/compare/v1.7.1...v1.7.2) (2026-08-01)
+
+
+### Documentation
+
+* fix the skill tool count and document reconcile_registry in the manifest ([#142](https://github.com/chrischall/zola-mcp/issues/142)) ([3cf1de3](https://github.com/chrischall/zola-mcp/commit/3cf1de3e70e7dcd41805f8384e898c7d35b21eb6))
+
 ## [1.7.1](https://github.com/chrischall/zola-mcp/compare/v1.7.0...v1.7.1) (2026-08-01)
 
 
