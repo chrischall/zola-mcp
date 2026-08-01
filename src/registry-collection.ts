@@ -192,7 +192,14 @@ export function canonicalImageUrl(images: RawRegistryItem['images']): string | n
  */
 export function derivePurchaseState(raw: RawRegistryItem): PurchaseState {
   const contributions = raw.contributions ?? {};
-  const requested = toCount(raw.requested_quantity ?? contributions.goal_units, 1);
+
+  // A cash fund counts money, not units: `requested_quantity` is a meaningless 1
+  // while `goal_units` carries the actual target. Reading the former made a
+  // honeymoon fund 6% funded (50,000 of 800,000) report as FULLY_CLAIMED.
+  const isCashFund = raw.cash_fund === true || raw.type === 'CASH';
+  const requested = isCashFund
+    ? toCount(contributions.goal_units ?? raw.requested_quantity, 1)
+    : toCount(raw.requested_quantity ?? contributions.goal_units, 1);
   const purchased = toCount(contributions.completed_units, 0);
   const markedFulfilled = contributions.mark_fulfilled === true;
 
@@ -317,6 +324,100 @@ export function extractItemsFromHtml(html: string): RawRegistryItem[] {
 }
 
 /**
+ * Statuses worth retrying on the registry page.
+ *
+ * 403 is in here, which looks wrong until you know the page is public and
+ * unauthenticated: there is no credential for CloudFront to reject, so a 403 is
+ * bot-detection or rate-limiting, not authorization. It is also intermittent —
+ * the same URL that returned 403 twice in a row returned 200 to a bare Node
+ * `fetch` with no headers minutes later — so a retry genuinely clears it, while
+ * header spoofing does not reliably help.
+ */
+const RETRYABLE_PAGE_STATUS = new Set([403, 429, 500, 502, 503, 504]);
+
+const PAGE_ATTEMPTS = 3;
+const PAGE_BACKOFF_BASE_MS = 1000;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Fetch the registry page, retrying the statuses CloudFront uses for throttling.
+ *
+ * On exhaustion this throws a diagnosis that names the constraint, because the
+ * obvious next move — "just point it at the mobile API like every other tool" —
+ * does not work, and rediscovering that costs an afternoon. Re-verified
+ * 2026-08-01: `GET /v4/shop/registry?registry_id=…` returns HTTP 200 and 4 MB
+ * of Shop *browse* modules (SEARCH, CIRCLE_GRID, PARTNER_RETAILERS) with zero
+ * registry items and zero purchase fields, and `OPTIONS` reports
+ * `allow: POST, OPTIONS` on `/v3/registries/{id}/collections` — there is no GET
+ * for the collection anywhere on mobile-api.
+ */
+async function fetchRegistryPage(
+  url: string,
+  fetchImpl: typeof fetch,
+  opts: { attempts?: number; backoffBaseMs?: number; onAttempt?: (info: object) => void } = {}
+): Promise<string> {
+  const {
+    attempts = PAGE_ATTEMPTS,
+    backoffBaseMs = PAGE_BACKOFF_BASE_MS,
+    onAttempt = () => {},
+  } = opts;
+
+  let lastStatus: number | null = null;
+  let lastBody = '';
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    onAttempt({ attempt, attempts, url });
+
+    let response: Response;
+    try {
+      response = await fetchImpl(url, {
+        headers: {
+          accept: 'text/html,application/xhtml+xml',
+          'user-agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+            '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+        },
+      });
+    } catch (cause) {
+      if (attempt < attempts) {
+        await sleep(backoffBaseMs * 2 ** (attempt - 1));
+        continue;
+      }
+      throw new RegistryReadError(
+        'fetch:transport',
+        `Could not reach the registry page ${url} after ${attempts} attempts.`,
+        truncateErrorMessage(cause instanceof Error ? cause.message : String(cause))
+      );
+    }
+
+    if (response.ok) return response.text();
+
+    lastStatus = response.status;
+    lastBody = await response.text().catch(() => '');
+
+    if (RETRYABLE_PAGE_STATUS.has(response.status) && attempt < attempts) {
+      await sleep(backoffBaseMs * 2 ** (attempt - 1));
+      continue;
+    }
+    break;
+  }
+
+  const throttled = lastStatus !== null && RETRYABLE_PAGE_STATUS.has(lastStatus);
+  throw new RegistryReadError(
+    throttled ? 'fetch:blocked' : 'fetch:http',
+    throttled
+      ? `Registry page ${url} returned HTTP ${lastStatus} on all ${attempts} attempts. ` +
+        'The page is public and unauthenticated, so this is CloudFront bot-detection or ' +
+        'rate-limiting rather than an auth failure — it is usually transient, so retry later. ' +
+        'There is no mobile-api fallback: GET /v4/shop/registry returns Shop browse content ' +
+        'with no registry items, and OPTIONS reports no GET for /v3/registries/{id}/collections.'
+      : `Registry page ${url} returned HTTP ${lastStatus}.`,
+    truncateErrorMessage(lastBody, 300)
+  );
+}
+
+/**
  * Read the couple's registry collection.
  *
  * @param client authenticated mobile-api client (used only to resolve the key)
@@ -328,6 +429,9 @@ export async function fetchRegistryCollection(
     limit?: number;
     offset?: number;
     fetchImpl?: typeof fetch;
+    attempts?: number;
+    backoffBaseMs?: number;
+    onAttempt?: (info: object) => void;
   } = {}
 ): Promise<{
   items: RegistryItem[];
@@ -364,35 +468,9 @@ export async function fetchRegistryCollection(
     );
   }
 
-  // Step 2 — fetch the server-rendered registry page.
+  // Step 2 — fetch the server-rendered registry page, with retry.
   const url = `${REGISTRY_WEB_BASE}/${encodeURIComponent(key)}`;
-  let response: Response;
-  try {
-    response = await fetchImpl(url, {
-      headers: {
-        accept: 'text/html,application/xhtml+xml',
-        'user-agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
-          '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
-      },
-    });
-  } catch (cause) {
-    throw new RegistryReadError(
-      'fetch:transport',
-      `Could not reach the registry page ${url}.`,
-      truncateErrorMessage(cause instanceof Error ? cause.message : String(cause))
-    );
-  }
-
-  if (!response.ok) {
-    throw new RegistryReadError(
-      'fetch:http',
-      `Registry page ${url} returned HTTP ${response.status}.`,
-      truncateErrorMessage(await response.text().catch(() => ''), 300)
-    );
-  }
-
-  const html = await response.text();
+  const html = await fetchRegistryPage(url, fetchImpl, opts);
   const raw = extractItemsFromHtml(html);
 
   // An empty collection is legitimate (a brand-new registry), but it is not the

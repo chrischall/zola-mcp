@@ -193,6 +193,31 @@ describe('derivePurchaseState', () => {
     expect(state.inconsistent).toBe(false);
   });
 
+  it('measures a cash fund against its money goal, not a unit count', () => {
+    // requested_quantity is a meaningless 1 on a cash fund; goal_units is the
+    // real target. Using the former reported a 6%-funded honeymoon fund as
+    // FULLY_CLAIMED.
+    const state = derivePurchaseState({
+      type: 'CASH',
+      cash_fund: true,
+      requested_quantity: 1,
+      contributions: { completed_units: 50000, goal_units: 800000 },
+    });
+    expect(state.requested_qty).toBe(800000);
+    expect(state.purchased_qty).toBe(50000);
+    expect(state.availability).toBe('PARTIALLY_CLAIMED');
+  });
+
+  it('still uses requested_quantity for a physical item', () => {
+    const state = derivePurchaseState({
+      type: 'EXTERNAL',
+      requested_quantity: 2,
+      contributions: { completed_units: 1, goal_units: 2 },
+    });
+    expect(state.requested_qty).toBe(2);
+    expect(state.availability).toBe('PARTIALLY_CLAIMED');
+  });
+
   it('leaves attribution to the reconciler', () => {
     expect(derivePurchaseState({}).attributed).toBe(false);
   });
@@ -300,6 +325,7 @@ describe('fetchRegistryCollection', () => {
     await expect(
       fetchRegistryCollection(stubClient({ key: 'k', public: true }), {
         fetchImpl: fetchImpl as unknown as typeof fetch,
+        backoffBaseMs: 0,
       })
     ).rejects.toThrow(/HTTP 503/);
   });
@@ -311,5 +337,91 @@ describe('fetchRegistryCollection', () => {
         fetchImpl: fetchImpl as unknown as typeof fetch,
       })
     ).rejects.toThrow(RegistryReadError);
+  });
+});
+
+describe('the intermittent 403', () => {
+  /**
+   * The page is public and unauthenticated, so a 403 is CloudFront
+   * bot-detection or rate-limiting, not authorization — and it is
+   * intermittent: the same URL that 403'd twice in a row served 200 to a bare
+   * Node `fetch` minutes later. So it is retried, and the final message says
+   * what it actually is.
+   */
+  const ok = (body: string) => ({ ok: true, status: 200, text: async () => body }) as Response;
+  const fail = (status: number) =>
+    ({ ok: false, status, text: async () => 'blocked' }) as Response;
+
+  it('recovers when a later attempt succeeds', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(fail(403))
+      .mockResolvedValueOnce(fail(403))
+      .mockResolvedValueOnce(ok(PAGE_HTML));
+
+    const result = await fetchRegistryCollection(stubClient({ key: 'k', public: true }), {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      backoffBaseMs: 0,
+    });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(result.total).toBe(75);
+  });
+
+  it('diagnoses an exhausted 403 as throttling, not auth, and names the lack of a fallback', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(fail(403));
+    const err = await fetchRegistryCollection(stubClient({ key: 'k', public: true }), {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      backoffBaseMs: 0,
+    }).catch((e) => e as RegistryReadError);
+
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(err.step).toBe('fetch:blocked');
+    expect(err.message).toMatch(/bot-detection or rate-limiting rather than an auth failure/);
+    // The next person's instinct is "point it at mobile-api"; say why that fails.
+    expect(err.message).toMatch(/no mobile-api fallback/);
+    expect(err.message).toMatch(/no registry items/);
+  });
+
+  it('does not retry a status that will not change', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(fail(404));
+    await expect(
+      fetchRegistryCollection(stubClient({ key: 'k', public: true }), {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        backoffBaseMs: 0,
+      })
+    ).rejects.toThrow(/HTTP 404/);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('backs off exponentially between attempts', async () => {
+    const delays: number[] = [];
+    const realSetTimeout = globalThis.setTimeout;
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: TimerHandler, ms?: number) => {
+      delays.push(ms ?? 0);
+      return realSetTimeout(fn as () => void, 0);
+    }) as typeof setTimeout);
+
+    const fetchImpl = vi.fn().mockResolvedValue(fail(429));
+    await fetchRegistryCollection(stubClient({ key: 'k', public: true }), {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      backoffBaseMs: 100,
+    }).catch(() => {});
+
+    expect(delays).toEqual([100, 200]);
+    vi.restoreAllMocks();
+  });
+
+  it('retries a transport failure too', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('ECONNRESET'))
+      .mockResolvedValueOnce(ok(PAGE_HTML));
+
+    const result = await fetchRegistryCollection(stubClient({ key: 'k', public: true }), {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      backoffBaseMs: 0,
+    });
+    expect(result.total).toBe(75);
   });
 });
