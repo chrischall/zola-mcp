@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/chrischall/zola-mcp/compare/v1.6.6...v1.7.0) (2026-08-01)
+
+
+### Features
+
+* **registry:** make registry reads work and expose per-item purchase state ([#135](https://github.com/chrischall/zola-mcp/issues/135)) ([81929dd](https://github.com/chrischall/zola-mcp/commit/81929ddb9fccdf68c45ca5770d9dc87accf34e74))
+
 ## [1.6.6](https://github.com/chrischall/zola-mcp/compare/v1.6.5...v1.6.6) (2026-07-30)
 
 

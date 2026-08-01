@@ -15,7 +15,7 @@ import { registerReconcileTools } from './tools/reconcile-registry.js';
 import { registerInvitationTools } from './tools/invitations.js';
 import { registerEventInvitationTools } from './tools/event-invitations.js';
 
-const VERSION = '1.6.6'; // x-release-please-version
+const VERSION = '1.7.0'; // x-release-please-version
 
 await runMcp({
   name: 'zola-mcp',
