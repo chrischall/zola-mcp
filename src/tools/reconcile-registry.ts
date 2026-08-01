@@ -226,19 +226,21 @@ export interface ReconcileReport {
   };
 }
 
-export async function reconcileRegistry(
-  client: ZolaClient,
-  args: { limit?: number; offset?: number } = {}
-): Promise<ToolResult> {
+export async function reconcileRegistry(client: ZolaClient): Promise<ToolResult> {
   const { registryId } = await client.getContext();
 
   // Registry read. Throws RegistryReadError with the failing step rather than
   // returning an empty collection — an empty read here is indistinguishable
   // from "nothing was purchased", which is the worst possible wrong answer.
-  const collection = await fetchRegistryCollection(client, {
-    limit: args.limit ?? 500,
-    offset: args.offset ?? 0,
-  });
+  //
+  // Deliberately unpaged, and it takes no paging arguments so it cannot become
+  // paged by accident. Reconciliation is a whole-set operation: the gift
+  // tracker is never paged, so joining it against a *slice* of the registry
+  // drops every order whose item fell outside the page into ORPHAN_ORDER as a
+  // fabricated finding, while `totals.registry_items` still reports the full
+  // count — a partial run that reads as a complete one. `get_registry` keeps
+  // limit/offset for browsing; this tool always reads everything.
+  const collection = await fetchRegistryCollection(client, { limit: Number.MAX_SAFE_INTEGER });
 
   const trackerResponse = await client.requestMobile<MobileEnvelope<RawGiftTracker>>(
     'GET',

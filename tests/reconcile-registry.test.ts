@@ -279,6 +279,12 @@ describe('reconcile reads the whole registry, never a page', () => {
     }
   }
 
+  it('accepts no paging arguments, so it cannot be paged by accident', () => {
+    // The earlier fix removed limit/offset from the tool schema but left the
+    // function defaulting to limit: 500 — invisible on a 75-item registry.
+    expect(reconcileRegistry.length).toBe(1);
+  });
+
   it('reconciles against the full 75-item collection', async () => {
     const report = await runReconcile();
     expect(report.totals.registry_items).toBe(ITEMS.length);
