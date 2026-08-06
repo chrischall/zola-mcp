@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.4](https://github.com/chrischall/zola-mcp/compare/v1.7.3...v1.7.4) (2026-08-06)
+
+
+### Bug Fixes
+
+* **deps:** move to @fetchproxy/server 2.0.0 for the v3 handshake ([#153](https://github.com/chrischall/zola-mcp/issues/153)) ([4fd9625](https://github.com/chrischall/zola-mcp/commit/4fd9625f18c9034c5fd098f5fbaaacd672ee83ae))
+
 ## [1.7.3](https://github.com/chrischall/zola-mcp/compare/v1.7.2...v1.7.3) (2026-08-01)
 
 
