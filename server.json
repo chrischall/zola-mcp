@@ -6,12 +6,12 @@
     "url": "https://github.com/chrischall/zola-mcp",
     "source": "github"
   },
-  "version": "1.7.4",
+  "version": "1.7.5",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "zola-mcp",
-      "version": "1.7.4",
+      "version": "1.7.5",
       "transport": {
         "type": "stdio"
       },
