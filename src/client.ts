@@ -14,10 +14,10 @@ import { resolveRefreshToken } from './auth.js';
 
 // Load `.env` next to the compiled entry point. `loadDotenvSafely` is a
 // no-throw loader: in bundled mode (no resolvable `dotenv`) it returns false
-// and we fall back to process.env. The try/catch additionally guards the
-// Cloudflare Worker runtime, where `import.meta.url` is undefined and
-// `fileURLToPath(undefined)` would otherwise throw at module init (Worker
-// startup validation) — there is no filesystem / .env to load there anyway.
+// and we fall back to process.env. The try/catch additionally guards a
+// runtime where `import.meta.url` is undefined and `fileURLToPath(undefined)`
+// would otherwise throw at module init — there is no filesystem / .env to load
+// in one of those anyway.
 try {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   await loadDotenvSafely({ path: join(__dirname, '..', '.env'), override: false });
@@ -104,12 +104,11 @@ export class ZolaClient {
   private cachedContext: UserContext | null = null;
   // WAF requires x-zola-session-id on all mobile-api.zola.com requests.
   // Generated LAZILY: this class's module-level singleton (`export const client`
-  // below) is constructed at module load, and when that module graph is loaded
-  // inside a Cloudflare Worker (via src/worker.ts) `crypto.randomUUID()` would run
-  // in GLOBAL SCOPE, which the Workers runtime forbids ("Disallowed operation …
-  // generating random values … within global scope", startup validation code
-  // 10021). Deferring it to first use moves it into a request handler, where it's
-  // allowed. No effect on the stdio path.
+  // below) is constructed at module load, so an eager `crypto.randomUUID()`
+  // would run in GLOBAL SCOPE — which some sandboxed runtimes forbid outright
+  // ("Disallowed operation … generating random values … within global scope").
+  // Deferring it to first use moves it into a request handler, where it is
+  // allowed everywhere. No effect on the stdio path.
   private _deviceSessionId: string | undefined;
   private get deviceSessionId(): string {
     return (this._deviceSessionId ??= crypto.randomUUID().toUpperCase());
@@ -131,9 +130,9 @@ export class ZolaClient {
 
   // Optional injected refresh-token resolver. When set, `refresh()` uses it
   // instead of the module-level global `resolveRefreshToken` (env-var →
-  // fetchproxy priority). A hosted per-user Cloudflare deployment injects its
-  // own resolver so each request carries that user's stored `usr` refresh
-  // token — see `src/worker.ts`. Left undefined by the stdio path, which falls
+  // fetchproxy priority). A hosted per-user deployment injects its own
+  // resolver so each request carries that user's stored `usr` refresh
+  // token. Left undefined by the stdio path, which falls
   // back to the global resolver, keeping that behaviour byte-for-byte identical.
   private readonly resolveRefreshToken:
     | (() => Promise<{ token: string; source: string }>)
