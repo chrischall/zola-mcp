@@ -197,15 +197,29 @@ describe('derivePurchaseState', () => {
     // requested_quantity is a meaningless 1 on a cash fund; goal_units is the
     // real target. Using the former reported a 6%-funded honeymoon fund as
     // FULLY_CLAIMED.
-    const state = derivePurchaseState({
-      type: 'CASH',
-      cash_fund: true,
-      requested_quantity: 1,
-      contributions: { completed_units: 50000, goal_units: 800000 },
-    });
+    //
+    // Driven from the REAL fixture rather than a hand-built object, and through
+    // the whole extract -> derive path: a synthetic input asserts that the
+    // function is right about a shape we invented, which is exactly what would
+    // keep passing if Zola's payload moved and the fixture moved with it.
+    const cash = extractItemsFromHtml(PAGE_HTML).find((item) => item.cash_fund);
+    expect(cash, 'the fixture must keep a cash fund, or this guards nothing').toBeDefined();
+    expect(cash!.requested_quantity).toBe(1);
+
+    const state = derivePurchaseState(cash!);
     expect(state.requested_qty).toBe(800000);
     expect(state.purchased_qty).toBe(50000);
     expect(state.availability).toBe('PARTIALLY_CLAIMED');
+    // The bug in one line: the fund is 6% funded, so anything reporting it as
+    // fully claimed is reading requested_quantity again.
+    expect(state.availability).not.toBe('FULLY_CLAIMED');
+  });
+
+  it('still measures a physical item from the fixture by unit count', () => {
+    const physical = extractItemsFromHtml(PAGE_HTML).find((item) => !item.cash_fund);
+    expect(physical).toBeDefined();
+    const state = derivePurchaseState(physical!);
+    expect(state.requested_qty).toBe(physical!.requested_quantity);
   });
 
   it('still uses requested_quantity for a physical item', () => {
