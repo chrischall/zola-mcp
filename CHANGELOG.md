@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.5](https://github.com/chrischall/zola-mcp/compare/v1.7.4...v1.7.5) (2026-08-07)
+
+
+### Bug Fixes
+
+* **connector:** finish the retirement sweep ([#158](https://github.com/chrischall/zola-mcp/issues/158)) ([1ee3bc3](https://github.com/chrischall/zola-mcp/commit/1ee3bc38ab22ad691ca3a29c78f0bd422b190a29))
+
+
+### Refactor
+
+* **connector:** retire the standalone Cloudflare Worker connector ([#155](https://github.com/chrischall/zola-mcp/issues/155)) ([647a18a](https://github.com/chrischall/zola-mcp/commit/647a18a3c246200d2b972fbbf14fc1299c2bdb79))
+
 ## [1.7.4](https://github.com/chrischall/zola-mcp/compare/v1.7.3...v1.7.4) (2026-08-06)
 
 
