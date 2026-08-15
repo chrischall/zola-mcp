@@ -55,6 +55,14 @@ jobs:
         with:
           version: ${{ needs.release-please.outputs.version }}
           tag-name: ${{ needs.release-please.outputs.tag_name }}
+          # skill-path — REQUIRED for any repo shipping more than one
+          # skills/*/SKILL.md. mcp-publish auto-resolves a single one and
+          # refuses to guess between several, so without a pin the publish job
+          # dies at "Resolve skill path" — before npm publish. The tag and the
+          # GitHub Release are still created, so the release looks clean while
+          # nothing ships. zola-mcp lost 1.6.0, 1.6.1 and 1.6.2 exactly that
+          # way. The value comes from `skill_path` in fleet.json (issue #76),
+          # so re-rendering can't silently drop it.
           skill-path: skills/zola/SKILL.md
           clawhub-token: ${{ secrets.CLAWHUB_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
