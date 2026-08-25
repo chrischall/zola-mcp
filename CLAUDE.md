@@ -80,6 +80,7 @@ Tests in `tests/`. Run with `npm test`. No real network — `client.requestMobil
 .claude-plugin/
   plugin.json       Claude Code plugin manifest (skill + mcp pointers)
   marketplace.json  Marketplace catalog entry
+- `mint.yaml` — hosting manifest read by mcp-host to fill the registration wizard (env, egress, state). Ships in the npm tarball; not in the `.mcpb` bundle.
 skills/             Claude Code skill directory referenced by plugin.json (skills/<name>/SKILL.md, plugin-auto-discovered)
 manifest.json       mcpb bundle manifest (built into .mcpb by Release workflow)
 .mcp.json           MCP server entry for Claude Code (uses ${CLAUDE_PLUGIN_ROOT})
