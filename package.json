@@ -29,7 +29,8 @@
     ".claude-plugin",
     "skills",
     ".mcp.json",
-    "server.json"
+    "server.json",
+    "mint.yaml"
   ],
   "engines": {
     "node": ">=20.6.0"

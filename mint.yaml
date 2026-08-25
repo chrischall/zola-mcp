@@ -1,0 +1,55 @@
+version: 1
+name: Zola
+slug: zola
+summary: >-
+  Zola wedding planning tools for Claude — vendors, budget, guests, seating,
+  events, registry, inquiries, and more
+#
+# Hosting note (a comment, not user-facing summary text): this is a
+# BROWSER-BRIDGE MCP — it reaches its site through the user's signed-in
+# tab via the fetchproxy bridge. A bridged registration also needs runtime
+# `fly-shared`, `bridge: true` and a `bridgePortEnv`, which are registration
+# fields this manifest has no schema for (set them over the control API).
+# `state.dataDir` below is required for `bridge`.
+env:
+  - name: ZOLA_REFRESH_TOKEN
+    secret: true
+    required: false
+    help: >-
+      Zola refresh token JWT (~1 year lifetime). Optional — when unset, the MCP
+      falls back to the fetchproxy 0.3.0 browser extension to read the `usr`
+      cookie from your signed-in zola.com tab.
+  - name: ZOLA_ACCOUNT_ID
+    required: false
+    help: >-
+      Overrides the account id normally read from GET /v3/users/me/context. Set
+      it only to pin a specific account.
+  - name: ZOLA_REGISTRY_ID
+    required: false
+    help: >-
+      Overrides the registry id normally read from the same context call.
+  - name: ZOLA_SESSION_TOKEN
+    secret: true
+    required: false
+    help: >-
+      A seed session token (JWT). The client refreshes it about five minutes
+      before its exp, so this is a starting point rather than a long-lived
+      credential.
+  - name: ZOLA_WEDDING_ID
+    required: false
+    help: >-
+      Overrides the wedding id normally read from the same context call.
+state:
+  dataDir: true
+  reason: >-
+    The fetchproxy identity lives at $HOME/.fetchproxy/identity/<name>.json
+    and the pair code derives from it. Without a persistent $HOME every cold
+    start mints a fresh identity and re-prompts pairing in the browser; the
+    API refuses bridge without it.
+egress:
+  allow:
+    # Only hosts the SERVER process actually fetches. Hosts that appear
+    # solely in a URL this server BUILDS and returns are excluded.
+    - mobile-api.zola.com
+    - www.zola.com
+    - zola.com
