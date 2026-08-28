@@ -50,6 +50,14 @@ egress:
   allow:
     # Only hosts the SERVER process actually fetches. Hosts that appear
     # solely in a URL this server BUILDS and returns are excluded.
-    - mobile-api.zola.com
-    - www.zola.com
-    - zola.com
+    #
+    # The bridge here is BOOTSTRAP-ONLY: `@fetchproxy/bootstrap` lifts the
+    # `usr` cookie from the signed-in tab (or ZOLA_REFRESH_TOKEN skips it),
+    # and every API call after that is a direct dial from this process
+    # (src/client.ts) — fetchproxy is not in the hot path in any mode.
+    - mobile-api.zola.com   # POST /v3/sessions/refresh + every tool call
+    - www.zola.com          # reconcile_registry reads the server-rendered
+                            # /registry/{key} page (src/registry-collection.ts)
+    # NOT `zola.com` (apex): it is only the bootstrap cookie domain and the
+    # sign-in hint; the process never dials it, and the apex 301s TO www,
+    # never the reverse. Neither host redirects on the paths used.
