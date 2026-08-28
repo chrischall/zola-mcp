@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.0](https://github.com/chrischall/zola-mcp/compare/v1.7.5...v1.8.0) (2026-08-26)
+
+
+### Features
+
+* **release:** publish zola-api alongside zola ([#177](https://github.com/chrischall/zola-mcp/issues/177)) ([2be795b](https://github.com/chrischall/zola-mcp/commit/2be795b0b030f26e374e29604e95dfa1bbb05ef8))
+
+
+### Bug Fixes
+
+* match the manifest inventory's own formatting for mint.yaml ([#173](https://github.com/chrischall/zola-mcp/issues/173)) ([ca1712b](https://github.com/chrischall/zola-mcp/commit/ca1712b67894e8c450de75d19aba451e8f9e82a1))
+
 ## [1.7.5](https://github.com/chrischall/zola-mcp/compare/v1.7.4...v1.7.5) (2026-08-07)
 
 
