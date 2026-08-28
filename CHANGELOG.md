@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/chrischall/zola-mcp/compare/v1.8.0...v1.8.1) (2026-08-28)
+
+
+### Bug Fixes
+
+* **egress:** declare only the hosts the server process dials in mint.yaml ([#179](https://github.com/chrischall/zola-mcp/issues/179)) ([b6a4098](https://github.com/chrischall/zola-mcp/commit/b6a40986fc9e68bf880303b344d68503f70180e1))
+
 ## [1.8.0](https://github.com/chrischall/zola-mcp/compare/v1.7.5...v1.8.0) (2026-08-26)
 
 
