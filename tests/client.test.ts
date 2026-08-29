@@ -72,6 +72,46 @@ describe('ZolaClient', () => {
     expect(headers['cookie']).toBeUndefined();
   });
 
+  // Zola's CloudFront WAF matches x-zola-session-id against an UPPERCASE UUID
+  // pattern — the shape Apple's NSUUID.uuidString produces in the real iPhone
+  // app. `crypto.randomUUID()` returns lowercase hex, and a lowercase id is
+  // rejected at the edge with an opaque HTML 403 before it ever reaches the
+  // API, on EVERY request including the refresh. Verified against the live
+  // endpoint: the same UUID sent uppercase returns 200 and lowercase 403.
+  it('sends x-zola-session-id as an uppercase UUID on API calls', async () => {
+    process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+    fetchMock.mockResolvedValueOnce(makeResponse({ data: 'ok' }));
+
+    const client = new ZolaClient();
+    await client.requestMobile('GET', '/v3/test');
+
+    const headers = (fetchMock.mock.calls[0] as [string, RequestInit])[1]
+      .headers as Record<string, string>;
+    expect(headers['x-zola-session-id']).toMatch(
+      /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/
+    );
+  });
+
+  it('sends x-zola-session-id as an uppercase UUID on the refresh call', async () => {
+    process.env.ZOLA_SESSION_TOKEN = makeMockJwt(PAST_EXP);
+    fetchMock.mockResolvedValueOnce(
+      makeResponse({ data: { session_token: makeMockJwt(FUTURE_EXP) } })
+    );
+    fetchMock.mockResolvedValueOnce(makeResponse({ data: 'ok' }));
+
+    const client = new ZolaClient();
+    await client.requestMobile('GET', '/v3/test');
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://mobile-api.zola.com/v3/sessions/refresh'
+    );
+    const refreshHeaders = (fetchMock.mock.calls[0] as [string, RequestInit])[1]
+      .headers as Record<string, string>;
+    expect(refreshHeaders['x-zola-session-id']).toMatch(
+      /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/
+    );
+  });
+
   it('refreshes via mobile API when session token is expired', async () => {
     const newSessionToken = makeMockJwt(FUTURE_EXP);
     process.env.ZOLA_SESSION_TOKEN = makeMockJwt(PAST_EXP);
