@@ -61,11 +61,16 @@ function isCachedRefreshToken(raw: unknown): raw is CachedRefreshToken {
  *
  *  - `ZOLA_REFRESH_TOKEN` — the token IS the environment variable. There is no
  *    bootstrap to skip, so caching would only copy a credential onto disk.
- *  - `ZOLA_DISABLE_FETCHPROXY` — the bridge is off, so with no env var nothing
- *    can mint a token at all; there will never be anything to store.
  *  - fetchproxy — worth caching, and the reason this module exists: a cached
  *    token lets a cold start proceed with no browser present, which on a host
  *    that has none is the difference between working and not.
+ *
+ * `ZOLA_DISABLE_FETCHPROXY` deliberately does NOT disable the cache. That flag
+ * governs whether we may open a browser, and reading a file is not opening a
+ * browser — so a headless run can still use a token an earlier bootstrap left
+ * behind, which is exactly the case the cache was added for. It needs no
+ * matching write guard: writes only happen on the fetchproxy path, which the
+ * flag already prevents from running at all.
  *
  * The record is bound to the path that minted it, so a token lifted from the
  * browser is never handed back under a configuration that did not come from
@@ -77,7 +82,6 @@ export function createRefreshTokenCache(
 ): SyncStatePersistence<CachedRefreshToken> | null {
   if (!parseBoolEnv('ZOLA_TOKEN_CACHE', { env, default: true })) return null;
   if (readEnvVar('ZOLA_REFRESH_TOKEN', { env }) !== undefined) return null;
-  if (parseBoolEnv('ZOLA_DISABLE_FETCHPROXY', { env })) return null;
 
   return createFileStatePersistence<CachedRefreshToken>({
     filePath: refreshTokenCachePath(env),

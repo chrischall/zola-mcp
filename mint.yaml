@@ -28,7 +28,9 @@ env:
     required: false
     help: >-
       Set to '1' to opt out of the fetchproxy browser fallback (headless / CI).
-      With it set and no ZOLA_REFRESH_TOKEN, auth is a hard error.
+      With it set and no ZOLA_REFRESH_TOKEN, auth is a hard error unless a
+      previous bootstrap already cached a token — reading that file is not
+      opening a browser, so the cache stays readable.
   - name: ZOLA_REGISTRY_ID
     required: false
     help: >-

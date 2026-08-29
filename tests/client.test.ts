@@ -518,20 +518,72 @@ describe('ZolaClient', () => {
       expect(retryInit.body).toBe(JSON.stringify({ token: 'fresh-from-bridge' }));
     });
 
-    it('keeps the cached token when the failure is transient', async () => {
-      // mcp-utils #139's lesson: a 5xx says nothing about the credential, and
-      // destroying it here would force a needless re-bridge on every blip.
+    // The exclusions matter more than the inclusions: each of these would
+    // otherwise delete a working ~1-year credential and force a re-bridge that
+    // a headless host may be unable to perform at all.
+    //
+    //   429 — throttling; the token is fine, we asked too often.
+    //   403 — CloudFront's bot/WAF layer on this stack, not authorization
+    //         (same reasoning as RETRYABLE_PAGE_STATUS in registry-collection).
+    //   5xx — says nothing about the credential (mcp-utils#139).
+    it.each([403, 429, 500, 502, 503])(
+      'keeps the cached token when the refresh fails %i',
+      async (status) => {
+        const resolveRefreshToken = vi
+          .fn()
+          .mockResolvedValue({ token: 'cached', source: 'cache' });
+        const clearCachedRefreshToken = vi.fn();
+        fetchMock.mockResolvedValueOnce(makeResponse({ error: 'transient' }, status));
+
+        const client = new ZolaClient({ resolveRefreshToken, clearCachedRefreshToken });
+
+        await expect(client.requestMobile('GET', '/v3/test')).rejects.toThrow(
+          new RegExp(String(status))
+        );
+        expect(clearCachedRefreshToken).not.toHaveBeenCalled();
+        expect(resolveRefreshToken).toHaveBeenCalledOnce();
+      }
+    );
+
+    it.each([400, 401, 422])(
+      'discards the cached token when the refresh fails %i',
+      async (status) => {
+        const resolveRefreshToken = vi
+          .fn()
+          .mockResolvedValueOnce({ token: 'stale-from-cache', source: 'cache' })
+          .mockResolvedValueOnce({ token: 'fresh-from-bridge', source: 'fetchproxy' });
+        const clearCachedRefreshToken = vi.fn();
+        fetchMock
+          .mockResolvedValueOnce(makeResponse({ error: 'bad token' }, status))
+          .mockResolvedValueOnce(refreshOk())
+          .mockResolvedValueOnce(makeResponse({ data: 'ok' }));
+
+        const client = new ZolaClient({ resolveRefreshToken, clearCachedRefreshToken });
+
+        await expect(client.requestMobile('GET', '/v3/test')).resolves.toEqual({ data: 'ok' });
+        expect(clearCachedRefreshToken).toHaveBeenCalledOnce();
+      }
+    );
+
+    it('still retries when clearing the cache throws', async () => {
+      // A read-only data dir must not cost us the retry, nor mask the
+      // rejection that got us here.
       const resolveRefreshToken = vi
         .fn()
-        .mockResolvedValue({ token: 'cached', source: 'cache' });
-      const clearCachedRefreshToken = vi.fn();
-      fetchMock.mockResolvedValueOnce(makeResponse({ error: 'boom' }, 500));
+        .mockResolvedValueOnce({ token: 'stale-from-cache', source: 'cache' })
+        .mockResolvedValueOnce({ token: 'fresh-from-bridge', source: 'fetchproxy' });
+      const clearCachedRefreshToken = vi.fn(() => {
+        throw new Error('EROFS: read-only file system');
+      });
+      fetchMock
+        .mockResolvedValueOnce(makeResponse({ error: 'invalid token' }, 401))
+        .mockResolvedValueOnce(refreshOk())
+        .mockResolvedValueOnce(makeResponse({ data: 'ok' }));
 
       const client = new ZolaClient({ resolveRefreshToken, clearCachedRefreshToken });
 
-      await expect(client.requestMobile('GET', '/v3/test')).rejects.toThrow(/500/);
-      expect(clearCachedRefreshToken).not.toHaveBeenCalled();
-      expect(resolveRefreshToken).toHaveBeenCalledOnce();
+      await expect(client.requestMobile('GET', '/v3/test')).resolves.toEqual({ data: 'ok' });
+      expect(resolveRefreshToken).toHaveBeenCalledTimes(2);
     });
 
     it('does not retry a rejected env-var token', async () => {

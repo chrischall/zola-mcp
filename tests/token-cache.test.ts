@@ -35,14 +35,20 @@ describe('refresh-token cache', () => {
       expect(cache).toBeNull();
     });
 
-    it('is off when the fetchproxy fallback is disabled', () => {
-      // With no env var and no bridge there is no path that can mint one.
-      const cache = createRefreshTokenCache({
-        ZOLA_DISABLE_FETCHPROXY: '1',
-        ZOLA_TOKEN_FILE: file,
+    it('stays READABLE when the fetchproxy fallback is disabled', () => {
+      // The flag governs opening a browser, and reading a file is not that.
+      // A headless run must still be able to use a token an earlier bootstrap
+      // left behind — the case the cache was added for. No write guard is
+      // needed: writes only happen on the fetchproxy path, which is disabled.
+      const env = { ZOLA_DISABLE_FETCHPROXY: '1', ZOLA_TOKEN_FILE: file };
+      createRefreshTokenCache({ ZOLA_TOKEN_FILE: file })?.save({
+        refreshToken: 'tok-from-earlier-bootstrap',
       });
 
-      expect(cache).toBeNull();
+      const cache = createRefreshTokenCache(env);
+
+      expect(cache).not.toBeNull();
+      expect(cache?.load()).toEqual({ refreshToken: 'tok-from-earlier-bootstrap' });
     });
 
     it('is off when ZOLA_TOKEN_CACHE is explicitly disabled', () => {
@@ -98,15 +104,24 @@ describe('refresh-token cache', () => {
       expect(statSync(file).mode & 0o777).toBe(0o600);
     });
 
-    it('does not write the token in the clear under a predictable key', () => {
-      // The value is the credential; assert it is stored as the record we
-      // defined rather than leaking into some other field by accident.
+    it('stores the credential inside the versioned envelope, not as a bare record', () => {
+      // The envelope is what carries the binding, and a bare pre-envelope
+      // record is rejected when a binding is required — so the shape on disk
+      // is load-bearing, not incidental.
       const cache = createRefreshTokenCache({ ZOLA_TOKEN_FILE: file });
       cache?.save({ refreshToken: 'tok-from-bridge' });
 
-      const raw: unknown = JSON.parse(readFileSync(file, 'utf8'));
+      const raw = JSON.parse(readFileSync(file, 'utf8')) as {
+        v: number;
+        boundTo?: { salt: string; digest: string };
+        state: { refreshToken: string };
+      };
 
-      expect(JSON.stringify(raw)).toContain('tok-from-bridge');
+      expect(raw.v).toBe(1);
+      expect(raw.state).toEqual({ refreshToken: 'tok-from-bridge' });
+      expect(raw.boundTo?.digest).toEqual(expect.any(String));
+      // The binding is a salted digest of the mode, never a credential.
+      expect(JSON.stringify(raw.boundTo)).not.toContain('fetchproxy');
     });
 
     it('reads nothing when no file has been written', () => {

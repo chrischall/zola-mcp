@@ -149,7 +149,7 @@ Ask Claude: *"How's wedding planning going?"* — it should show your wedding da
 | Env var | Required | Notes |
 |---------|----------|-------|
 | `ZOLA_REFRESH_TOKEN` | Conditional | Refresh token JWT (~1 year lifetime). When unset, the MCP falls back to the [fetchproxy extension](https://github.com/chrischall/fetchproxy) to read the `usr` cookie from your signed-in zola.com tab. |
-| `ZOLA_DISABLE_FETCHPROXY` | No | Set to `1` to opt out of the fetchproxy fallback (headless / CI). |
+| `ZOLA_DISABLE_FETCHPROXY` | No | Set to `1` to opt out of the fetchproxy fallback (headless / CI). Does not disable the token cache — a headless run can still reuse a token an earlier bootstrap cached, since reading a file is not opening a browser. |
 | `ZOLA_TOKEN_CACHE` | No | Set to `false` to disable the on-disk refresh-token cache and ask the browser on every start. Defaults to enabled, and is inert when `ZOLA_REFRESH_TOKEN` is set. |
 | `ZOLA_TOKEN_FILE` | No | Absolute path for the cache file. Defaults to `$MCP_DATA_DIR/.zola-mcp/refresh-token.json`, else `$HOME/.zola-mcp/refresh-token.json`. |
 | `ZOLA_ACCOUNT_ID` | No | Auto-resolved from API on first use |

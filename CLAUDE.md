@@ -55,6 +55,9 @@ ZOLA_SESSION_TOKEN=<jwt>   # Optional. Short-lived (30 min) session token; skips
 ZOLA_DISABLE_FETCHPROXY=1  # Optional. Opts out of the fetchproxy fallback (headless / CI).
                            #   Without this and without ZOLA_REFRESH_TOKEN, refresh errors
                            #   out with the "set token or install extension" message.
+                           #   Does NOT disable the token cache: the flag governs opening a
+                           #   browser, and a cached token can still be read. No write guard
+                           #   is needed — writes only happen on the path this flag disables.
 ZOLA_TOKEN_CACHE=false     # Optional. Disables the on-disk refresh-token cache (default on).
                            #   Inert when ZOLA_REFRESH_TOKEN is set — there is no bootstrap
                            #   to skip, so nothing is written.

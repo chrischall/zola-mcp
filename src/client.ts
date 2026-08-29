@@ -30,13 +30,33 @@ class RefreshFailedError extends Error {
 }
 
 /**
- * Whether an error means the API rejected the credential itself, as opposed to
- * failing for a reason that says nothing about it. A network error is not an
- * instance of {@link RefreshFailedError} at all, so it correctly reads as
+ * Statuses that mean the API rejected the CREDENTIAL, as opposed to refusing the
+ * request for a reason that says nothing about it.
+ *
+ * Deliberately narrow, and the exclusions are the point — this set decides
+ * whether a ~1-year credential is deleted:
+ *
+ *  - **429** is throttling. The token is fine; we asked too often.
+ *  - **403** from this stack is CloudFront's bot/WAF layer rather than
+ *    authorization — the same reasoning, and the same observed intermittency,
+ *    that puts it in `RETRYABLE_PAGE_STATUS` (registry-collection.ts).
+ *    Dropping the WAF header produces a 403 with a perfectly valid token.
+ *
+ * Treating either as a rejection would discard a working token and force a
+ * re-bridge — the failure the cache exists to prevent. The asymmetry is
+ * deliberate: keeping a genuinely-dead token costs one failed call that names
+ * both fixes, while deleting a live one costs a browser round trip that a
+ * headless host may be unable to make at all.
+ */
+const CREDENTIAL_REJECTION_STATUS = new Set([400, 401, 422]);
+
+/**
+ * Whether an error means the API rejected the credential itself. A network
+ * error is not a {@link RefreshFailedError} at all, so it correctly reads as
  * transient.
  */
 function isCredentialRejection(err: unknown): boolean {
-  return err instanceof RefreshFailedError && err.status >= 400 && err.status < 500;
+  return err instanceof RefreshFailedError && CREDENTIAL_REJECTION_STATUS.has(err.status);
 }
 
 // Load `.env` next to the compiled entry point. `loadDotenvSafely` is a
@@ -416,7 +436,13 @@ export class ZolaClient {
       // record survives — destroying a valid token on a transient blip would
       // force a needless re-bridge (mcp-utils #139).
       if (resolved.source !== 'cache' || !isCredentialRejection(err)) throw err;
-      (this.clearCachedRefreshToken ?? clearCachedRefreshToken)();
+      try {
+        (this.clearCachedRefreshToken ?? clearCachedRefreshToken)();
+      } catch {
+        // A cache we cannot clear (read-only data dir) must not cost us the
+        // retry, and must not mask the rejection that got us here. The record
+        // simply survives until a later successful write replaces it.
+      }
       const retry = await resolve();
       return this.mintWithRefreshToken(retry.token);
     }
