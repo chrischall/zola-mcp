@@ -27,7 +27,7 @@ Ask Claude things like:
 - [Claude Desktop](https://claude.ai/download) or [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - [Node.js](https://nodejs.org) 20.6 or later
 - A [Zola](https://www.zola.com) account
-- For the no-env-var path: the [fetchproxy 0.3.0 Chrome / Safari extension](https://github.com/chrischall/fetchproxy)
+- For the no-env-var path: the [fetchproxy Chrome / Safari extension](https://github.com/chrischall/fetchproxy)
 
 ## Acknowledgement of Terms
 
@@ -119,11 +119,13 @@ You have two options. Both produce the same `usr` cookie value — a ~1-year JWT
 
 #### Option A — fetchproxy extension (recommended)
 
-1. Install the [fetchproxy 0.3.0 extension](https://github.com/chrischall/fetchproxy) (Chrome Web Store or Safari `.dmg`).
+1. Install the [fetchproxy extension](https://github.com/chrischall/fetchproxy) (Chrome Web Store or Safari `.dmg`).
 2. Sign in at [zola.com/account/login](https://www.zola.com/account/login) in that browser.
 3. Leave `ZOLA_REFRESH_TOKEN` **unset** in your Claude config.
 
-On the first tool call, the MCP asks the extension for the HttpOnly `usr` cookie via `chrome.cookies.get`, then operates direct-to-API from Node. No persistent storage of the token in any env file. To re-auth (e.g. after Zola signs you out), just sign back in to zola.com.
+On the first tool call, the MCP asks the extension for the HttpOnly `usr` cookie via `chrome.cookies.get`, then operates direct-to-API from Node — the bridge is never in the hot path.
+
+That cookie is the ~1-year refresh token, so it is cached at `$MCP_DATA_DIR/.zola-mcp/refresh-token.json` (falling back to `$HOME`, mode `0600`). Later starts read it from there and need no browser at all, which is what makes the server usable on a remote host where none exists. If the API ever rejects the cached token — you signed out, or it aged past its year — it is discarded automatically and the extension is asked again. To re-auth, just sign back in to zola.com. Set `ZOLA_TOKEN_CACHE=false` to keep nothing on disk and ask the browser every time.
 
 You can opt out of this fallback with `ZOLA_DISABLE_FETCHPROXY=1` (e.g. in headless / CI environments where no extension is available).
 
@@ -148,6 +150,8 @@ Ask Claude: *"How's wedding planning going?"* — it should show your wedding da
 |---------|----------|-------|
 | `ZOLA_REFRESH_TOKEN` | Conditional | Refresh token JWT (~1 year lifetime). When unset, the MCP falls back to the [fetchproxy extension](https://github.com/chrischall/fetchproxy) to read the `usr` cookie from your signed-in zola.com tab. |
 | `ZOLA_DISABLE_FETCHPROXY` | No | Set to `1` to opt out of the fetchproxy fallback (headless / CI). |
+| `ZOLA_TOKEN_CACHE` | No | Set to `false` to disable the on-disk refresh-token cache and ask the browser on every start. Defaults to enabled, and is inert when `ZOLA_REFRESH_TOKEN` is set. |
+| `ZOLA_TOKEN_FILE` | No | Absolute path for the cache file. Defaults to `$MCP_DATA_DIR/.zola-mcp/refresh-token.json`, else `$HOME/.zola-mcp/refresh-token.json`. |
 | `ZOLA_ACCOUNT_ID` | No | Auto-resolved from API on first use |
 | `ZOLA_REGISTRY_ID` | No | Auto-resolved from API on first use |
 

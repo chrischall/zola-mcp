@@ -476,4 +476,95 @@ describe('ZolaClient', () => {
     const headers = init.headers as Record<string, string>;
     expect(headers['accept']).toBe('*/*');
   });
+
+  describe('a cached refresh token the API rejects', () => {
+    // A cached credential is the only kind that can be stale while a working
+    // path to a fresh one still exists. Without this recovery a revoked or
+    // expired cached token would throw on every later call forever, and the
+    // cache would have turned a browser-needs-attaching problem into a brick.
+    beforeEach(() => {
+      delete process.env.ZOLA_REFRESH_TOKEN;
+    });
+
+    function refreshOk() {
+      return makeResponse({
+        data: {
+          session_token: makeMockJwt(FUTURE_EXP),
+          refresh_token: 'r',
+          session_id: 's',
+        },
+      });
+    }
+
+    it('discards it and re-resolves once, then succeeds', async () => {
+      const resolveRefreshToken = vi
+        .fn()
+        .mockResolvedValueOnce({ token: 'stale-from-cache', source: 'cache' })
+        .mockResolvedValueOnce({ token: 'fresh-from-bridge', source: 'fetchproxy' });
+      const clearCachedRefreshToken = vi.fn();
+      fetchMock
+        .mockResolvedValueOnce(makeResponse({ error: 'invalid token' }, 401))
+        .mockResolvedValueOnce(refreshOk())
+        .mockResolvedValueOnce(makeResponse({ data: 'ok' }));
+
+      const client = new ZolaClient({ resolveRefreshToken, clearCachedRefreshToken });
+      const result = await client.requestMobile('GET', '/v3/test');
+
+      expect(clearCachedRefreshToken).toHaveBeenCalledOnce();
+      expect(resolveRefreshToken).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ data: 'ok' });
+      // The retry must use the freshly bootstrapped token, not the stale one.
+      const [, retryInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+      expect(retryInit.body).toBe(JSON.stringify({ token: 'fresh-from-bridge' }));
+    });
+
+    it('keeps the cached token when the failure is transient', async () => {
+      // mcp-utils #139's lesson: a 5xx says nothing about the credential, and
+      // destroying it here would force a needless re-bridge on every blip.
+      const resolveRefreshToken = vi
+        .fn()
+        .mockResolvedValue({ token: 'cached', source: 'cache' });
+      const clearCachedRefreshToken = vi.fn();
+      fetchMock.mockResolvedValueOnce(makeResponse({ error: 'boom' }, 500));
+
+      const client = new ZolaClient({ resolveRefreshToken, clearCachedRefreshToken });
+
+      await expect(client.requestMobile('GET', '/v3/test')).rejects.toThrow(/500/);
+      expect(clearCachedRefreshToken).not.toHaveBeenCalled();
+      expect(resolveRefreshToken).toHaveBeenCalledOnce();
+    });
+
+    it('does not retry a rejected env-var token', async () => {
+      // Re-resolving would hand back the same env value — a wasted round trip
+      // that buries the real "your token is bad" signal.
+      const resolveRefreshToken = vi
+        .fn()
+        .mockResolvedValue({ token: 'bad-env-token', source: 'env' });
+      const clearCachedRefreshToken = vi.fn();
+      fetchMock.mockResolvedValueOnce(makeResponse({ error: 'invalid token' }, 401));
+
+      const client = new ZolaClient({ resolveRefreshToken, clearCachedRefreshToken });
+
+      await expect(client.requestMobile('GET', '/v3/test')).rejects.toThrow(/401/);
+      expect(clearCachedRefreshToken).not.toHaveBeenCalled();
+      expect(resolveRefreshToken).toHaveBeenCalledOnce();
+    });
+
+    it('surfaces the second failure when the re-bootstrap is also rejected', async () => {
+      // The retry is bounded: one attempt, then the error stands.
+      const resolveRefreshToken = vi
+        .fn()
+        .mockResolvedValueOnce({ token: 'stale-from-cache', source: 'cache' })
+        .mockResolvedValueOnce({ token: 'also-bad', source: 'fetchproxy' });
+      const clearCachedRefreshToken = vi.fn();
+      fetchMock
+        .mockResolvedValueOnce(makeResponse({ error: 'invalid token' }, 401))
+        .mockResolvedValueOnce(makeResponse({ error: 'still invalid' }, 401));
+
+      const client = new ZolaClient({ resolveRefreshToken, clearCachedRefreshToken });
+
+      await expect(client.requestMobile('GET', '/v3/test')).rejects.toThrow(/401/);
+      expect(resolveRefreshToken).toHaveBeenCalledTimes(2);
+    });
+  });
 });

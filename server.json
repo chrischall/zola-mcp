@@ -18,7 +18,7 @@
       "environmentVariables": [
         {
           "name": "ZOLA_REFRESH_TOKEN",
-          "description": "Zola refresh token JWT (~1 year lifetime). Optional — when unset, the MCP falls back to the fetchproxy 0.3.0 browser extension to read the `usr` cookie from your signed-in zola.com tab.",
+          "description": "Zola refresh token JWT (~1 year lifetime). Optional — when unset, the MCP falls back to the fetchproxy browser extension to read the `usr` cookie from your signed-in zola.com tab, and caches it so later starts need no browser.",
           "isRequired": false,
           "format": "string",
           "isSecret": true

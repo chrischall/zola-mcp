@@ -17,7 +17,8 @@ npm run dev          # node --env-file=.env dist/index.js (build first)
 src/
   index.ts                MCP server entry — registers all tool modules, starts stdio transport
   client.ts               ZolaClient — Bearer JWT auth, session refresh, context resolution
-  auth.ts                 resolveRefreshToken() — env var (primary) / fetchproxy fallback
+  auth.ts                 resolveRefreshToken() — env var / disk cache / fetchproxy fallback
+  token-cache.ts          On-disk cache for the bootstrapped ~1-year refresh token
   types.ts                Shared types
   tools/
     vendors.ts            list/search/add/update/remove booked vendors
@@ -54,19 +55,30 @@ ZOLA_SESSION_TOKEN=<jwt>   # Optional. Short-lived (30 min) session token; skips
 ZOLA_DISABLE_FETCHPROXY=1  # Optional. Opts out of the fetchproxy fallback (headless / CI).
                            #   Without this and without ZOLA_REFRESH_TOKEN, refresh errors
                            #   out with the "set token or install extension" message.
+ZOLA_TOKEN_CACHE=false     # Optional. Disables the on-disk refresh-token cache (default on).
+                           #   Inert when ZOLA_REFRESH_TOKEN is set — there is no bootstrap
+                           #   to skip, so nothing is written.
+ZOLA_TOKEN_FILE=<path>     # Optional. Absolute path for the cache file. Defaults to
+                           #   $MCP_DATA_DIR/.zola-mcp/refresh-token.json, else under $HOME.
+                           #   Tests set it to keep writes out of the real home directory.
 ```
 
 Blank, `undefined`, `null`, and unsubstituted `${FOO}` placeholders are treated as unset (defends against MCP hosts that pass `.mcp.json` env blocks through unexpanded).
 
-## Auth resolution (three-path)
+## Auth resolution (four-path)
 
 `src/auth.ts` exports `resolveRefreshToken()`, which `ZolaClient.refresh()` calls each time it needs to mint a new 30-min session token. Path priority:
 
 1. **`ZOLA_REFRESH_TOKEN` env var** — returned directly. Legacy users are unchanged.
-2. **fetchproxy fallback** — calls `@fetchproxy/bootstrap` which spins up a one-shot WebSocket bridge to the fetchproxy Chrome/Safari extension and reads the HttpOnly `usr` cookie on zola.com via `chrome.cookies.get`. Returns once. All subsequent Zola API calls go direct to `mobile-api.zola.com` from Node — fetchproxy is NOT in the hot path.
-3. **Error** — surface both fixes side-by-side ("set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com").
+2. **disk cache** (`src/token-cache.ts`) — the refresh token a previous bootstrap lifted from the browser, under `$MCP_DATA_DIR` when the host provides one. Inert whenever the env var is set, so path 1 keeps precedence without being checked twice.
+3. **fetchproxy fallback** — calls `@fetchproxy/bootstrap` which spins up a one-shot WebSocket bridge to the fetchproxy Chrome/Safari extension and reads the HttpOnly `usr` cookie on zola.com via `chrome.cookies.get`. Returns once, and the result is written to the cache. All subsequent Zola API calls go direct to `mobile-api.zola.com` from Node — fetchproxy is NOT in the hot path.
+4. **Error** — surface both fixes side-by-side ("set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com").
 
 This is the canonical "browser-bootstrap + Node-direct" shape shared with ofw-mcp, resy-mcp, opentable-mcp, signupgenius-mcp, …
+
+**Why the cache exists.** The `usr` cookie is valid for ~a year, but `refresh()` re-resolves it on every cold start and every 30-min session expiry. Hosted on mcp-host, where the machine scales to zero, that demanded an awake browser with a signed-in tab at nearly every cold start — for a credential good for a year. Caching collapses it to once. This is why the hosted registration must declare `state.dataDir: true`: without it the file lands on a per-boot directory and vanishes on the next idle-stop.
+
+**Stale-cache recovery is the load-bearing part.** A cached token can be revoked or age out, and without recovery it would throw on every later call forever — the cache would turn a browser problem into a brick. So `ZolaClient.refresh()` discards it and re-resolves **once** when the API answers 4xx. A 5xx or network error says nothing about the credential and leaves it intact; destroying a valid token on a transient blip would force a needless re-bridge. Only a `source: 'cache'` token is retried — the env var would re-resolve to the same value, and a token just lifted from the browser is already as fresh as the bridge can make it.
 
 ## Testing
 

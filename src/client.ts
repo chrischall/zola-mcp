@@ -10,7 +10,34 @@ import {
   createCachedTokenSource,
 } from '@chrischall/mcp-utils';
 import type { MintedToken } from '@chrischall/mcp-utils';
-import { resolveRefreshToken } from './auth.js';
+import { resolveRefreshToken, clearCachedRefreshToken } from './auth.js';
+
+/**
+ * A session refresh the API refused, carrying the HTTP status so the caller can
+ * tell a rejected credential (4xx) from a transient upstream failure (5xx).
+ * That distinction is the whole reason this is not a bare `Error`: it decides
+ * whether a cached refresh token is discarded or kept.
+ */
+class RefreshFailedError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'RefreshFailedError';
+    this.status = status;
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/**
+ * Whether an error means the API rejected the credential itself, as opposed to
+ * failing for a reason that says nothing about it. A network error is not an
+ * instance of {@link RefreshFailedError} at all, so it correctly reads as
+ * transient.
+ */
+function isCredentialRejection(err: unknown): boolean {
+  return err instanceof RefreshFailedError && err.status >= 400 && err.status < 500;
+}
 
 // Load `.env` next to the compiled entry point. `loadDotenvSafely` is a
 // no-throw loader: in bundled mode (no resolvable `dotenv`) it returns false
@@ -138,8 +165,17 @@ export class ZolaClient {
     | (() => Promise<{ token: string; source: string }>)
     | undefined;
 
-  constructor(opts?: { resolveRefreshToken?: () => Promise<{ token: string; source: string }> }) {
+  // Optional injected cache-clear, paired with the resolver above so a test (or
+  // a hosted per-user deployment with its own store) can own both halves of the
+  // stale-credential recovery in `refresh()`.
+  private readonly clearCachedRefreshToken: (() => void) | undefined;
+
+  constructor(opts?: {
+    resolveRefreshToken?: () => Promise<{ token: string; source: string }>;
+    clearCachedRefreshToken?: () => void;
+  }) {
     this.resolveRefreshToken = opts?.resolveRefreshToken;
+    this.clearCachedRefreshToken = opts?.clearCachedRefreshToken;
   }
 
   /**
@@ -358,12 +394,40 @@ export class ZolaClient {
    * Returns a new session_token (30-min) as a {@link MintedToken}.
    *
    * The refresh token comes from `resolveRefreshToken()`, which tries
-   * (1) ZOLA_REFRESH_TOKEN env var, then (2) the fetchproxy 0.3.0 extension's
-   * `usr` cookie on zola.com, then (3) errors with actionable guidance.
+   * (1) the ZOLA_REFRESH_TOKEN env var, then (2) the on-disk cache, then
+   * (3) the fetchproxy extension's `usr` cookie on zola.com, then (4) errors
+   * with actionable guidance.
    */
   private async refresh(): Promise<MintedToken> {
-    const { token: refreshToken } = await (this.resolveRefreshToken ?? resolveRefreshToken)();
+    const resolve = this.resolveRefreshToken ?? resolveRefreshToken;
+    const resolved = await resolve();
 
+    try {
+      return await this.mintWithRefreshToken(resolved.token);
+    } catch (err) {
+      // Only a CACHED credential earns a second attempt. The env var would
+      // re-resolve to the same value, and a token just lifted from the browser
+      // is already as fresh as the bridge can make it — so for both, retrying
+      // only buries the real "your token is bad" signal.
+      //
+      // A 4xx is the API rejecting the credential, which for a cached token
+      // means it was revoked or aged out; discard it and go back to the bridge.
+      // A 5xx or a network error says nothing about the credential, so the
+      // record survives — destroying a valid token on a transient blip would
+      // force a needless re-bridge (mcp-utils #139).
+      if (resolved.source !== 'cache' || !isCredentialRejection(err)) throw err;
+      (this.clearCachedRefreshToken ?? clearCachedRefreshToken)();
+      const retry = await resolve();
+      return this.mintWithRefreshToken(retry.token);
+    }
+  }
+
+  /**
+   * Exchange a refresh token for a 30-minute session token. Throws a
+   * {@link RefreshFailedError} carrying the HTTP status, so `refresh()` can
+   * tell a rejected credential from a transient upstream failure.
+   */
+  private async mintWithRefreshToken(refreshToken: string): Promise<MintedToken> {
     const response = await fetch(`${MOBILE_BASE_URL}/v3/sessions/refresh`, {
       method: 'POST',
       headers: {
@@ -381,9 +445,10 @@ export class ZolaClient {
       // The refresh request body carries the refresh JWT — an echoing upstream
       // or proxy could reflect it in the error body, so redact + truncate the
       // untrusted body before it can reach a tool result.
-      throw new Error(
+      throw new RefreshFailedError(
         `Zola session refresh failed (${response.status}): ${truncateErrorMessage(text)}\n` +
-          'To fix: set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com.'
+          'To fix: set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com.',
+        response.status
       );
     }
 
