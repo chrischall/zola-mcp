@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 // resolveRefreshToken() drives three paths:
 //   1. env var (ZOLA_REFRESH_TOKEN) → returned directly
@@ -15,16 +18,25 @@ vi.mock('@fetchproxy/bootstrap', () => ({
 }));
 
 import { resolveRefreshToken } from '../src/auth.js';
+import { createRefreshTokenCache } from '../src/token-cache.js';
 
 describe('resolveRefreshToken', () => {
   let originalToken: string | undefined;
   let originalDisable: string | undefined;
+  let originalTokenFile: string | undefined;
+  let cacheDir: string;
 
   beforeEach(() => {
     originalToken = process.env.ZOLA_REFRESH_TOKEN;
     originalDisable = process.env.ZOLA_DISABLE_FETCHPROXY;
+    originalTokenFile = process.env.ZOLA_TOKEN_FILE;
     delete process.env.ZOLA_REFRESH_TOKEN;
     delete process.env.ZOLA_DISABLE_FETCHPROXY;
+    // Pin the cache at a temp path. A successful bootstrap WRITES the token,
+    // so without this every fetchproxy test below would deposit a credential in
+    // the developer's real $HOME.
+    cacheDir = mkdtempSync(join(tmpdir(), 'zola-auth-'));
+    process.env.ZOLA_TOKEN_FILE = join(cacheDir, 'refresh-token.json');
     bootstrapMock.mockReset();
   });
 
@@ -33,6 +45,9 @@ describe('resolveRefreshToken', () => {
     else process.env.ZOLA_REFRESH_TOKEN = originalToken;
     if (originalDisable === undefined) delete process.env.ZOLA_DISABLE_FETCHPROXY;
     else process.env.ZOLA_DISABLE_FETCHPROXY = originalDisable;
+    if (originalTokenFile === undefined) delete process.env.ZOLA_TOKEN_FILE;
+    else process.env.ZOLA_TOKEN_FILE = originalTokenFile;
+    rmSync(cacheDir, { recursive: true, force: true });
   });
 
   describe('path 1: env-var refresh token', () => {
@@ -209,5 +224,76 @@ describe('resolveRefreshToken', () => {
         expect(bootstrapMock).toHaveBeenCalled();
       },
     );
+  });
+
+  describe('the refresh-token cache', () => {
+    const session = {
+      cookies: { usr: 'tok-from-fp' },
+      localStorage: {},
+      sessionStorage: {},
+      capturedHeaders: {},
+    };
+
+    it('serves a cached token without touching the bridge', async () => {
+      // The whole point: a cold start with no browser attached still works.
+      createRefreshTokenCache()?.save({ refreshToken: 'tok-from-cache' });
+
+      const result = await resolveRefreshToken();
+
+      expect(bootstrapMock).not.toHaveBeenCalled();
+      expect(result).toEqual({ token: 'tok-from-cache', source: 'cache' });
+    });
+
+    it('caches the token after a successful bootstrap', async () => {
+      bootstrapMock.mockResolvedValue(session);
+
+      await resolveRefreshToken();
+
+      expect(createRefreshTokenCache()?.load()).toEqual({ refreshToken: 'tok-from-fp' });
+    });
+
+    it('lets the env var win over a cached token', async () => {
+      createRefreshTokenCache()?.save({ refreshToken: 'tok-from-cache' });
+      process.env.ZOLA_REFRESH_TOKEN = 'tok-from-env';
+
+      const result = await resolveRefreshToken();
+
+      expect(result).toEqual({ token: 'tok-from-env', source: 'env' });
+      expect(bootstrapMock).not.toHaveBeenCalled();
+    });
+
+    it('does not read a cached token when the cache is disabled', async () => {
+      createRefreshTokenCache()?.save({ refreshToken: 'tok-from-cache' });
+      process.env.ZOLA_TOKEN_CACHE = 'false';
+      bootstrapMock.mockResolvedValue(session);
+
+      try {
+        const result = await resolveRefreshToken();
+
+        expect(result.source).toBe('fetchproxy');
+        expect(bootstrapMock).toHaveBeenCalled();
+      } finally {
+        delete process.env.ZOLA_TOKEN_CACHE;
+      }
+    });
+
+    it('still returns the token when the cache write fails', async () => {
+      // A read-only or unwritable data dir costs the next start a re-bootstrap;
+      // it must not cost this call its credential.
+      const wall = join(cacheDir, 'not-a-dir');
+      writeFileSync(wall, 'x', 'utf8');
+      process.env.ZOLA_TOKEN_FILE = join(wall, 'refresh-token.json');
+      bootstrapMock.mockResolvedValue(session);
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      try {
+        const result = await resolveRefreshToken();
+
+        expect(result).toEqual({ token: 'tok-from-fp', source: 'fetchproxy' });
+        expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('could not cache'));
+      } finally {
+        errSpy.mockRestore();
+      }
+    });
   });
 });
