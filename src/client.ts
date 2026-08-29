@@ -156,6 +156,16 @@ export class ZolaClient {
   // ("Disallowed operation … generating random values … within global scope").
   // Deferring it to first use moves it into a request handler, where it is
   // allowed everywhere. No effect on the stdio path.
+  //
+  // UPPERCASE is load-bearing, not cosmetic. The WAF matches this header
+  // against an uppercase-hex UUID pattern — the shape Apple's
+  // `NSUUID.uuidString` produces in the real iPhone app this API serves.
+  // `crypto.randomUUID()` returns LOWERCASE hex, and a lowercase id is
+  // refused at the edge with an opaque HTML 403 ("Request blocked") before
+  // it reaches the API, on every request including `/v3/sessions/refresh` —
+  // so dropping `.toUpperCase()` bricks the whole server with an error that
+  // reads exactly like a revoked credential. Verified against the live
+  // endpoint: one UUID sent uppercase returns 200 and lowercase 403.
   private _deviceSessionId: string | undefined;
   private get deviceSessionId(): string {
     return (this._deviceSessionId ??= crypto.randomUUID().toUpperCase());

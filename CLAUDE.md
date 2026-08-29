@@ -158,6 +158,7 @@ write-verification, transport archetypes, testing traps) live in
 - **Build before run**: `dist/` must exist before launching the server — `tsc` produces `dist/index.js` (the `bin`) and `esbuild` bundles to `dist/bundle.js` (the MCPB entry point). `npm run build` does both.
 - **Mobile API envelope**: most mobile API responses wrap data in `{ data: ... }`. Type the fetch result accordingly.
 - **WAF header**: every `mobile-api.zola.com` request must carry `x-zola-session-id` (a per-process UUID set in `ZolaClient`). Drop it and CloudFront returns 403.
+  The value must be an **UPPERCASE** UUID — the WAF matches the uppercase-hex shape Apple's `NSUUID.uuidString` emits in the iPhone app this API serves. `crypto.randomUUID()` is lowercase, so `ZolaClient` calls `.toUpperCase()`; removing it returns an opaque HTML 403 ("Request blocked") on every call, refresh included, which looks exactly like a revoked token. Guarded by two tests in `tests/client.test.ts`.
 - **Auth retry**: `doRequest` retries once on 401 (refresh + replay) and once on 429 (2 s sleep + replay). Further failures throw.
 - **Context caching**: `client.getContext()` calls `/v3/users/me/context` once per process and caches. Env vars override individual fields; setting all three (`ZOLA_ACCOUNT_ID`, `ZOLA_REGISTRY_ID`, `ZOLA_WEDDING_ID`) skips the call entirely.
 - **stdio transport**: stdout is reserved for JSON-RPC. `dotenv` is loaded with `quiet: true` and wrapped in try/catch so bundled mode (no `dotenv` resolvable) silently falls back to `process.env`.
