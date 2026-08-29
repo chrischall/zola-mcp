@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/chrischall/zola-mcp/compare/v1.9.0...v1.10.0) (2026-08-29)
+
+
+### Features
+
+* **auth:** cache the bootstrapped refresh token so hosted cold starts need no browser ([#183](https://github.com/chrischall/zola-mcp/issues/183)) ([3a56ad5](https://github.com/chrischall/zola-mcp/commit/3a56ad528d734d2c6b520ced4af1515198909200))
+
 ## [1.9.0](https://github.com/chrischall/zola-mcp/compare/v1.8.1...v1.9.0) (2026-08-29)
 
 
