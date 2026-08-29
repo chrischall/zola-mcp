@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/chrischall/zola-mcp/compare/v1.8.1...v1.9.0) (2026-08-29)
+
+
+### Features
+
+* **deps:** take @fetchproxy/server 2.2.0 so the concentrator can bind its sandbox address ([#181](https://github.com/chrischall/zola-mcp/issues/181)) ([dfe2a60](https://github.com/chrischall/zola-mcp/commit/dfe2a60e329af00c5539d77162b3bfda865a45ad))
+
 ## [1.8.1](https://github.com/chrischall/zola-mcp/compare/v1.8.0...v1.8.1) (2026-08-28)
 
 
