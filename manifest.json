@@ -44,7 +44,7 @@
     "refresh_token": {
       "type": "string",
       "title": "Zola Refresh Token",
-      "description": "Zola refresh token JWT (~1 year lifetime). Leave blank to use the fetchproxy 0.3.0 extension fallback — sign into zola.com in the browser and the MCP captures the `usr` cookie automatically. Otherwise, copy the `usr` cookie from DevTools and paste it here.",
+      "description": "Zola refresh token JWT (~1 year lifetime). Leave blank to use the fetchproxy extension fallback — sign into zola.com in the browser and the MCP captures the `usr` cookie automatically. Otherwise, copy the `usr` cookie from DevTools and paste it here.",
       "required": false,
       "sensitive": true
     }

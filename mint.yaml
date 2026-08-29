@@ -17,13 +17,20 @@ env:
     required: false
     help: >-
       Zola refresh token JWT (~1 year lifetime). Optional — when unset, the MCP
-      falls back to the fetchproxy 0.3.0 browser extension to read the `usr`
+      falls back to the fetchproxy browser extension to read the `usr`
       cookie from your signed-in zola.com tab.
   - name: ZOLA_ACCOUNT_ID
     required: false
     help: >-
       Overrides the account id normally read from GET /v3/users/me/context. Set
       it only to pin a specific account.
+  - name: ZOLA_DISABLE_FETCHPROXY
+    required: false
+    help: >-
+      Set to '1' to opt out of the fetchproxy browser fallback (headless / CI).
+      With it set and no ZOLA_REFRESH_TOKEN, auth is a hard error unless a
+      previous bootstrap already cached a token — reading that file is not
+      opening a browser, so the cache stays readable.
   - name: ZOLA_REGISTRY_ID
     required: false
     help: >-
@@ -35,6 +42,18 @@ env:
       A seed session token (JWT). The client refreshes it about five minutes
       before its exp, so this is a starting point rather than a long-lived
       credential.
+  - name: ZOLA_TOKEN_CACHE
+    required: false
+    help: >-
+      Set to 'false' to disable the on-disk refresh-token cache and ask the
+      browser on every start. Defaults to enabled. Inert when
+      ZOLA_REFRESH_TOKEN is set — there is no bootstrap to skip.
+  - name: ZOLA_TOKEN_FILE
+    required: false
+    help: >-
+      Absolute path for the refresh-token cache file. Defaults to
+      $MCP_DATA_DIR/.zola-mcp/refresh-token.json, else the same path under
+      $HOME.
   - name: ZOLA_WEDDING_ID
     required: false
     help: >-
@@ -42,10 +61,16 @@ env:
 state:
   dataDir: true
   reason: >-
-    The fetchproxy identity lives at $HOME/.fetchproxy/identity/<name>.json
-    and the pair code derives from it. Without a persistent $HOME every cold
-    start mints a fresh identity and re-prompts pairing in the browser; the
-    API refuses bridge without it.
+    Two things live here. The fetchproxy identity is at
+    $HOME/.fetchproxy/identity/<name>.json and the pair code derives from it —
+    without a persistent $HOME every cold start mints a fresh identity and
+    re-prompts pairing in the browser, and the API refuses bridge without it.
+    The bootstrapped refresh token is cached at
+    $MCP_DATA_DIR/.zola-mcp/refresh-token.json (0600), which matters most on
+    that same path: the `usr` cookie it holds is valid for ~a year, so with the
+    cache a cold start needs no browser at all, and without it every cold start
+    and every 30-minute session expiry goes back to the bridge — on a
+    scale-to-zero machine, constantly.
 egress:
   allow:
     # Only hosts the SERVER process actually fetches. Hosts that appear
