@@ -161,6 +161,10 @@
     {
       "name": "list_favorites",
       "description": "List favorited vendors"
+    },
+    {
+      "name": "zola_healthcheck",
+      "description": "Verify the Zola credential and API reachability: resolves the refresh token the way real tools do, makes one authenticated call, and distinguishes \"no credential\" from \"rejected\" from \"Zola is down\"."
     }
   ],
   "compatibility": {

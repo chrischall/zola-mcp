@@ -223,6 +223,7 @@ Ask Claude: *"How's wedding planning going?"* — it should show your wedding da
 | Tool | What it does | Permission |
 |------|-------------|------------|
 | `get_wedding_dashboard` | Planning dashboard overview | Auto |
+| `zola_healthcheck` | Verify the credential and Zola reachability; says which hop failed | Auto |
 | `search_storefronts` | Search marketplace by category/location | Auto |
 | `get_storefront` | Full vendor storefront details | Auto |
 | `list_favorites` | Favorited vendors | Auto |
