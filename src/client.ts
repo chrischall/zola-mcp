@@ -212,6 +212,23 @@ export class ZolaClient {
    * Make a request to the Zola mobile API (mobile-api.zola.com).
    * Uses Bearer JWT auth with x-zola-session-id header.
    */
+  /**
+   * Which source supplies the refresh token, for `zola_healthcheck` — the
+   * LABEL only, never the token.
+   *
+   * Runs the SAME resolver the real request path uses (env → cache →
+   * fetchproxy cookie), so the healthcheck reports the source that would
+   * actually be used. It deliberately does not catch: the resolver's own
+   * error names all three ways to fix a missing credential, and the
+   * healthcheck surfaces that verbatim rather than replacing it with a
+   * generic "no credential".
+   */
+  async describeCredential(): Promise<{ source: string | null }> {
+    const resolve = this.resolveRefreshToken ?? resolveRefreshToken;
+    const resolved = await resolve();
+    return { source: resolved.source };
+  }
+
   async requestMobile<T>(method: string, path: string, body?: unknown): Promise<T> {
     return this.doRequest<T>(method, path, body);
   }
