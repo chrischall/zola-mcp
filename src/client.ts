@@ -209,10 +209,6 @@ export class ZolaClient {
   }
 
   /**
-   * Make a request to the Zola mobile API (mobile-api.zola.com).
-   * Uses Bearer JWT auth with x-zola-session-id header.
-   */
-  /**
    * Which source supplies the refresh token, for `zola_healthcheck` — the
    * LABEL only, never the token.
    *
@@ -229,6 +225,10 @@ export class ZolaClient {
     return { source: resolved.source };
   }
 
+  /**
+   * Make a request to the Zola mobile API (mobile-api.zola.com).
+   * Uses Bearer JWT auth with x-zola-session-id header.
+   */
   async requestMobile<T>(method: string, path: string, body?: unknown): Promise<T> {
     return this.doRequest<T>(method, path, body);
   }

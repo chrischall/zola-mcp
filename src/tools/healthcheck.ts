@@ -20,7 +20,7 @@ export function registerHealthcheckTools(server: McpServer, client: ZolaClient):
   registerCredentialHealthcheckTool({
     server,
     prefix: 'zola',
-    hostLabel: 'api.zola.com',
+    hostLabel: 'mobile-api.zola.com',
     probePath: '/v4/your-wedding',
     resolveCredential: () => client.describeCredential(),
     probeFn: () => client.requestMobile('GET', '/v4/your-wedding'),
