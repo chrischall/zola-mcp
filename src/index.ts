@@ -1,6 +1,7 @@
 import { runMcp } from '@chrischall/mcp-utils';
 import { client } from './client.js';
 import { registerVendorTools } from './tools/vendors.js';
+import { registerHealthcheckTools } from './tools/healthcheck.js';
 import { registerBudgetTools } from './tools/budget.js';
 import { registerGuestTools } from './tools/guests.js';
 import { registerSeatingTools } from './tools/seating.js';
@@ -24,6 +25,7 @@ await runMcp({
   deps: client,
   tools: [
     registerVendorTools,
+    registerHealthcheckTools,
     registerBudgetTools,
     registerGuestTools,
     registerSeatingTools,
