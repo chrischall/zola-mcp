@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/chrischall/zola-mcp/compare/v1.10.0...v1.11.0) (2026-08-30)
+
+
+### Features
+
+* add zola_healthcheck ([#188](https://github.com/chrischall/zola-mcp/issues/188)) ([d8e1265](https://github.com/chrischall/zola-mcp/commit/d8e1265dd1aa33b6824fa3eed046032e5b9aceab)), closes [#189](https://github.com/chrischall/zola-mcp/issues/189)
+
 ## [1.10.0](https://github.com/chrischall/zola-mcp/compare/v1.9.0...v1.10.0) (2026-08-29)
 
 
