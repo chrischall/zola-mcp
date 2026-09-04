@@ -5,7 +5,7 @@
 
 ### Features
 
-* **tools:** compact by default — strip media URLs, and minify every response ([#201](https://github.com/chrischall/zola-mcp/issues/201)) ([6b9dae1](https://github.com/chrischall/zola-mcp/commit/6b9dae1d06d0b97fd2cf1a49909984ee6121ac9e))
+* **tools:** minify every response — no formatting whitespace on any payload ([#201](https://github.com/chrischall/zola-mcp/issues/201)) ([6b9dae1](https://github.com/chrischall/zola-mcp/commit/6b9dae1d06d0b97fd2cf1a49909984ee6121ac9e))
 
 
 ### Refactor
