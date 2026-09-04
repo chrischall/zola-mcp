@@ -1,4 +1,4 @@
-import { buildOptionalBody, textResult, imageResult as imageResultBase64 } from '@chrischall/mcp-utils';
+import { buildOptionalBody, imageResult as imageResultBase64, minifiedResult } from '@chrischall/mcp-utils';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 /**
@@ -17,10 +17,10 @@ export type ToolResult = CallToolResult;
 
 /**
  * Wrap any value as the standard MCP text-content tool result with pretty-printed JSON.
- * Re-exported from `@chrischall/mcp-utils` (`textResult`) under the repo's
+ * Re-exported from `@chrischall/mcp-utils` (`minifiedResult`) under the repo's
  * historical `jsonResult` name so tool modules keep a single local import hub.
  */
-export const jsonResult = textResult;
+export const jsonResult = minifiedResult;
 
 /**
  * Wrap raw image bytes as an MCP image-content tool result.
