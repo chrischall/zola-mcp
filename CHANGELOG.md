@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.12.0](https://github.com/chrischall/zola-mcp/compare/v1.11.0...v1.12.0) (2026-09-04)
+
+
+### Features
+
+* **tools:** minify every response — no formatting whitespace on any payload ([#201](https://github.com/chrischall/zola-mcp/issues/201)) ([6b9dae1](https://github.com/chrischall/zola-mcp/commit/6b9dae1d06d0b97fd2cf1a49909984ee6121ac9e))
+
+
+### Refactor
+
+* **tools:** drop the unused src/view.ts scaffolding ([#204](https://github.com/chrischall/zola-mcp/issues/204)) ([49d3200](https://github.com/chrischall/zola-mcp/commit/49d32006303f32547ead7ae6cd0260f2cb007a9c))
+
+
+### Documentation
+
+* point projectRegistryItem at src/registry-collection.ts ([#206](https://github.com/chrischall/zola-mcp/issues/206)) ([2123d18](https://github.com/chrischall/zola-mcp/commit/2123d1882ee10be0f340ef47ae29da9ba78add85))
+
 ## [1.11.0](https://github.com/chrischall/zola-mcp/compare/v1.10.0...v1.11.0) (2026-08-30)
 
 
