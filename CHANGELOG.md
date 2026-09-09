@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.1](https://github.com/chrischall/zola-mcp/compare/v1.12.0...v1.12.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* **deps:** bump hono from 4.13.0 to 4.13.7 ([#216](https://github.com/chrischall/zola-mcp/issues/216)) ([b805881](https://github.com/chrischall/zola-mcp/commit/b805881f5151ead7eccbc25d2e698c3eaa63b36b))
+* **deps:** require @fetchproxy/server ^2.7.0, the first that reads FETCHPROXY_IDENTITY_DIR ([#214](https://github.com/chrischall/zola-mcp/issues/214)) ([ed32e7e](https://github.com/chrischall/zola-mcp/commit/ed32e7e3ba2449f86cccc467d1b124e7254cf15b))
+
 ## [1.12.0](https://github.com/chrischall/zola-mcp/compare/v1.11.0...v1.12.0) (2026-09-04)
 
 
