@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.12.2](https://github.com/chrischall/zola-mcp/compare/v1.12.1...v1.12.2) (2026-09-10)
+
+
+### Bug Fixes
+
+* **deps:** @fetchproxy/server 2.10.0 and @chrischall/mcp-utils 0.26.1 ([#219](https://github.com/chrischall/zola-mcp/issues/219)) ([6c1cca0](https://github.com/chrischall/zola-mcp/commit/6c1cca06d5dc98883309a4592b140f07e8d06a63))
+* **deps:** declare the peer floors mcp-utils 0.26.1 requires ([#220](https://github.com/chrischall/zola-mcp/issues/220)) ([7888f7b](https://github.com/chrischall/zola-mcp/commit/7888f7b8c7f9830b448689ca80e8cc1e63fef49e))
+* **deps:** take @fetchproxy/server 2.9.1 so a pairing prompt survives ([#217](https://github.com/chrischall/zola-mcp/issues/217)) ([62aea71](https://github.com/chrischall/zola-mcp/commit/62aea71beb5b959813598c9bcab9786c62067c0a))
+
 ## [1.12.1](https://github.com/chrischall/zola-mcp/compare/v1.12.0...v1.12.1) (2026-09-09)
 
 
