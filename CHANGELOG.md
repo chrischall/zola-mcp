@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.3](https://github.com/chrischall/zola-mcp/compare/v1.12.2...v1.12.3) (2026-09-11)
+
+
+### Bug Fixes
+
+* **deps:** @fetchproxy/server 2.11.3, so the hosted extension pin persists ([#222](https://github.com/chrischall/zola-mcp/issues/222)) ([1c837a0](https://github.com/chrischall/zola-mcp/commit/1c837a06010624b090d2bc97a5ea7537df01333f))
+
 ## [1.12.2](https://github.com/chrischall/zola-mcp/compare/v1.12.1...v1.12.2) (2026-09-10)
 
 
