@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.12.3](https://github.com/chrischall/zola-mcp/compare/v1.12.2...v1.12.3) (2026-09-14)
+
+
+### Bug Fixes
+
+* **deps:** @fetchproxy/server 2.11.3, so the hosted extension pin persists ([#222](https://github.com/chrischall/zola-mcp/issues/222)) ([1c837a0](https://github.com/chrischall/zola-mcp/commit/1c837a06010624b090d2bc97a5ea7537df01333f))
+* **deps:** @fetchproxy/server 3.0.0 — protocol v4 (forward secrecy, AAD over the frame) ([#226](https://github.com/chrischall/zola-mcp/issues/226)) ([965fa99](https://github.com/chrischall/zola-mcp/commit/965fa99b1d22c2c9daf9dd5d722c63787905d9d5))
+* **deps:** bump the production-dependencies group with 2 updates ([90bc1cf](https://github.com/chrischall/zola-mcp/commit/90bc1cf94773283ba57aac8a0a0923ee43b4248e))
+
 ## [1.12.2](https://github.com/chrischall/zola-mcp/compare/v1.12.1...v1.12.2) (2026-09-10)
 
 
