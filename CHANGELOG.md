@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.4](https://github.com/chrischall/zola-mcp/compare/v1.12.3...v1.12.4) (2026-09-15)
+
+
+### Bug Fixes
+
+* **deps:** @fetchproxy/server 3.0.1 — capped peer frames, logged load drops, atomic identity writes ([#227](https://github.com/chrischall/zola-mcp/issues/227)) ([54e92c2](https://github.com/chrischall/zola-mcp/commit/54e92c224c95f499d25973a656976b4a2dccc669))
+
 ## [1.12.3](https://github.com/chrischall/zola-mcp/compare/v1.12.2...v1.12.3) (2026-09-14)
 
 
