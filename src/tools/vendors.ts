@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
@@ -183,16 +183,16 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
 
   server.registerTool('search_vendors', {
     description: 'Search for vendors by name (typeahead) within a vendor category',
-    inputSchema: {
+    inputSchema: z.object({
       query: z.string().describe('Vendor name to search for'),
       taxonomy_key: z.string().optional().describe('Vendor category key (e.g. wedding-venues, wedding-photographers, wedding-planners, wedding-bands-djs). Default: wedding-venues'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => searchVendors(client, args));
 
   server.registerTool('add_vendor', {
     description: 'Book a new vendor',
-    inputSchema: {
+    inputSchema: z.object({
       vendor_type: z.string().describe('Vendor type (VENUE, PHOTOGRAPHER, FLORIST, MUSICIAN_DJ, PLANNER, VIDEOGRAPHER, HAIR_MAKEUP, CAKES_DESSERTS)'),
       name: z.string().describe('Vendor business name'),
       city: z.string().describe('City'),
@@ -202,13 +202,13 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       price_cents: z.number().optional().describe('Total price in cents'),
       event_date: z.string().optional().describe('Event date ISO 8601'),
       reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => addVendor(client, args));
 
   server.registerTool('update_vendor', {
     description: 'Update a booked vendor\'s details',
-    inputSchema: {
+    inputSchema: z.object({
       uuid: z.string().describe('Vendor UUID from list_vendors'),
       name: z.string().optional(),
       city: z.string().optional(),
@@ -216,13 +216,13 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       email: z.string().optional(),
       price_cents: z.number().optional(),
       event_date: z.string().optional().describe('ISO 8601 date'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateVendor(client, args));
 
   server.registerTool('remove_vendor', {
     description: 'Unbook a vendor',
-    inputSchema: { uuid: z.string().describe('Vendor UUID from list_vendors') },
+    inputSchema: z.object({ uuid: z.string().describe('Vendor UUID from list_vendors') }),
     annotations: { destructiveHint: true },
   }, (args) => removeVendor(client, args));
 }

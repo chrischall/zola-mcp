@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
@@ -109,11 +109,11 @@ export function registerBudgetTools(server: McpServer, client: ZolaClient): void
 
   server.registerTool('update_budget_item', {
     description: "Update a budget item's actual cost and/or note by UUID",
-    inputSchema: {
+    inputSchema: z.object({
       uuid: z.string().describe('Budget item UUID from get_budget'),
       actual_cost_cents: z.number().optional().describe('Actual cost in cents'),
       note: z.string().optional().describe('Note for the budget item'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateBudgetItem(client, args));
 }

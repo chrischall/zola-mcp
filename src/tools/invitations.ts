@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, imageResult } from '../types.js';
@@ -245,51 +245,51 @@ export async function setCardProjectQrcode(client: ZolaClient, args: {
 export function registerInvitationTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_card_projects', {
     description: 'List your invitation / save-the-date / shower-invite "card" projects (paper or digital). Returns project UUID, name, customizations, suite, and quantity.',
-    inputSchema: {
+    inputSchema: z.object({
       include_completed: z.boolean().optional().describe('Include orders that have already been placed. Default: false (drafts only).'),
       limit: z.number().optional().describe('Max projects to return. Default: 30.'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => listCardProjects(client, args));
 
   server.registerTool('get_card_project', {
     description: 'Get full details for one invitation project including all customizations (invitation, envelope, RSVP card, details card), paper/color options, and per-customization pages.',
-    inputSchema: {
+    inputSchema: z.object({
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => getCardProject(client, args));
 
   server.registerTool('validate_card_project', {
     description: 'Validate an invitation project — reports any text-fit, image, or guest-addressing errors per customization. Use before placing an order.',
-    inputSchema: {
+    inputSchema: z.object({
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => validateCardProject(client, args));
 
   server.registerTool('get_card_project_guests', {
     description: 'List the guest groups assigned to an invitation project, including per-group font-size overrides for printed addressing.',
-    inputSchema: {
+    inputSchema: z.object({
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => getCardProjectGuests(client, args));
 
   server.registerTool('get_card_suite', {
     description: 'Get details for an invitation design "suite" (the family of matching invitation + RSVP + details cards), including paper types, sizes, and price range.',
-    inputSchema: {
+    inputSchema: z.object({
       suite_uuid: z.string().describe('Suite UUID (e.g. from search_card_catalog or list_favorite_card_suites)'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => getCardSuite(client, args));
 
   server.registerTool('search_card_catalog', {
     description: 'Search the invitation design catalog. Faceted search returning suites matching the requested card type.',
-    inputSchema: {
+    inputSchema: z.object({
       card_type: z.string().optional().describe('Lead card type: INVITATION (default), SAVE_THE_DATE, WEDDING_SHOWER_INVITATION, REHEARSAL_DINNER_INVITATION, THANK_YOU_CARD, etc.'),
       limit: z.number().optional().describe('Max suites to return. Default: 50.'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => searchCardCatalog(client, args));
 
@@ -305,26 +305,26 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
 
   server.registerTool('create_card_project', {
     description: 'Create a new invitation project from a design suite and a lead variation (specific size/paper).',
-    inputSchema: {
+    inputSchema: z.object({
       suite_uuid: z.string().describe('Suite UUID from search_card_catalog or get_card_suite'),
       lead_variation_uuid: z.string().describe('Lead variation UUID (specific size/paper/color from the suite)'),
       quantity: z.number().optional().describe('Quantity to order. Default: 150.'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => createCardProject(client, args));
 
   server.registerTool('swap_card_project_variation', {
     description: 'Swap one or more customizations on a project to different variations (e.g. switch paper type, color, or size). Pass a map of customization UUID → new variation UUID.',
-    inputSchema: {
+    inputSchema: z.object({
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
       customizations: z.record(z.string(), z.string()).describe('{ customization_uuid: new_variation_uuid }'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => swapCardProjectVariation(client, args));
 
   server.registerTool('set_card_project_guests', {
     description: 'Enable / disable guest groups for an invitation project and optionally override font sizes for printed names and addresses. Pass the full list of guest groups you want recorded.',
-    inputSchema: {
+    inputSchema: z.object({
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
       guest_groups: z.array(z.object({
         guest_group_id: z.number().describe('Guest group ID from list_guests / get_card_project_guests'),
@@ -332,37 +332,37 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
         guest_name_font_size_override: z.number().optional().describe('Override font size for the guest name (pt)'),
         address_font_size_override: z.number().optional().describe('Override font size for the address (pt)'),
       })).describe('Full list of guest groups to record. Omitted groups are not affected by this call.'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => setCardProjectGuests(client, args));
 
   server.registerTool('preview_card_template', {
     description: 'Render an invitation template preview with text substituted in. Use to see how a design would look with your couple\'s names and wedding date. Returns the template structure including page layouts.',
-    inputSchema: {
+    inputSchema: z.object({
       variation_uuids: z.array(z.string()).describe('One or more variation UUIDs to preview (e.g. a specific size+paper of an invitation)'),
       first_name: z.string().optional().describe('Substitute for {{first_name}} placeholders'),
       last_name: z.string().optional().describe('Substitute for {{last_name}}'),
       partner_first_name: z.string().optional().describe('Substitute for {{partner_first_name}}'),
       partner_last_name: z.string().optional().describe('Substitute for {{partner_last_name}}'),
       wedding_date: z.string().optional().describe('Substitute for {{wedding_date}}, YYYY-MM-DD. Defaults to the wedding date on file.'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => previewCardTemplate(client, args));
 
   server.registerTool('preview_qrcode', {
     description: 'Generate a QR-code PNG for an invitation. Returns the image so it can be inspected. Use set_card_project_qrcode to actually place it on a card.',
-    inputSchema: {
+    inputSchema: z.object({
       url: z.string().describe('URL the QR code will resolve to'),
       dimension: z.string().optional().describe('SMALL | MEDIUM (default) | LARGE'),
       url_type: z.string().optional().describe('CUSTOM (default) | WEDDING_WEBSITE | WEDDING_WEBSITE_RSVP'),
       enabled: z.boolean().optional().describe('Whether the QR code is enabled. Default: true.'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => previewQrcode(client, args));
 
   server.registerTool('set_card_project_qrcode', {
     description: 'Place (or update) a QR code on a specific page of an invitation project. The page UUID comes from get_card_project (look under the customization\'s pages array).',
-    inputSchema: {
+    inputSchema: z.object({
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
       page_uuid: z.string().describe('Page UUID of the customization to put the QR on'),
       url: z.string().describe('URL the QR code will resolve to'),
@@ -370,7 +370,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       url_type: z.string().optional().describe('CUSTOM (default) | WEDDING_WEBSITE | WEDDING_WEBSITE_RSVP'),
       color: z.string().optional().describe('Hex color (no #). Default: 000000'),
       enabled: z.boolean().optional().describe('Whether to enable the QR code. Default: true.'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => setCardProjectQrcode(client, args));
 }

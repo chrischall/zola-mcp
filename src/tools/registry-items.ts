@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
@@ -139,29 +139,29 @@ export async function removeRegistryItem(client: ZolaClient, args: { collection_
 export function registerRegistryItemTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('search_registry_products', {
     description: 'Browse Zola products in a category, scoped to your registry. Category IDs are Zola constants (e.g. 544 = Kitchen) — exposed via GET /v3/categories in the iOS app.',
-    inputSchema: {
+    inputSchema: z.object({
       category_id: z.number().describe('Zola product category ID'),
       offset: z.number().optional().describe('Default 0'),
       limit: z.number().optional().describe('Default 50'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => searchRegistryProducts(client, args));
 
   server.registerTool('add_registry_item', {
     description: 'Add a product (by SKU) to the registry. If collection_id is omitted, the default collection is looked up automatically.',
-    inputSchema: {
+    inputSchema: z.object({
       sku_id: z.string().describe('Product SKU ID (e.g., from search_registry_products)'),
       collection_id: z.string().optional().describe("Collection to add into; defaults to the registry's default collection"),
       quantity: z.number().optional().describe('Default 1'),
       most_wanted: z.boolean().optional().describe('Mark as a most-wanted gift. Default false'),
       enable_group_gifting: z.boolean().optional().describe('Allow multiple guests to chip in. Default false'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => addRegistryItem(client, args));
 
   server.registerTool('update_registry_item', {
     description: "Update an existing registry item — all fields must be supplied (it's a full replace)",
-    inputSchema: {
+    inputSchema: z.object({
       collection_item_id: z.string().describe('Item ID from get_registry'),
       collection_id: z.string().describe('Collection the item belongs to'),
       quantity: z.number(),
@@ -169,15 +169,15 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       marked_fulfilled: z.boolean(),
       personal_note: z.string(),
       most_wanted: z.boolean(),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateRegistryItem(client, args));
 
   server.registerTool('remove_registry_item', {
     description: 'Remove an item from the registry',
-    inputSchema: {
+    inputSchema: z.object({
       collection_item_id: z.string(),
-    },
+    }),
     annotations: { destructiveHint: true },
   }, (args) => removeRegistryItem(client, args));
 }

@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { ToolResult, jsonResult } from '../types.js';
@@ -118,13 +118,13 @@ export function registerInquiryTools(server: McpServer, client: ZolaClient): voi
 
   server.registerTool('get_inquiry_conversation', {
     description: 'Get full conversation for a vendor inquiry including messages and inquiry details',
-    inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    inputSchema: z.object({ uuid: z.string().describe('Inquiry UUID from list_inquiries') }),
     annotations: { readOnlyHint: true },
   }, (args) => getInquiryConversation(client, args));
 
   server.registerTool('mark_inquiry_read', {
     description: 'Mark a vendor inquiry conversation as read',
-    inputSchema: { uuid: z.string().describe('Inquiry UUID from list_inquiries') },
+    inputSchema: z.object({ uuid: z.string().describe('Inquiry UUID from list_inquiries') }),
     annotations: { destructiveHint: false },
   }, (args) => markInquiryRead(client, args));
 }
