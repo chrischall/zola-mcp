@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 
@@ -267,16 +267,16 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
       "View the couple's registry items with derived purchase state per item " +
       '(requested_qty, purchased_qty, marked_fulfilled, availability, inconsistent). ' +
       'Paged via limit/offset.',
-    inputSchema: {
+    inputSchema: z.object({
       limit: z.number().optional().describe('Max items to return. Default 100'),
       offset: z.number().optional().describe('Item offset. Default 0'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => getRegistry(client, args));
 
   server.registerTool('update_event', {
     description: 'Update a wedding event (name, time, venue, location, dress code, RSVP settings)',
-    inputSchema: {
+    inputSchema: z.object({
       event_id: z.number().describe('Event entity ID from list_events'),
       name: z.string().optional().describe('Event name'),
       start_at: z.string().optional().describe('Start time ISO 8601 (e.g. 2026-10-17T18:30:00Z)'),
@@ -290,7 +290,7 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
       note: z.string().optional().describe('Event notes/description'),
       attire: z.string().optional().describe('Dress code'),
       collect_rsvps: z.boolean().optional().describe('Whether to collect RSVPs for this event'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateEvent(client, args));
 }

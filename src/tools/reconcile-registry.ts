@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 import { fetchRegistryCollection, type RegistryItem } from '../registry-collection.js';

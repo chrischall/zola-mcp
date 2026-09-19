@@ -1,5 +1,5 @@
 import { buildOptionalBody, imageResult as imageResultBase64, minifiedResult } from '@chrischall/mcp-utils';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolResult } from '@modelcontextprotocol/server';
 
 /**
  * Standard mobile API response envelope.

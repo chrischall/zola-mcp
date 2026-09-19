@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
@@ -328,30 +328,30 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
 
   server.registerTool('add_faq', {
     description: 'Add a new FAQ (question + answer) to the website FAQ page',
-    inputSchema: {
+    inputSchema: z.object({
       question: z.string().describe('The FAQ question'),
       answer: z.string().describe('The FAQ answer'),
       display_order: z.number().optional().describe('Position in the FAQ list (defaults to 0)'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => addFaq(client, args));
 
   server.registerTool('update_faq', {
     description: 'Update an existing FAQ — all three fields (question, answer, display_order) must be supplied',
-    inputSchema: {
+    inputSchema: z.object({
       faq_entity_id: z.number().describe('FAQ entity ID from list_faqs'),
       question: z.string(),
       answer: z.string(),
       display_order: z.number(),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateFaq(client, args));
 
   server.registerTool('remove_faq', {
     description: 'Remove an FAQ from the website',
-    inputSchema: {
+    inputSchema: z.object({
       faq_entity_id: z.number().describe('FAQ entity ID from list_faqs'),
-    },
+    }),
     annotations: { destructiveHint: true },
   }, (args) => removeFaq(client, args));
 
@@ -362,34 +362,34 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
 
   server.registerTool('add_home_section', {
     description: 'Add a story section to the home page (title + subtitle + description block)',
-    inputSchema: {
+    inputSchema: z.object({
       title: z.string(),
       subtitle: z.string(),
       description: z.string(),
       display_order: z.number().optional(),
       hidden: z.boolean().optional(),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => addHomeSection(client, args));
 
   server.registerTool('update_home_section', {
     description: 'Update a home page story section — all fields must be supplied',
-    inputSchema: {
+    inputSchema: z.object({
       homepage_entity_id: z.number().describe('Home section ID from list_home_sections'),
       title: z.string(),
       subtitle: z.string(),
       description: z.string(),
       display_order: z.number(),
       hidden: z.boolean(),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateHomeSection(client, args));
 
   server.registerTool('remove_home_section', {
     description: 'Remove a story section from the home page',
-    inputSchema: {
+    inputSchema: z.object({
       homepage_entity_id: z.number(),
-    },
+    }),
     annotations: { destructiveHint: true },
   }, (args) => removeHomeSection(client, args));
 
@@ -400,7 +400,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
 
   server.registerTool('add_poi', {
     description: 'Add a point-of-interest to the Things-to-Do page (restaurant, attraction, etc.)',
-    inputSchema: {
+    inputSchema: z.object({
       title: z.string().describe('Name of the place'),
       description: z.string().optional(),
       address1: z.string().optional(),
@@ -415,13 +415,13 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       contact_phone: z.string().optional(),
       url: z.string().optional(),
       display_order: z.number().optional(),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => addPoi(client, args));
 
   server.registerTool('update_poi', {
     description: 'Update a point-of-interest. Provide only the fields you want to change.',
-    inputSchema: {
+    inputSchema: z.object({
       poi_entity_id: z.number().describe('POI ID from list_pois'),
       title: z.string().optional(),
       description: z.string().optional(),
@@ -437,15 +437,15 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       contact_phone: z.string().optional(),
       url: z.string().optional(),
       display_order: z.number().optional(),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updatePoi(client, args));
 
   server.registerTool('remove_poi', {
     description: 'Remove a point-of-interest from the Things-to-Do page',
-    inputSchema: {
+    inputSchema: z.object({
       poi_entity_id: z.number(),
-    },
+    }),
     annotations: { destructiveHint: true },
   }, (args) => removePoi(client, args));
 
@@ -456,7 +456,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
 
   server.registerTool('add_travel_item', {
     description: 'Add a travel item (hotel, flight, train, car, bus) to the Travel page',
-    inputSchema: {
+    inputSchema: z.object({
       type: z.enum(['HOTEL', 'FLIGHT', 'TRAIN', 'BUS', 'CAR', 'OTHER']).describe('Travel item type'),
       name: z.string().describe('Name of the hotel/airline/etc.'),
       note: z.string().optional().describe('Free-text notes (e.g., booking code instructions)'),
@@ -476,13 +476,13 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       source: z.enum(['GOOGLE_PLACES', 'MANUAL']).optional().describe('How the address was sourced'),
       timezone: z.string().optional().describe('e.g. America/New_York'),
       display_order: z.number().optional(),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => addTravelItem(client, args));
 
   server.registerTool('update_travel_item', {
     description: 'Update a travel item. Provide only the fields you want to change.',
-    inputSchema: {
+    inputSchema: z.object({
       travel_entity_id: z.number().describe('Travel entity ID from list_travel_items'),
       type: z.enum(['HOTEL', 'FLIGHT', 'TRAIN', 'BUS', 'CAR', 'OTHER']).optional(),
       name: z.string().optional(),
@@ -503,15 +503,15 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       source: z.enum(['GOOGLE_PLACES', 'MANUAL']).optional(),
       timezone: z.string().optional(),
       display_order: z.number().optional(),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateTravelItem(client, args));
 
   server.registerTool('remove_travel_item', {
     description: 'Remove a travel item from the Travel page',
-    inputSchema: {
+    inputSchema: z.object({
       travel_entity_id: z.number(),
-    },
+    }),
     annotations: { destructiveHint: true },
   }, (args) => removeTravelItem(client, args));
 }

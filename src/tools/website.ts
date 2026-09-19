@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
@@ -138,24 +138,24 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
 
   server.registerTool('set_page_hidden', {
     description: 'Show or hide a page on the wedding website (e.g., hide the RSVP page until invites go out)',
-    inputSchema: {
+    inputSchema: z.object({
       page_id: z.number().describe('Page ID from list_pages'),
       hidden: z.boolean().describe('true to hide the page, false to show it'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => setPageHidden(client, args));
 
   server.registerTool('reorder_pages', {
     description: 'Reorder pages in the website navigation. Pass the complete ordered list of page IDs.',
-    inputSchema: {
+    inputSchema: z.object({
       page_ids: z.array(z.number()).describe('Full ordered list of page IDs in desired nav order'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => reorderPages(client, args));
 
   server.registerTool('update_page', {
     description: 'Update page-level metadata (title, intro copy, nav title, visibility, layout customization)',
-    inputSchema: {
+    inputSchema: z.object({
       page_id: z.number().describe('Page ID from list_pages'),
       title: z.string().optional().describe('On-page title'),
       nav_title: z.string().optional().describe('Title shown in nav bar'),
@@ -164,7 +164,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       description: z.string().optional().describe('Page description'),
       hidden: z.boolean().optional().describe('Hide the page from the public site'),
       customization: z.unknown().optional().describe('Layout customization object (see list_pages for shape)'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updatePage(client, args));
 
@@ -175,7 +175,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
 
   server.registerTool('update_wedding_settings', {
     description: 'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
-    inputSchema: {
+    inputSchema: z.object({
       title: z.string().optional().describe('Wedding title (e.g., "Alex & Jordan")'),
       slug: z.string().optional().describe('URL slug — appears in the public website URL'),
       owner_first_name: z.string().optional(),
@@ -189,7 +189,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       guest_count: z.number().optional(),
       enable_search_engine: z.boolean().optional().describe('Allow search engines (Google, etc.) to index the site'),
       enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateWeddingSettings(client, args));
 }
