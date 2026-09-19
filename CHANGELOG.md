@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/chrischall/zola-mcp/compare/v1.12.4...v2.0.0) (2026-09-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **mcp:** migrate server to SDK v2 ([#230](https://github.com/chrischall/zola-mcp/issues/230))
+
+### Features
+
+* **mcp:** migrate server to SDK v2 ([#230](https://github.com/chrischall/zola-mcp/issues/230)) ([b90ad82](https://github.com/chrischall/zola-mcp/commit/b90ad82e66a861fa9c574a505075859800757d00))
+
 ## [1.12.4](https://github.com/chrischall/zola-mcp/compare/v1.12.3...v1.12.4) (2026-09-15)
 
 
