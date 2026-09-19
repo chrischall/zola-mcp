@@ -25,7 +25,7 @@ Ask Claude things like:
 ## Requirements
 
 - [Claude Desktop](https://claude.ai/download) or [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
-- [Node.js](https://nodejs.org) 20.6 or later
+- [Node.js](https://nodejs.org) 22 or later
 - A [Zola](https://www.zola.com) account
 - For the no-env-var path: the [fetchproxy Chrome / Safari extension](https://github.com/chrischall/fetchproxy)
 
