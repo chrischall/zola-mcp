@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 
@@ -228,7 +228,7 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
 
   server.registerTool('add_guest', {
     description: 'Add a new guest group (household) to the guest list',
-    inputSchema: {
+    inputSchema: z.object({
       first_name: z.string().describe('Primary guest first name'),
       last_name: z.string().describe('Primary guest last name'),
       plus_one_first_name: z.string().optional().describe('Plus-one first name'),
@@ -236,13 +236,13 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       email: z.string().optional().describe('Guest email address'),
       phone: z.string().optional().describe('Guest phone number'),
       affiliation: z.string().optional().describe('Affiliation (default: PRIMARY_FRIEND)'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => addGuest(client, args));
 
   server.registerTool('update_guest_address', {
     description: "Update a guest group's mailing address",
-    inputSchema: {
+    inputSchema: z.object({
       guest_group_id: z.number().describe('Guest group ID from list_guests'),
       address1: z.string().optional(),
       address2: z.string().optional(),
@@ -250,13 +250,13 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       state_province: z.string().optional(),
       postal_code: z.string().optional(),
       country_code: z.string().optional().describe('Default: US'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateGuestAddress(client, args));
 
   server.registerTool('remove_guest', {
     description: 'Remove a guest group from the guest list',
-    inputSchema: { guest_group_id: z.number().describe('Guest group ID from list_guests') },
+    inputSchema: z.object({ guest_group_id: z.number().describe('Guest group ID from list_guests') }),
     annotations: { destructiveHint: true },
   }, (args) => removeGuest(client, args));
 }

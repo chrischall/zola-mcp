@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
@@ -172,20 +172,20 @@ export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient)
 
   server.registerTool('search_themes', {
     description: 'Browse the catalog of available wedding-website themes',
-    inputSchema: {
+    inputSchema: z.object({
       limit: z.number().optional().describe('Default 50'),
       offset: z.number().optional().describe('Default 0'),
       theme_layout_types: z.array(z.enum(['MULTI_PAGE', 'SINGLE_PAGE'])).optional().describe('Default ["MULTI_PAGE"]'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => searchThemes(client, args));
 
   server.registerTool('update_current_theme', {
     description: 'Switch the wedding website to a different theme template',
-    inputSchema: {
+    inputSchema: z.object({
       theme_key: z.string().describe('Theme key from search_themes (e.g., "galata", "blake-cranberry")'),
       theme_layout_type: z.enum(['MULTI_PAGE', 'SINGLE_PAGE']).optional().describe('Default MULTI_PAGE'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateCurrentTheme(client, args));
 
@@ -196,7 +196,7 @@ export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient)
       'to defend against a Zola partial-update wipe bug. body_font_family_id is restricted to [68, 198]. ' +
       'header_color and nav_font_color exist on Zola\'s web-api endpoint but are NOT writable via the mobile-api ' +
       'this MCP uses — change them in the Zola web UI for now.',
-    inputSchema: {
+    inputSchema: z.object({
       accent_color: z.string().optional().describe('6-char hex (no #)'),
       background_color: z.string().optional(),
       body_font_color: z.string().optional(),
@@ -205,7 +205,7 @@ export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient)
       body_font_family_id: z.number().optional().describe('Restricted to 68 (Libre Baskerville) or 198 (Circular). Other IDs return a generic API error.'),
       header_color: z.string().optional().describe('Writable only via Zola\'s web-api (cookie+CSRF), not the mobile-api this MCP uses. Passing this throws.'),
       nav_font_color: z.string().optional().describe('Writable only via Zola\'s web-api (cookie+CSRF), not the mobile-api this MCP uses. Passing this throws.'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => updateWebsiteCustomization(client, args));
 }

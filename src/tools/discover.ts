@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 
@@ -65,19 +65,19 @@ export function registerDiscoverTools(server: McpServer, client: ZolaClient): vo
 
   server.registerTool('search_storefronts', {
     description: 'Search Zola vendor marketplace by category and location (1=Venues, 2=Photographers, 3=Florists, 7=Planners, 9=Bands/DJs)',
-    inputSchema: {
+    inputSchema: z.object({
       taxonomy_node_id: z.number().describe('Vendor category ID (1=Venues, 2=Photographers, 3=Florists, 7=Planners, 9=Bands/DJs)'),
       city: z.string().describe('City name (e.g. Charlotte)'),
       state_province: z.string().describe('State abbreviation (e.g. NC)'),
       limit: z.number().optional().describe('Results per page (default 24)'),
       offset: z.number().optional().describe('Pagination offset (default 0)'),
-    },
+    }),
     annotations: { readOnlyHint: true },
   }, (args) => searchStorefronts(client, args));
 
   server.registerTool('get_storefront', {
     description: 'Get full details for a vendor storefront (pricing, reviews, photos, about, FAQs)',
-    inputSchema: { uuid: z.string().describe('Storefront UUID from search_storefronts or list_favorites') },
+    inputSchema: z.object({ uuid: z.string().describe('Storefront UUID from search_storefronts or list_favorites') }),
     annotations: { readOnlyHint: true },
   }, (args) => getStorefront(client, args));
 

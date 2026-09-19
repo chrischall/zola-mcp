@@ -1,4 +1,4 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
@@ -124,7 +124,7 @@ export function registerSeatingTools(server: McpServer, client: ZolaClient): voi
 
   server.registerTool('get_seating_chart', {
     description: 'Get full seating chart with all tables, seats, and current occupants',
-    inputSchema: { uuid: z.string().describe('Seating chart UUID from list_seating_charts') },
+    inputSchema: z.object({ uuid: z.string().describe('Seating chart UUID from list_seating_charts') }),
     annotations: { readOnlyHint: true },
   }, (args) => getSeatingChart(client, args));
 
@@ -135,12 +135,12 @@ export function registerSeatingTools(server: McpServer, client: ZolaClient): voi
 
   server.registerTool('assign_seat', {
     description: 'Assign a guest to a specific seat in a seating chart',
-    inputSchema: {
+    inputSchema: z.object({
       guest_uuid: z.string().describe('Guest UUID from list_unseated_guests'),
       seat_uuid: z.string().describe('Seat UUID from get_seating_chart'),
       table_uuid: z.string().describe('Table UUID from get_seating_chart'),
       seating_chart_uuid: z.string().describe('Seating chart UUID from list_seating_charts'),
-    },
+    }),
     annotations: { destructiveHint: false },
   }, (args) => assignSeat(client, args));
 }
