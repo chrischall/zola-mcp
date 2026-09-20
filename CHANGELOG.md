@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/chrischall/zola-mcp/compare/v2.0.0...v2.1.0) (2026-09-19)
+
+
+### Features
+
+* **deps:** take mcp-utils 1.0.0 so server/discover answers ([#232](https://github.com/chrischall/zola-mcp/issues/232)) ([b61ce14](https://github.com/chrischall/zola-mcp/commit/b61ce143bd3404e1ef9a9b92c735da0d12387189))
+
 ## [2.0.0](https://github.com/chrischall/zola-mcp/compare/v1.12.4...v2.0.0) (2026-09-19)
 
 
