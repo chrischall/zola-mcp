@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/chrischall/zola-mcp/compare/v2.1.0...v2.1.1) (2026-09-21)
+
+
+### Documentation
+
+* AGENTS.md pointed at a directory that does not exist ([#237](https://github.com/chrischall/zola-mcp/issues/237)) ([26f7676](https://github.com/chrischall/zola-mcp/commit/26f7676bb6b3a93aa04c61253f783a700277a0b9))
+
 ## [2.1.0](https://github.com/chrischall/zola-mcp/compare/v2.0.0...v2.1.0) (2026-09-19)
 
 
