@@ -1,0 +1,177 @@
+# zola-mcp
+
+MCP server for Zola wedding planning — vendors, budget, guests, seating, events, registry, registry items, inquiries, wedding website (content + theme), and storefront discovery. Talks to Zola's mobile API (`mobile-api.zola.com`) over Bearer JWT. Stdio transport.
+
+## Commands
+
+```bash
+npm run build        # tsc + esbuild bundle → dist/index.js + dist/bundle.js
+npm test             # vitest run
+npm run test:watch   # vitest in watch mode
+npm run dev          # node --env-file=.env dist/index.js (build first)
+```
+
+## Architecture
+
+```
+src/
+  index.ts                MCP server entry — registers all tool modules, starts stdio transport
+  client.ts               ZolaClient — Bearer JWT auth, session refresh, context resolution
+  auth.ts                 resolveRefreshToken() — env var / disk cache / fetchproxy fallback
+  token-cache.ts          On-disk cache for the bootstrapped ~1-year refresh token
+  types.ts                Shared types
+  tools/
+    vendors.ts            list/search/add/update/remove booked vendors
+    budget.ts             get budget, update budget items
+    guests.ts             list/add/update/remove guest groups, update address
+    seating.ts            seating charts, seat assignment, unseated guests
+    inquiries.ts          vendor inquiry conversations, mark read
+    events.ts             events, RSVPs, update event, gift tracker, registry summary
+    event-invitations.ts  set/invite/remove which guests are invited to which events
+    discover.ts           wedding dashboard, storefront search/details, favorites
+    registry-items.ts     registry item CRUD
+    invitations.ts        invitation/save-the-date "card" projects, suites, catalog, QR, RSVP page
+    website.ts            wedding website settings
+    website-content.ts    wedding website page content
+    website-theme.ts      wedding website theme
+```
+
+All API calls go through `client.requestMobile()`, which hits `mobile-api.zola.com` with Bearer JWT auth and a per-process `x-zola-session-id` header (CloudFront WAF requirement). No web API, no CSRF.
+
+Each tool file exports a `register*Tools(server)` function. `index.ts` imports and calls each one.
+
+## Environment
+
+```
+ZOLA_REFRESH_TOKEN=<jwt>   # Primary credential. ~1-year refresh token (the `usr` cookie
+                           #   from zola.com). When unset, the fetchproxy fallback
+                           #   reads it from a signed-in zola.com browser tab.
+ZOLA_ACCOUNT_ID=<number>   # Optional. Auto-resolved from GET /v3/users/me/context.
+ZOLA_REGISTRY_ID=<string>  # Optional. Auto-resolved from same.
+ZOLA_WEDDING_ID=<number>   # Optional. Auto-resolved from same. If all three are set,
+                           #   the context API call is skipped entirely.
+ZOLA_SESSION_TOKEN=<jwt>   # Optional. Short-lived (30 min) session token; skips initial
+                           #   refresh on cold start. Auto-refresh still kicks in on 401.
+ZOLA_DISABLE_FETCHPROXY=1  # Optional. Opts out of the fetchproxy fallback (headless / CI).
+                           #   Without this and without ZOLA_REFRESH_TOKEN, refresh errors
+                           #   out with the "set token or install extension" message.
+                           #   Does NOT disable the token cache: the flag governs opening a
+                           #   browser, and a cached token can still be read. No write guard
+                           #   is needed — writes only happen on the path this flag disables.
+ZOLA_TOKEN_CACHE=false     # Optional. Disables the on-disk refresh-token cache (default on).
+                           #   Inert when ZOLA_REFRESH_TOKEN is set — there is no bootstrap
+                           #   to skip, so nothing is written.
+ZOLA_TOKEN_FILE=<path>     # Optional. Absolute path for the cache file. Defaults to
+                           #   $MCP_DATA_DIR/.zola-mcp/refresh-token.json, else under $HOME.
+                           #   Tests set it to keep writes out of the real home directory.
+```
+
+Blank, `undefined`, `null`, and unsubstituted `${FOO}` placeholders are treated as unset (defends against MCP hosts that pass `.mcp.json` env blocks through unexpanded).
+
+## Auth resolution (four-path)
+
+`src/auth.ts` exports `resolveRefreshToken()`, which `ZolaClient.refresh()` calls each time it needs to mint a new 30-min session token. Path priority:
+
+1. **`ZOLA_REFRESH_TOKEN` env var** — returned directly. Legacy users are unchanged.
+2. **disk cache** (`src/token-cache.ts`) — the refresh token a previous bootstrap lifted from the browser, under `$MCP_DATA_DIR` when the host provides one. Inert whenever the env var is set, so path 1 keeps precedence without being checked twice.
+3. **fetchproxy fallback** — calls `@fetchproxy/bootstrap` which spins up a one-shot WebSocket bridge to the fetchproxy Chrome/Safari extension and reads the HttpOnly `usr` cookie on zola.com via `chrome.cookies.get`. Returns once, and the result is written to the cache. All subsequent Zola API calls go direct to `mobile-api.zola.com` from Node — fetchproxy is NOT in the hot path.
+4. **Error** — surface both fixes side-by-side ("set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com").
+
+This is the canonical "browser-bootstrap + Node-direct" shape shared with ofw-mcp, resy-mcp, opentable-mcp, signupgenius-mcp, …
+
+**Why the cache exists.** The `usr` cookie is valid for ~a year, but `refresh()` re-resolves it on every cold start and every 30-min session expiry. Hosted on mcp-host, where the machine scales to zero, that demanded an awake browser with a signed-in tab at nearly every cold start — for a credential good for a year. Caching collapses it to once. This is why the hosted registration must declare `state.dataDir: true`: without it the file lands on a per-boot directory and vanishes on the next idle-stop.
+
+**Stale-cache recovery is the load-bearing part.** A cached token can be revoked or age out, and without recovery it would throw on every later call forever — the cache would turn a browser problem into a brick. So `ZolaClient.refresh()` discards it and re-resolves **once** when the API answers 4xx. A 5xx or network error says nothing about the credential and leaves it intact; destroying a valid token on a transient blip would force a needless re-bridge. Only a `source: 'cache'` token is retried — the env var would re-resolve to the same value, and a token just lifted from the browser is already as fresh as the bridge can make it.
+
+## Response shape — minified, and deliberately no `view` parameter
+
+`jsonResult` (`src/types.ts`) is `minifiedResult` from `@chrischall/mcp-utils`: every one of the 76 tool results is a single line of JSON with no indentation. Indentation is tokens the caller pays for and never reads; whitespace *inside* a value is untouched.
+
+There is **no `view: compact | full` parameter, and it was measured before being declined.** A `src/view.ts` was added by a fleet rollout, wired to nothing, and removed. Three findings, all from the captured fixtures in `tests/fixtures/`, and none of them matching the story that rollout told:
+
+- **Most reads here are NOT projected.** `projectRegistryItem` (`src/registry-collection.ts` — top level, not under `src/tools/`), `projectGiftTracker` (`src/tools/events.ts`) and `flattenGiftTracker` (`src/tools/reconcile-registry.ts`) have one call site each; add the three hand-written literals in `get_budget`, `list_inquiries` and `list_unseated_guests` and it is 6 of 38 read tools. The other 32 are verbatim passthrough, many literally typed `MobileEnvelope<unknown>` — a type annotation that is itself proof no field knowledge exists.
+- **`stripMediaUrls` barely fires on Zola's payloads.** Its key regex is anchored with no separator before the suffix (`^<noun>s?(?:link|uri|url)s?$`), built for camelCase; Zola's API is snake_case. `image_url`, `image_links`, `images_urls`, `plp_front_image_url`, `universal_photo_url`, `photo_preview` are all **kept**; only bare `images` / `thumbnail` / `avatar` drop. Its value rule needs an image extension ending the path, and Zola's CDN URLs are extension-less (`https://images.zola.com/<id>?fit=fill&w=640&h=640`). Measured: `gift-tracker.raw.json` 153,197 → 151,847 bytes (**0.9%**); registry items after `projectRegistryItem` 25,392 → 25,098 (**1.2%**), with the `image_url` still in the row. A tool description promising "compact strips image/avatar URLs" that then does not strip them is worse than no parameter.
+- **Nine of the verbatim reads are a stationery catalog** (`get_card_suite`, `search_card_catalog`, `list_card_projects`, `list_favorite_card_suites`, …), plus `get_storefront`. Their product IS the picture. Blanket stripping empties those responses rather than shrinking them.
+
+If response size is worth attacking here, the lever is already in the repo and is 10-100× larger: `projectGiftTracker` takes the tracker from ~154 KB to ~12 KB, and its docblock records that the bulk was `THANK_YOU_CARDS_PROMO` modules — *not* the image links. Extending that pattern to `get_storefront` / `search_storefronts` / `get_wedding_dashboard` from a captured payload is the work that pays. A subtractive rule that measurably does nothing is not.
+
+## Testing
+
+Tests in `tests/`. Run with `npm test`. No real network — `client.requestMobile` is stubbed via `vi.spyOn`, and `client.getContext` is mocked the same way. Shared fixtures live in `tests/_fixtures.ts`. `vitest.config.ts` enables v8 coverage but does not currently enforce a threshold.
+
+`tests/version-sync.test.ts` is an invariant test (shared `versionSyncTest` from `@chrischall/mcp-utils/test`): every `// x-release-please-version` constant in `src/` must match `package.json`'s `version`, or CI fails. Tag any new version-bearing constant with that marker so release-please bumps it and the test asserts it.
+
+## Plugin / Marketplace
+
+```
+.claude-plugin/
+  plugin.json       Claude plugin manifest (skill + mcp pointers)
+  marketplace.json  Marketplace catalog entry
+skills/             Codex skill directory referenced by plugin.json (skills/<name>/SKILL.md, plugin-auto-discovered)
+manifest.json       mcpb bundle manifest (built into .mcpb by Release workflow)
+.mcp.json           MCP server entry for Codex (uses ${CLAUDE_PLUGIN_ROOT})
+server.json         MCP Registry submission
+mint.yaml           mcp-host hosting manifest (env / egress / state for registration)
+```
+
+The top-level `plugin.json` is a stub (`0.1.0`); the live plugin manifest is `.claude-plugin/plugin.json`.
+
+## Publishing constraints
+
+The MCP Registry's [server.schema.json](https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json) caps `server.json`'s `description` at **100 characters**. Values over that fail `mcp-publisher publish` with HTTP 422 (`validation failed: expected length <= 100, location: body.description`). The other description fields (`manifest.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`) have no published length constraint and can stay longer.
+
+Sanity-check before committing a description change:
+
+```bash
+jq -r '.description | length' server.json
+```
+
+## Versioning
+
+Version appears in SIX files — all must match:
+
+1. `package.json` → `"version"`
+2. `package-lock.json` → top-level + first `packages[""]` entry (`npm version` handles both)
+3. `src/index.ts` → the `VERSION` const tagged `// x-release-please-version` (fed to the `McpServer` constructor)
+4. `manifest.json` → `"version"`
+5. `server.json` → `"version"` and `packages[].version` (two entries)
+6. `.claude-plugin/plugin.json` → `"version"`
+7. `.claude-plugin/marketplace.json` → outer `metadata.version` and `plugins[].version`
+
+### Important
+
+Do NOT manually bump versions or create tags unless the user explicitly asks. Versioning is handled by **release-please** (`.github/workflows/release-please.yml`), which bumps every file registered under `extra-files` in `release-please-config.json` automatically.
+
+### Release workflow
+
+Releases are driven by **release-please** (`googleapis/release-please-action`) — there is no separate tag/bump step:
+
+1. On every push to `main`, release-please scans Conventional-Commit messages since the last `v*` tag. `feat:`/`fix:`/etc. commits cause it to open or update a **release PR** (`chore(main): release X.Y.Z`) that bumps every version file and updates `CHANGELOG.md`.
+2. The release PR is a human gate — `pr-auto-review.yml` deliberately skips it. Ship it by adding the `ready-to-merge` label (auto-merge arms it) or merging in the UI.
+3. When the release PR merges, release-please creates the `vX.Y.Z` tag + GitHub Release from the changelog, then the same workflow's `publish` job runs: `npm ci` + build, package the `.skill`, `mcpb pack` the `.mcpb`, `npm publish --provenance`, MCP Registry publish (OIDC), optional ClawHub publish, and attaches the `.skill`/`.mcpb` to the release.
+
+Because release-please keys on Conventional Commits, a PR that squash-merges **without** a `feat:`/`fix:` prefix won't trigger a release. To force a version (e.g. to ship a feature that merged without a prefix), put a `Release-As: X.Y.Z` footer in a commit on `main` — release-please proposes exactly that version on its next run. (Squash settings: title = PR title, body = PR body, so a `Release-As:` line in the PR body lands in the squashed commit.) The repo allows **squash-merge only** — `--merge` and `--rebase` are blocked at the branch-protection ruleset level, so a merged branch's commits are never ancestors of `main`.
+
+<!-- pr-workflow:v3 -->
+## Pull requests & release notes
+
+Fleet policy — Conventional-Commit PR titles, labels, the auto-review /
+auto-merge ladder, auto-review follow-up issues, PR timing, and release PRs —
+lives in `~/.codex/AGENTS.md`. Don't restate it here; the copies drifted.
+
+Shared technical conventions (publishing, bundling, versioning guards,
+write-verification, transport archetypes, testing traps) live in
+[`chrischall/workflows`](https://github.com/chrischall/workflows):
+`docs/fleet-conventions.md`, plus `README.md` for the CI pipeline contract.
+
+## Gotchas
+
+- **ESM + NodeNext**: imports must use `.js` extensions even for `.ts` source files (e.g. `import { client } from './client.js'`).
+- **Build before run**: `dist/` must exist before launching the server — `tsc` produces `dist/index.js` (the `bin`) and `esbuild` bundles to `dist/bundle.js` (the MCPB entry point). `npm run build` does both.
+- **Mobile API envelope**: most mobile API responses wrap data in `{ data: ... }`. Type the fetch result accordingly.
+- **WAF header**: every `mobile-api.zola.com` request must carry `x-zola-session-id` (a per-process UUID set in `ZolaClient`). Drop it and CloudFront returns 403.
+  The value must be an **UPPERCASE** UUID — the WAF matches the uppercase-hex shape Apple's `NSUUID.uuidString` emits in the iPhone app this API serves. `crypto.randomUUID()` is lowercase, so `ZolaClient` calls `.toUpperCase()`; removing it returns an opaque HTML 403 ("Request blocked") on every call, refresh included, which looks exactly like a revoked token. Guarded by two tests in `tests/client.test.ts`.
+- **Auth retry**: `doRequest` retries once on 401 (refresh + replay) and once on 429 (2 s sleep + replay). Further failures throw.
+- **Context caching**: `client.getContext()` calls `/v3/users/me/context` once per process and caches. Env vars override individual fields; setting all three (`ZOLA_ACCOUNT_ID`, `ZOLA_REGISTRY_ID`, `ZOLA_WEDDING_ID`) skips the call entirely.
+- **stdio transport**: stdout is reserved for JSON-RPC. `dotenv` is loaded with `quiet: true` and wrapped in try/catch so bundled mode (no `dotenv` resolvable) silently falls back to `process.env`.
+- **Plugin distribution files**: `.claude-plugin/`, `skills/`, `manifest.json`, `server.json`, and `.mcp.json` are for Codex / MCPB / MCP-Registry distribution — none are part of the runtime.
