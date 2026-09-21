@@ -105,11 +105,11 @@ Tests in `tests/`. Run with `npm test`. No real network — `client.requestMobil
 
 ```
 .claude-plugin/
-  plugin.json       Claude plugin manifest (skill + mcp pointers)
+  plugin.json       Claude Code plugin manifest (skill + mcp pointers)
   marketplace.json  Marketplace catalog entry
-skills/             Codex skill directory referenced by plugin.json (skills/<name>/SKILL.md, plugin-auto-discovered)
+skills/             Claude Code skill directory referenced by plugin.json (skills/<name>/SKILL.md, plugin-auto-discovered)
 manifest.json       mcpb bundle manifest (built into .mcpb by Release workflow)
-.mcp.json           MCP server entry for Codex (uses ${CLAUDE_PLUGIN_ROOT})
+.mcp.json           MCP server entry for Claude Code (uses ${CLAUDE_PLUGIN_ROOT})
 server.json         MCP Registry submission
 mint.yaml           mcp-host hosting manifest (env / egress / state for registration)
 ```
@@ -174,4 +174,4 @@ write-verification, transport archetypes, testing traps) live in
 - **Auth retry**: `doRequest` retries once on 401 (refresh + replay) and once on 429 (2 s sleep + replay). Further failures throw.
 - **Context caching**: `client.getContext()` calls `/v3/users/me/context` once per process and caches. Env vars override individual fields; setting all three (`ZOLA_ACCOUNT_ID`, `ZOLA_REGISTRY_ID`, `ZOLA_WEDDING_ID`) skips the call entirely.
 - **stdio transport**: stdout is reserved for JSON-RPC. `dotenv` is loaded with `quiet: true` and wrapped in try/catch so bundled mode (no `dotenv` resolvable) silently falls back to `process.env`.
-- **Plugin distribution files**: `.claude-plugin/`, `skills/`, `manifest.json`, `server.json`, and `.mcp.json` are for Codex / MCPB / MCP-Registry distribution — none are part of the runtime.
+- **Plugin distribution files**: `.claude-plugin/`, `skills/`, `manifest.json`, `server.json`, and `.mcp.json` are for Claude Code / MCPB / MCP-Registry distribution — none are part of the runtime.
