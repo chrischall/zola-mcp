@@ -77,6 +77,14 @@ describe('registry-items tools', () => {
     );
   });
 
+  it('addRegistryItem: encodes collection_id so it cannot redirect the request', async () => {
+    reqSpy.mockResolvedValueOnce({ data: {} } as never);
+    await addRegistryItem(client, { sku_id: 'sku-1', collection_id: '../../../v3/users/me?' });
+    expect(reqSpy.mock.calls[0][1]).toBe(
+      '/v3/registries/registry-1/collections/..%2F..%2F..%2Fv3%2Fusers%2Fme%3F'
+    );
+  });
+
   it('addRegistryItem: when collection_id omitted, looks it up from /v3/registries/{id}', async () => {
     reqSpy.mockResolvedValueOnce(MOCK_REGISTRY_META as never);
     reqSpy.mockResolvedValueOnce({ data: { collection_item_id: 'item-1' } } as never);

@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
+import { pathSegment } from '../path.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 interface SeatOccupant {
@@ -78,7 +79,7 @@ export async function listSeatingCharts(client: ZolaClient): Promise<ToolResult>
 }
 
 export async function getSeatingChart(client: ZolaClient, args: { uuid: string }): Promise<ToolResult> {
-  const chart = await client.requestMobile<SeatingChart>('GET', `/v3/seating-charts/${encodeURIComponent(args.uuid)}`);
+  const chart = await client.requestMobile<SeatingChart>('GET', `/v3/seating-charts/${pathSegment(args.uuid)}`);
   return jsonResult(chart);
 }
 

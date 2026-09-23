@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
+import { pathSegment } from '../path.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
 const collectionIdCache = new Map<string, string>();
@@ -95,7 +96,7 @@ export async function addRegistryItem(client: ZolaClient, args: {
   };
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'POST',
-    `/v3/registries/${registryId}/collections/${collectionId}`,
+    `/v3/registries/${registryId}/collections/${pathSegment(collectionId)}`,
     body
   );
   return jsonResult(response.data);
@@ -121,7 +122,7 @@ export async function updateRegistryItem(client: ZolaClient, args: {
   };
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
-    `/v3/registries/${registryId}/items/${encodeURIComponent(args.collection_item_id)}`,
+    `/v3/registries/${registryId}/items/${pathSegment(args.collection_item_id)}`,
     body
   );
   return jsonResult(response.data);
@@ -131,7 +132,7 @@ export async function removeRegistryItem(client: ZolaClient, args: { collection_
   const { registryId } = await client.getContext();
   await client.requestMobile<MobileEnvelope<unknown>>(
     'DELETE',
-    `/v3/registries/${registryId}/items/${encodeURIComponent(args.collection_item_id)}`
+    `/v3/registries/${registryId}/items/${pathSegment(args.collection_item_id)}`
   );
   return jsonResult({ removed: args.collection_item_id });
 }
