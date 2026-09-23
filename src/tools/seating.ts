@@ -49,21 +49,22 @@ interface SeatingChartSummary {
   event_id: number;
 }
 
-interface GuestEntry {
-  guest: {
-    guest_id: number;
-    uuid: string;
-    first_name: string;
-    family_name: string;
-    relationship_type: string;
-    rsvp: string;
-  };
-  seating_chart_seat: { seat_uuid: string; table_name: string } | null;
+// The live /v3/guestlists/directory response returns a FLAT guest shape:
+// fields sit directly on each guest object, with no `{ guest: {...} }` wrapper
+// (docs/zola-api-quirks.md §5 — the same shape guests.ts reads).
+interface DirectoryGuest {
+  guest_id: number;
+  uuid: string;
+  first_name: string;
+  family_name: string;
+  relationship_type: string;
+  rsvp: string;
+  seating_chart_seat?: { seat_uuid: string; table_name: string } | null;
 }
 
 interface GuestGroup {
   guest_group_id: number;
-  guests: GuestEntry[];
+  guests: DirectoryGuest[];
 }
 
 interface DirectoryResponse {
@@ -90,13 +91,14 @@ export async function listUnseatedGuests(client: ZolaClient): Promise<ToolResult
   );
   const unseated = response.data.guest_groups
     .flatMap((g) => g.guests)
-    .filter((e) => e.seating_chart_seat === null)
-    .map((e) => ({
-      guest_uuid: e.guest.uuid,
-      first_name: e.guest.first_name,
-      family_name: e.guest.family_name,
-      relationship_type: e.guest.relationship_type,
-      rsvp: e.guest.rsvp,
+    // A missing seat is unseated too, not only an explicit null.
+    .filter((g) => g.seating_chart_seat == null)
+    .map((g) => ({
+      guest_uuid: g.uuid,
+      first_name: g.first_name,
+      family_name: g.family_name,
+      relationship_type: g.relationship_type,
+      rsvp: g.rsvp,
     }));
   return jsonResult(unseated);
 }
