@@ -23,6 +23,13 @@ interface WeddingEvent {
   num_guests_not_responded: number;
   meal_options: unknown[];
   public: boolean;
+  address2?: string | null;
+  note?: string | null;
+  attire?: string | null;
+  display_order?: number | null;
+  rsvp_questions?: unknown[] | null;
+  /** The PUT is a full replace, so anything else the server returns is carried too. */
+  [key: string]: unknown;
 }
 
 interface EventGroup {
@@ -209,32 +216,28 @@ export async function updateEvent(client: ZolaClient, args: {
     throw new Error(`Event with ID ${args.event_id} not found`);
   }
 
+  // PUT /v3/websites/events/{id} is a full replace: any field left out (or
+  // sent blank) is wiped. Start from the event exactly as read — note, attire,
+  // address2, rsvp_questions, display_order and anything else the server
+  // returns — and overlay only what the caller supplied. Same read-modify-write
+  // defence as the guest-group writes (docs/zola-api-quirks.md §1/§5).
   const body = {
-    event_entity_id: current.event_entity_id,
-    uuid: current.uuid,
-    wedding_account_id: current.wedding_account_id,
-    type: current.type,
+    ...current,
     name: args.name ?? current.name,
     start_at: args.start_at ?? current.start_at,
     end_at: args.end_at ?? current.end_at,
-    timezone: current.timezone,
     venue_name: args.venue_name ?? current.venue_name ?? '',
     address1: args.address1 ?? current.address1 ?? '',
-    address2: '',
+    address2: current.address2 ?? '',
     city: args.city ?? current.city ?? '',
     state_province: args.state_province ?? current.state_province ?? '',
     postal_code: args.postal_code ?? current.postal_code ?? '',
     country_code: args.country_code ?? current.country_code ?? 'US',
-    note: args.note ?? '',
-    attire: args.attire ?? '',
+    note: args.note ?? current.note ?? '',
+    attire: args.attire ?? current.attire ?? '',
     collect_rsvps: args.collect_rsvps ?? current.collect_rsvps,
-    public: current.public,
-    display_order: 0,
-    num_guests_attending: current.num_guests_attending,
-    num_guests_declined: current.num_guests_declined,
-    num_guests_not_responded: current.num_guests_not_responded,
-    meal_options: current.meal_options,
-    rsvp_questions: [],
+    display_order: current.display_order ?? 0,
+    rsvp_questions: current.rsvp_questions ?? [],
     add_booked_vendor: false,
   };
 
@@ -291,6 +294,6 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
       attire: z.string().optional().describe('Dress code'),
       collect_rsvps: z.boolean().optional().describe('Whether to collect RSVPs for this event'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: true, idempotentHint: true },
   }, (args) => updateEvent(client, args));
 }

@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
+import { pathSegment } from '../path.js';
 import { MobileEnvelope, ToolResult, jsonResult, imageResult } from '../types.js';
 
 // ─── Tier 1: read-only ───────────────────────────────────────────────────────
@@ -30,7 +31,7 @@ export async function listCardProjects(client: ZolaClient, args: {
 export async function getCardProject(client: ZolaClient, args: { project_uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
-    `/v3/card-projects/${args.project_uuid}`
+    `/v3/card-projects/${pathSegment(args.project_uuid)}`
   );
   return jsonResult(response.data);
 }
@@ -38,7 +39,7 @@ export async function getCardProject(client: ZolaClient, args: { project_uuid: s
 export async function validateCardProject(client: ZolaClient, args: { project_uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
-    `/v3/card-projects/${args.project_uuid}/validate`
+    `/v3/card-projects/${pathSegment(args.project_uuid)}/validate`
   );
   return jsonResult(response.data);
 }
@@ -46,7 +47,7 @@ export async function validateCardProject(client: ZolaClient, args: { project_uu
 export async function getCardProjectGuests(client: ZolaClient, args: { project_uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
-    `/v3/card-projects/${args.project_uuid}/project-guest-groups`
+    `/v3/card-projects/${pathSegment(args.project_uuid)}/project-guest-groups`
   );
   return jsonResult(response.data);
 }
@@ -54,7 +55,7 @@ export async function getCardProjectGuests(client: ZolaClient, args: { project_u
 export async function getCardSuite(client: ZolaClient, args: { suite_uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'POST',
-    `/v4/card-catalog/suites/details/${args.suite_uuid}`
+    `/v4/card-catalog/suites/details/${pathSegment(args.suite_uuid)}`
   );
   return jsonResult(response.data);
 }
@@ -129,7 +130,7 @@ export async function swapCardProjectVariation(client: ZolaClient, args: {
   }
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
-    `/v3/card-projects/${args.project_uuid}`,
+    `/v3/card-projects/${pathSegment(args.project_uuid)}`,
     { customizations }
   );
   return jsonResult(response.data);
@@ -146,7 +147,7 @@ export async function setCardProjectGuests(client: ZolaClient, args: {
 }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
-    `/v3/card-projects/${args.project_uuid}/project-guest-groups`,
+    `/v3/card-projects/${pathSegment(args.project_uuid)}/project-guest-groups`,
     { guest_group_requests: args.guest_groups }
   );
   return jsonResult(response.data);
@@ -228,7 +229,7 @@ export async function setCardProjectQrcode(client: ZolaClient, args: {
 }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'PUT',
-    `/v3/card-projects/${args.project_uuid}/customization/page/${args.page_uuid}/qrcode`,
+    `/v3/card-projects/${pathSegment(args.project_uuid)}/customization/page/${pathSegment(args.page_uuid)}/qrcode`,
     {
       dimension: args.dimension ?? 'MEDIUM',
       url_type: args.url_type ?? 'CUSTOM',

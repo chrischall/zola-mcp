@@ -4,7 +4,7 @@ import { listSeatingCharts, getSeatingChart, listUnseatedGuests, assignSeat } fr
 import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_SUMMARIES = [
-  { uuid: 'chart-uuid-1', name: 'Reception', event_id: 5108495 },
+  { uuid: 'chart-uuid-1', name: 'Reception', event_id: 2000001 },
 ];
 
 const MOCK_SEAT_EMPTY = {
@@ -20,13 +20,13 @@ const MOCK_SEAT_OCCUPIED = {
   table_uuid: 'table-uuid-1',
   seating_chart_uuid: 'chart-uuid-1',
   occupant: {
-    display_name: 'Jennifer Acerra',
-    initials: 'JA',
+    display_name: 'Pat Morgan',
+    initials: "PM",
     affiliation: 'PRIMARY_FRIEND',
     relationship_type: 'PRIMARY',
     rsvp_type: 'NO_RESPONSE',
     guest_uuid: 'guest-uuid-1',
-    guest_group_id: 152644475,
+    guest_group_id: 3000001,
   },
   color: null,
 };
@@ -34,7 +34,7 @@ const MOCK_SEAT_OCCUPIED = {
 const MOCK_CHART = {
   uuid: 'chart-uuid-1',
   name: 'Reception',
-  event_id: 5108495,
+  event_id: 2000001,
   width: 3000,
   height: 3000,
   tables: [
@@ -53,34 +53,41 @@ const MOCK_CHART = {
   objects: [],
 };
 
+// The live directory returns a FLAT guest shape — fields sit directly on each
+// guest, no `{ guest: {...} }` wrapper (docs/zola-api-quirks.md §5).
 const MOCK_DIRECTORY = {
   data: {
     num_invited_guests: 10,
     guest_groups: [
       {
-        guest_group_id: 152644475,
+        guest_group_id: 3000001,
         guests: [
           {
-            guest: {
-              guest_id: 280379459,
-              uuid: 'guest-uuid-1',
-              first_name: 'Jennifer',
-              family_name: 'Acerra',
-              relationship_type: 'PRIMARY',
-              rsvp: 'NO_RESPONSE',
-            },
+            guest_id: 4000001,
+            uuid: 'guest-uuid-1',
+            first_name: 'Pat',
+            family_name: 'Morgan',
+            relationship_type: 'PRIMARY',
+            rsvp: 'NO_RESPONSE',
             seating_chart_seat: { seat_uuid: 'seat-uuid-2', table_name: 'Table 1' },
           },
           {
-            guest: {
-              guest_id: 280379460,
-              uuid: 'guest-uuid-2',
-              first_name: 'Jason',
-              family_name: 'Shuba',
-              relationship_type: 'PARTNER',
-              rsvp: 'NO_RESPONSE',
-            },
+            guest_id: 4000002,
+            uuid: 'guest-uuid-2',
+            first_name: 'Sam',
+            family_name: 'Morgan',
+            relationship_type: 'PARTNER',
+            rsvp: 'NO_RESPONSE',
             seating_chart_seat: null,
+          },
+          {
+            // No seating_chart_seat key at all — also unseated.
+            guest_id: 4000003,
+            uuid: 'guest-uuid-3',
+            first_name: 'Robin',
+            family_name: 'Example',
+            relationship_type: 'CHILD',
+            rsvp: 'ATTENDING',
           },
         ],
       },
@@ -119,7 +126,7 @@ describe('seating tools', () => {
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.name).toBe('Reception');
     expect(parsed.tables).toHaveLength(1);
-    expect(parsed.tables[0].seats[1].occupant.display_name).toBe('Jennifer Acerra');
+    expect(parsed.tables[0].seats[1].occupant.display_name).toBe('Pat Morgan');
   });
 
   it('listUnseatedGuests: filters directory to guests with null seating_chart_seat', async () => {
@@ -127,11 +134,24 @@ describe('seating tools', () => {
 
     const result = await listUnseatedGuests(client);
 
-    expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/guestlists/directory/wedding-accounts/4664323', { sort_by_name_asc: true });
+    expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/guestlists/directory/wedding-accounts/1000001', { sort_by_name_asc: true });
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed).toHaveLength(1);
-    expect(parsed[0].first_name).toBe('Jason');
-    expect(parsed[0].guest_uuid).toBe('guest-uuid-2');
+    expect(parsed).toEqual([
+      {
+        guest_uuid: 'guest-uuid-2',
+        first_name: 'Sam',
+        family_name: 'Morgan',
+        relationship_type: 'PARTNER',
+        rsvp: 'NO_RESPONSE',
+      },
+      {
+        guest_uuid: 'guest-uuid-3',
+        first_name: 'Robin',
+        family_name: 'Example',
+        relationship_type: 'CHILD',
+        rsvp: 'ATTENDING',
+      },
+    ]);
   });
 
   it('assignSeat: PUTs correct body and returns confirmation', async () => {

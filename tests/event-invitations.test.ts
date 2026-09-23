@@ -24,7 +24,7 @@ function guest(guestId: number, firstName: string, relationship: string, invitat
     prefix: null,
     first_name: firstName,
     middle_name: null,
-    family_name: 'Acerra',
+    family_name: 'Morgan',
     suffix: null,
     email_address: '',
     home_phone: '',
@@ -55,7 +55,7 @@ function group(
   return {
     guest_group_id: groupId,
     guest_group_uuid: `uuid-${groupId}`,
-    wedding_account_id: 4664323,
+    wedding_account_id: 1000001,
     envelope_recipient: recipient,
     envelope_recipient_override: null,
     addressing_style: 'SEMI_FORMAL',
@@ -75,8 +75,8 @@ function group(
   };
 }
 
-const CEREMONY = 5108473;
-const RECEPTION = 5108495;
+const CEREMONY = 2000002;
+const RECEPTION = 2000001;
 
 function directory(groups: ReturnType<typeof group>[]) {
   return {
@@ -143,22 +143,22 @@ describe('event-invitation tools (mobile API)', () => {
 
   it('setEventGuests: invites a group — appends invitation to every guest via bulk/directory', async () => {
     wire(reqSpy, () => [
-      group(152644475, 'Jennifer Acerra and Jason Shuba', [
-        guest(280379459, 'Jennifer', 'PRIMARY', []),
-        guest(280379460, 'Jason', 'PARTNER', []),
+      group(3000001, 'Pat Morgan and Sam Morgan', [
+        guest(4000001, 'Pat', 'PRIMARY', []),
+        guest(4000002, 'Sam', 'PARTNER', []),
       ]),
     ]);
 
     await setEventGuests(client, {
       event_id: CEREMONY,
-      guest_groups: [{ guest_group_id: 152644475, invited: true }],
+      guest_groups: [{ guest_group_id: 3000001, invited: true }],
     });
 
     const { path, body } = putBody(reqSpy);
-    expect(path).toBe('/v3/guestlists/groups/wedding-accounts/4664323/bulk/directory');
+    expect(path).toBe('/v3/guestlists/groups/wedding-accounts/1000001/bulk/directory');
     expect(body.updated_guest_groups).toHaveLength(1);
     const g = body.updated_guest_groups[0];
-    expect(g.guest_group_id).toBe(152644475);
+    expect(g.guest_group_id).toBe(3000001);
     expect(g.guests).toHaveLength(2);
     for (const gu of g.guests) {
       const inv = gu.event_invitations.filter((e: Inv) => e.event_id === CEREMONY);
@@ -169,8 +169,8 @@ describe('event-invitation tools (mobile API)', () => {
 
   it('setEventGuests: uninviting removes that event but preserves others (no wipe)', async () => {
     wire(reqSpy, () => [
-      group(152644475, 'Jennifer Acerra and Jason Shuba', [
-        guest(280379459, 'Jennifer', 'PRIMARY', [
+      group(3000001, 'Pat Morgan and Sam Morgan', [
+        guest(4000001, 'Pat', 'PRIMARY', [
           { id: 111, event_id: CEREMONY, rsvp_type: 'NO_RESPONSE' },
           { id: 222, event_id: RECEPTION, rsvp_type: 'NO_RESPONSE' },
         ]),
@@ -179,7 +179,7 @@ describe('event-invitation tools (mobile API)', () => {
 
     await setEventGuests(client, {
       event_id: CEREMONY,
-      guest_groups: [{ guest_group_id: 152644475, invited: false }],
+      guest_groups: [{ guest_group_id: 3000001, invited: false }],
     });
 
     const { body } = putBody(reqSpy);
@@ -193,8 +193,8 @@ describe('event-invitation tools (mobile API)', () => {
 
   it('setEventGuests: idempotent — inviting an already-invited guest does not duplicate', async () => {
     wire(reqSpy, () => [
-      group(152644475, 'Jennifer Acerra and Jason Shuba', [
-        guest(280379459, 'Jennifer', 'PRIMARY', [
+      group(3000001, 'Pat Morgan and Sam Morgan', [
+        guest(4000001, 'Pat', 'PRIMARY', [
           { id: 111, event_id: CEREMONY, rsvp_type: 'NO_RESPONSE' },
         ]),
       ]),
@@ -202,7 +202,7 @@ describe('event-invitation tools (mobile API)', () => {
 
     await setEventGuests(client, {
       event_id: CEREMONY,
-      guest_groups: [{ guest_group_id: 152644475, invited: true }],
+      guest_groups: [{ guest_group_id: 3000001, invited: true }],
     });
 
     const { body } = putBody(reqSpy);
@@ -214,14 +214,14 @@ describe('event-invitation tools (mobile API)', () => {
 
   it('setEventGuests: does not touch the guest rsvp field', async () => {
     wire(reqSpy, () => [
-      group(152644475, 'Jennifer Acerra and Jason Shuba', [
-        guest(280379459, 'Jennifer', 'PRIMARY', []),
+      group(3000001, 'Pat Morgan and Sam Morgan', [
+        guest(4000001, 'Pat', 'PRIMARY', []),
       ]),
     ]);
 
     await setEventGuests(client, {
       event_id: CEREMONY,
-      guest_groups: [{ guest_group_id: 152644475, invited: true }],
+      guest_groups: [{ guest_group_id: 3000001, invited: true }],
     });
 
     const { body } = putBody(reqSpy);
@@ -251,14 +251,14 @@ describe('event-invitation tools (mobile API)', () => {
   });
 
   it('setEventGuests: rejects an unknown event_id', async () => {
-    wire(reqSpy, () => [group(152644475, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
+    wire(reqSpy, () => [group(3000001, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
     await expect(
-      setEventGuests(client, { event_id: 99999, guest_groups: [{ guest_group_id: 152644475, invited: true }] })
+      setEventGuests(client, { event_id: 99999, guest_groups: [{ guest_group_id: 3000001, invited: true }] })
     ).rejects.toThrow(/99999/);
   });
 
   it('setEventGuests: rejects an unknown guest_group_id', async () => {
-    wire(reqSpy, () => [group(152644475, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
+    wire(reqSpy, () => [group(3000001, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
     await expect(
       setEventGuests(client, { event_id: CEREMONY, guest_groups: [{ guest_group_id: 999, invited: true }] })
     ).rejects.toThrow(/999/);
@@ -268,31 +268,31 @@ describe('event-invitation tools (mobile API)', () => {
 
   it('inviteGuestToEvent: by guest_id mutates only that guest', async () => {
     wire(reqSpy, () => [
-      group(152644475, 'Jennifer Acerra and Jason Shuba', [
-        guest(280379459, 'Jennifer', 'PRIMARY', []),
-        guest(280379460, 'Jason', 'PARTNER', []),
+      group(3000001, 'Pat Morgan and Sam Morgan', [
+        guest(4000001, 'Pat', 'PRIMARY', []),
+        guest(4000002, 'Sam', 'PARTNER', []),
       ]),
     ]);
 
-    await inviteGuestToEvent(client, { event_id: CEREMONY, guest_id: 280379459 });
+    await inviteGuestToEvent(client, { event_id: CEREMONY, guest_id: 4000001 });
 
     const { body } = putBody(reqSpy);
     const guests = body.updated_guest_groups[0].guests;
-    const jennifer = guests.find((g: any) => g.guest_id === 280379459);
-    const jason = guests.find((g: any) => g.guest_id === 280379460);
-    expect(jennifer.event_invitations.some((e: Inv) => e.event_id === CEREMONY)).toBe(true);
-    expect(jason.event_invitations.some((e: Inv) => e.event_id === CEREMONY)).toBe(false);
+    const pat = guests.find((g: any) => g.guest_id === 4000001);
+    const sam = guests.find((g: any) => g.guest_id === 4000002);
+    expect(pat.event_invitations.some((e: Inv) => e.event_id === CEREMONY)).toBe(true);
+    expect(sam.event_invitations.some((e: Inv) => e.event_id === CEREMONY)).toBe(false);
   });
 
   it('inviteGuestToEvent: by guest_group_id invites all guests in the group', async () => {
     wire(reqSpy, () => [
-      group(152644475, 'Jennifer Acerra and Jason Shuba', [
-        guest(280379459, 'Jennifer', 'PRIMARY', []),
-        guest(280379460, 'Jason', 'PARTNER', []),
+      group(3000001, 'Pat Morgan and Sam Morgan', [
+        guest(4000001, 'Pat', 'PRIMARY', []),
+        guest(4000002, 'Sam', 'PARTNER', []),
       ]),
     ]);
 
-    await inviteGuestToEvent(client, { event_id: CEREMONY, guest_group_id: 152644475 });
+    await inviteGuestToEvent(client, { event_id: CEREMONY, guest_group_id: 3000001 });
 
     const { body } = putBody(reqSpy);
     for (const gu of body.updated_guest_groups[0].guests) {
@@ -312,45 +312,45 @@ describe('event-invitation tools (mobile API)', () => {
 
   it('removeEventInvitation: by guest_group_id removes the event from every guest', async () => {
     wire(reqSpy, () => [
-      group(152644475, 'Jennifer Acerra and Jason Shuba', [
-        guest(280379459, 'Jennifer', 'PRIMARY', [
+      group(3000001, 'Pat Morgan and Sam Morgan', [
+        guest(4000001, 'Pat', 'PRIMARY', [
           { id: 111, event_id: CEREMONY, rsvp_type: 'NO_RESPONSE' },
           { id: 112, event_id: RECEPTION, rsvp_type: 'NO_RESPONSE' },
         ]),
-        guest(280379460, 'Jason', 'PARTNER', [
+        guest(4000002, 'Sam', 'PARTNER', [
           { id: 113, event_id: CEREMONY, rsvp_type: 'NO_RESPONSE' },
         ]),
       ]),
     ]);
 
-    await removeEventInvitation(client, { event_id: CEREMONY, guest_group_id: 152644475 });
+    await removeEventInvitation(client, { event_id: CEREMONY, guest_group_id: 3000001 });
 
     const { body } = putBody(reqSpy);
     for (const gu of body.updated_guest_groups[0].guests) {
       expect(gu.event_invitations.some((e: Inv) => e.event_id === CEREMONY)).toBe(false);
     }
-    // Reception invite on Jennifer survives.
-    const jennifer = body.updated_guest_groups[0].guests.find((g: any) => g.guest_id === 280379459);
-    expect(jennifer.event_invitations).toContainEqual(
+    // Reception invite on Pat survives.
+    const pat = body.updated_guest_groups[0].guests.find((g: any) => g.guest_id === 4000001);
+    expect(pat.event_invitations).toContainEqual(
       expect.objectContaining({ id: 112, event_id: RECEPTION })
     );
   });
 
   it('removeEventInvitation: by guest_id removes only that guest’s invitation', async () => {
     wire(reqSpy, () => [
-      group(152644475, 'Jennifer Acerra and Jason Shuba', [
-        guest(280379459, 'Jennifer', 'PRIMARY', [{ id: 111, event_id: CEREMONY, rsvp_type: 'NO_RESPONSE' }]),
-        guest(280379460, 'Jason', 'PARTNER', [{ id: 113, event_id: CEREMONY, rsvp_type: 'NO_RESPONSE' }]),
+      group(3000001, 'Pat Morgan and Sam Morgan', [
+        guest(4000001, 'Pat', 'PRIMARY', [{ id: 111, event_id: CEREMONY, rsvp_type: 'NO_RESPONSE' }]),
+        guest(4000002, 'Sam', 'PARTNER', [{ id: 113, event_id: CEREMONY, rsvp_type: 'NO_RESPONSE' }]),
       ]),
     ]);
 
-    await removeEventInvitation(client, { event_id: CEREMONY, guest_id: 280379459 });
+    await removeEventInvitation(client, { event_id: CEREMONY, guest_id: 4000001 });
 
     const { body } = putBody(reqSpy);
     const guests = body.updated_guest_groups[0].guests;
-    const jennifer = guests.find((g: any) => g.guest_id === 280379459);
-    const jason = guests.find((g: any) => g.guest_id === 280379460);
-    expect(jennifer.event_invitations.some((e: Inv) => e.event_id === CEREMONY)).toBe(false);
-    expect(jason.event_invitations.some((e: Inv) => e.event_id === CEREMONY)).toBe(true);
+    const pat = guests.find((g: any) => g.guest_id === 4000001);
+    const sam = guests.find((g: any) => g.guest_id === 4000002);
+    expect(pat.event_invitations.some((e: Inv) => e.event_id === CEREMONY)).toBe(false);
+    expect(sam.event_invitations.some((e: Inv) => e.event_id === CEREMONY)).toBe(true);
   });
 });

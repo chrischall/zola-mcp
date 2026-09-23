@@ -70,9 +70,9 @@ const MOCK_CONVERSATION = {
       inquiry_uuid: 'inquiry-uuid-1',
       vendor_card: MOCK_INQUIRY.vendor_card,
       couple: {
-        first_name: 'Meredith',
-        last_name: 'Suffron',
-        email_address: 'meredith@example.com',
+        first_name: 'Alex',
+        last_name: 'Rivera',
+        email_address: 'alex@example.com',
         wedding_date: 1792195200000,
       },
       summary_items: [
@@ -84,7 +84,7 @@ const MOCK_CONVERSATION = {
     inquiry_status: 'READY',
     participants: [
       { key: 'vendor-key-1', type: 'VENDOR', name: 'DM Weddings', first_name: 'Debora', last_name: 'Biggers' },
-      { key: 'couple-key-1', type: 'COUPLE', name: 'Meredith Suffron', first_name: 'Meredith', last_name: 'Suffron' },
+      { key: 'couple-key-1', type: 'COUPLE', name: 'Alex Rivera', first_name: 'Alex', last_name: 'Rivera' },
     ],
     messages: [
       {

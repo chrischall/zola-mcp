@@ -177,7 +177,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
     description: 'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
     inputSchema: z.object({
       title: z.string().optional().describe('Wedding title (e.g., "Alex & Jordan")'),
-      slug: z.string().optional().describe('URL slug — appears in the public website URL'),
+      slug: z.string().optional().describe('URL slug — appears in the public website URL. Changing it breaks every link and QR code already shared or printed with the old URL'),
       owner_first_name: z.string().optional(),
       owner_last_name: z.string().optional(),
       partner_first_name: z.string().optional(),
@@ -185,11 +185,11 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       wedding_date: z.string().optional().describe('YYYY-MM-DD'),
       city: z.string().optional(),
       state_province: z.string().optional(),
-      hashtag: z.string().optional().describe('e.g. #merchris2026 — empty string clears it'),
+      hashtag: z.string().optional().describe('e.g. #alexjordan2026 — empty string clears it'),
       guest_count: z.number().optional(),
       enable_search_engine: z.boolean().optional().describe('Allow search engines (Google, etc.) to index the site'),
       enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: true, idempotentHint: true },
   }, (args) => updateWeddingSettings(client, args));
 }

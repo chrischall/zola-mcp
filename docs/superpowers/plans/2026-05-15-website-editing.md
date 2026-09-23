@@ -35,7 +35,7 @@ it('getContext: returns weddingId from context response', async () => {
   vi.spyOn(freshClient, 'requestMobile').mockResolvedValueOnce({
     data: {
       user: { id: 'user-1' },
-      wedding_account: { wedding_account_id: 4664323 },
+      wedding_account: { wedding_account_id: 1000001 },
       wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'chrismer26' },
       registry: { id: 'registry-1' },
     },
@@ -129,7 +129,7 @@ For each match, add `weddingId: 7585869,` to the mocked context object. Example:
 
 ```ts
 vi.spyOn(client, 'getContext').mockResolvedValue({
-  weddingAccountId: 4664323,
+  weddingAccountId: 1000001,
   weddingId: 7585869,
   registryId: 'registry-id-1',
   userId: 'user-id-1',
@@ -174,7 +174,7 @@ import { client } from '../src/client.js';
 import { listPages } from '../src/tools/website.js';
 
 const MOCK_CTX = {
-  weddingAccountId: 4664323,
+  weddingAccountId: 1000001,
   weddingId: 7585869,
   registryId: 'registry-1',
   userId: 'user-1',
@@ -298,7 +298,7 @@ Append to `tests/website.test.ts` inside the `describe('website tools'` block:
     const result = await reorderPages({ page_ids: newOrder });
     expect(reqSpy).toHaveBeenCalledWith(
       'PUT',
-      '/v3/websites/pages/wedding-accounts/4664323/reorder',
+      '/v3/websites/pages/wedding-accounts/1000001/reorder',
       { ids: newOrder }
     );
     expect(result.content[0].text).toBeDefined();
@@ -526,16 +526,16 @@ Append to `tests/website.test.ts`:
   const MOCK_CONTEXT_RESPONSE = {
     data: {
       user: { id: 'user-1' },
-      wedding_account: { wedding_account_id: 4664323 },
+      wedding_account: { wedding_account_id: 1000001 },
       wedding: {
         wedding_id: 7585869,
         account_id: 7585875,
         slug: 'chrismer26',
-        owner_first_name: 'Meredith',
-        owner_last_name: 'Suffron',
-        partner_first_name: 'Christopher',
+        owner_first_name: 'Alex',
+        owner_last_name: 'Rivera',
+        partner_first_name: 'Jordan',
         partner_last_name: 'Hall',
-        title: 'Meredith & Chris',
+        title: 'Alex & Jordan',
         wedding_date: '2026-10-17',
         hashtag: null,
         enable_search_engine: false,
@@ -553,7 +553,7 @@ Append to `tests/website.test.ts`:
     const result = await getWeddingSettings();
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/users/me/context');
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.title).toBe('Meredith & Chris');
+    expect(parsed.title).toBe('Alex & Jordan');
     expect(parsed.slug).toBe('chrismer26');
     expect(parsed.wedding_id).toBe(7585869);
   });
@@ -578,7 +578,7 @@ Append to `tests/website.test.ts`:
         title: 'New Title',
         hashtag: '#mer-chris',
         slug: 'chrismer26',
-        partner_first_name: 'Christopher',
+        partner_first_name: 'Jordan',
         wedding_date: '2026-10-17',
       })
     );
@@ -701,7 +701,7 @@ Register inside `registerWebsiteTools`:
     'update_wedding_settings',
     'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
     {
-      title: z.string().optional().describe('Wedding title (e.g., "Meredith & Chris")'),
+      title: z.string().optional().describe('Wedding title (e.g., "Alex & Jordan")'),
       slug: z.string().optional().describe('URL slug — appears in the public website URL'),
       owner_first_name: z.string().optional(),
       owner_last_name: z.string().optional(),
@@ -710,7 +710,7 @@ Register inside `registerWebsiteTools`:
       wedding_date: z.string().optional().describe('YYYY-MM-DD'),
       city: z.string().optional(),
       state_province: z.string().optional(),
-      hashtag: z.string().optional().describe('e.g. #merchris2026 — empty string clears it'),
+      hashtag: z.string().optional().describe('e.g. #alexjordan2026 — empty string clears it'),
       guest_count: z.number().optional(),
       enable_search_engine: z.boolean().optional().describe('Allow search engines (Google, etc.) to index the site'),
       enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),
@@ -795,7 +795,7 @@ import {
 } from '../src/tools/website-content.js';
 
 const MOCK_CTX = {
-  weddingAccountId: 4664323,
+  weddingAccountId: 1000001,
   weddingId: 7585869,
   registryId: 'registry-1',
   userId: 'user-1',
@@ -833,7 +833,7 @@ describe('website-content: faqs', () => {
 
     const result = await listFaqs();
 
-    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/faqs/wedding-accounts/4664323');
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/faqs/wedding-accounts/1000001');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed).toHaveLength(1);
     expect(parsed[0].question).toBe('Q1');
@@ -847,7 +847,7 @@ describe('website-content: faqs', () => {
     const result = await addFaq({ question: 'New?', answer: 'Yes', display_order: 0 });
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/faqs', {
-      wedding_account_id: 4664323,
+      wedding_account_id: 1000001,
       faq_entity_id: 0,
       question: 'New?',
       answer: 'Yes',
@@ -870,7 +870,7 @@ describe('website-content: faqs', () => {
     });
 
     expect(reqSpy).toHaveBeenCalledWith('PUT', '/v3/websites/faqs/6522901', {
-      wedding_account_id: 4664323,
+      wedding_account_id: 1000001,
       faq_entity_id: 6522901,
       question: 'Updated?',
       answer: 'Updated.',
@@ -890,7 +890,7 @@ describe('website-content: faqs', () => {
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
       'DELETE',
-      '/v3/websites/pages/41938921/entities/6522901/wedding-accounts/4664323'
+      '/v3/websites/pages/41938921/entities/6522901/wedding-accounts/1000001'
     );
   });
 
@@ -1119,7 +1119,7 @@ describe('website-content: home sections', () => {
 
     const result = await listHomeSections();
 
-    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/home-sections/wedding-accounts/4664323');
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/home-sections/wedding-accounts/1000001');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed[0].title).toBe('Story 1');
   });
@@ -1137,7 +1137,7 @@ describe('website-content: home sections', () => {
     });
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/websites/home-sections', {
-      wedding_account_id: 4664323,
+      wedding_account_id: 1000001,
       homepage_entity_id: 0,
       title: 'New',
       subtitle: 'sub',
@@ -1162,7 +1162,7 @@ describe('website-content: home sections', () => {
     });
 
     expect(reqSpy).toHaveBeenCalledWith('PUT', '/v3/websites/home-sections/1381564', {
-      wedding_account_id: 4664323,
+      wedding_account_id: 1000001,
       homepage_entity_id: 1381564,
       title: 'Edited',
       subtitle: 'sub',
@@ -1181,7 +1181,7 @@ describe('website-content: home sections', () => {
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
       'DELETE',
-      '/v3/websites/pages/41938915/entities/1381564/wedding-accounts/4664323'
+      '/v3/websites/pages/41938915/entities/1381564/wedding-accounts/1000001'
     );
   });
 });
@@ -1370,7 +1370,7 @@ describe('website-content: points of interest', () => {
 
     expect(reqSpy).toHaveBeenCalledWith(
       'GET',
-      '/v3/websites/points-of-interest/wedding-accounts/4664323'
+      '/v3/websites/points-of-interest/wedding-accounts/1000001'
     );
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed[0].title).toBe('Rhino Market');
@@ -1399,7 +1399,7 @@ describe('website-content: points of interest', () => {
       'POST',
       '/v3/websites/points-of-interest',
       expect.objectContaining({
-        wedding_account_id: 4664323,
+        wedding_account_id: 1000001,
         poi_entity_id: 0,
         title: 'Rhino Market',
         address1: '1414 South Tryon Street',
@@ -1429,7 +1429,7 @@ describe('website-content: points of interest', () => {
       'PUT',
       '/v3/websites/points-of-interest/5506041',
       expect.objectContaining({
-        wedding_account_id: 4664323,
+        wedding_account_id: 1000001,
         poi_entity_id: 5506041,
         title: 'Renamed',
       })
@@ -1445,7 +1445,7 @@ describe('website-content: points of interest', () => {
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
       'DELETE',
-      '/v3/websites/pages/41938922/entities/5506041/wedding-accounts/4664323'
+      '/v3/websites/pages/41938922/entities/5506041/wedding-accounts/1000001'
     );
   });
 });

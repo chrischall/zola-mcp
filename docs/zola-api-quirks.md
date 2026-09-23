@@ -171,7 +171,7 @@ guest-list directory returns. Each element:
 ```jsonc
 {
   "id": 697189995,          // server-assigned; null when creating a new one
-  "event_id": 5108495,      // == event_entity_id from list_events
+  "event_id": 2000001,      // == event_entity_id from list_events
   "meal_option_id": null,
   "rsvp_type": "NO_RESPONSE",// inviting does NOT set an RSVP
   "rsvp_at": null

@@ -342,7 +342,7 @@ describe('ZolaClient', () => {
     vi.spyOn(freshClient, 'requestMobile').mockResolvedValueOnce({
       data: {
         user: { id: 'user-1' },
-        wedding_account: { wedding_account_id: 4664323 },
+        wedding_account: { wedding_account_id: 1000001 },
         wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'chrismer26' },
         registry: { id: 'registry-1' },
       },
@@ -448,7 +448,7 @@ describe('ZolaClient', () => {
     const contextResponse = {
       data: {
         user: { id: 'user-1' },
-        wedding_account: { wedding_account_id: 4664323 },
+        wedding_account: { wedding_account_id: 1000001 },
         wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'chrismer26' },
         registry: { id: 'registry-1' },
       },
@@ -472,7 +472,7 @@ describe('ZolaClient', () => {
   });
 
   it('getContext short-circuits when all three env vars are present', async () => {
-    process.env.ZOLA_ACCOUNT_ID = '4664323';
+    process.env.ZOLA_ACCOUNT_ID = '1000001';
     process.env.ZOLA_REGISTRY_ID = 'registry-env';
     process.env.ZOLA_WEDDING_ID = '7585869';
 
@@ -480,7 +480,7 @@ describe('ZolaClient', () => {
     const ctx = await freshClient.getContext();
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(ctx.weddingAccountId).toBe(4664323);
+    expect(ctx.weddingAccountId).toBe(1000001);
     expect(ctx.registryId).toBe('registry-env');
     expect(ctx.weddingId).toBe(7585869);
     expect(ctx.userId).toBe('');

@@ -128,6 +128,6 @@ Vitest with mocked `client.requestMobile`, matching the existing test files.
 
 ## Open questions resolved
 
-- **Wedding ID source**: confirmed in captures — `account_id: 7585875` and `wedding_id: 7585869` are distinct from `wedding_account_id: 4664323`. Plan must add `wedding_id` to client context if not already present.
+- **Wedding ID source**: confirmed in captures — `account_id: 7585875` and `wedding_id: 7585869` are distinct from `wedding_account_id: 1000001`. Plan must add `wedding_id` to client context if not already present.
 - **POI `google_place_id` required?**: No — make optional. Add-tool accepts manual address.
 - **Theme writes**: deferred. See "Deferred" in Scope.

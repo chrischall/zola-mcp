@@ -61,8 +61,8 @@ Response envelope: `{data: {...}}`
       "inquiry_uuid": "41dc3e76-...",
       "vendor_card": { ... },
       "couple": {
-        "first_name": "Meredith",
-        "last_name": "Suffron",
+        "first_name": "Alex",
+        "last_name": "Rivera",
         "email_address": "...",
         "wedding_date": 1792195200000,
         "phone_number": "...",
@@ -91,13 +91,13 @@ Response envelope: `{data: {...}}`
       {
         "key": "abb79b9f-...",
         "type": "COUPLE",
-        "name": "Meredith Suffron"
+        "name": "Alex Rivera"
       }
     ],
     "messages": [
       {
         "type": "VENDOR_OUTREACH",
-        "body": "Hi Meredith & Christopher...",
+        "body": "Hi Alex & Jordan...",
         "sent_by_participant_key": "683b9faf-...",
         "sent_at": 1775502625582,
         "new_message": false

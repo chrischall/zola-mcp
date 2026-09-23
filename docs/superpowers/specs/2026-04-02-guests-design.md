@@ -16,9 +16,9 @@ The guest API lives at `https://www.zola.com/web-api/` — same base URL as `Zol
 ### Guest Group (household)
 ```json
 {
-  "id": 152644475,
+  "id": 3000001,
   "uuid": "8617a2b9-d179-41df-805b-6aa28b33da1f",
-  "wedding_account_id": 4664323,
+  "wedding_account_id": 1000001,
   "email_address": null,
   "home_phone": null,
   "mobile_phone": null,
@@ -33,18 +33,18 @@ The guest API lives at `https://www.zola.com/web-api/` — same base URL as `Zol
   "invited": true,
   "invitation_sent": false,
   "save_the_date_sent": false,
-  "envelope_recipient": "Jennifer Acerra and Jason Shuba",
-  "envelope_recipient_override": "Jennifer Acerra and Jason Shuba",
+  "envelope_recipient": "Pat Morgan and Sam Morgan",
+  "envelope_recipient_override": "Pat Morgan and Sam Morgan",
   "addressing_style": "SEMI_FORMAL",
   "guests": [
     {
       "id": 12345,
-      "guest_group_id": 152644475,
+      "guest_group_id": 3000001,
       "relationship_type": "PRIMARY",
       "prefix": null,
-      "first_name": "Jennifer",
+      "first_name": "Pat",
       "middle_name": null,
-      "family_name": "Acerra",
+      "family_name": "Morgan",
       "suffix": null,
       "printed_name": null,
       "source": "MANUAL",
@@ -100,17 +100,17 @@ Based on JS bundle analysis and guest group data model:
 {
   "guests": [
     {
-      "first_name": "Jennifer",
-      "family_name": "Acerra",
+      "first_name": "Pat",
+      "family_name": "Morgan",
       "relationship_type": "PRIMARY"
     },
     {
-      "first_name": "Jason",
-      "family_name": "Shuba",
+      "first_name": "Sam",
+      "family_name": "Morgan",
       "relationship_type": "CHILD"
     }
   ],
-  "email_address": "jennifer@example.com",
+  "email_address": "pat@example.com",
   "mobile_phone": "555-123-4567",
   "affiliation": "PRIMARY_FRIEND",
   "invited": true
@@ -121,7 +121,7 @@ Based on JS bundle analysis and guest group data model:
 
 ```json
 {
-  "ids": [152644475, 152644468]
+  "ids": [3000001, 152644468]
 }
 ```
 

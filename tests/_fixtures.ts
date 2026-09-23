@@ -3,7 +3,7 @@ import { client } from '../src/client.js';
 import type { UserContext } from '../src/client.js';
 
 export const MOCK_CTX: UserContext = {
-  weddingAccountId: 4664323,
+  weddingAccountId: 1000001,
   weddingId: 7585869,
   registryId: 'registry-1',
   userId: 'user-1',

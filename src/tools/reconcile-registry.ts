@@ -125,7 +125,9 @@ function trackerLineIds(raw: RawTrackerItem): string[] {
 
 /**
  * Link tracker lines to registry items: item id first, normalized product name
- * as a fallback, one-to-one so a single registry item cannot absorb two orders.
+ * as a fallback. Each physical item absorbs orders only up to its capacity —
+ * max(requested_qty, purchased_qty) units — so a request for 12 glasses bought
+ * in three orders matches all three, while surplus orders still orphan.
  */
 export function joinTrackerToRegistry(
   registryItems: RegistryItem[],
@@ -138,15 +140,22 @@ export function joinTrackerToRegistry(
 } {
   const matches = new Map<number, RegistryItem>();
   const matchedBy = new Map<number, 'item_id' | 'product_name'>();
-  const claimed = new Set<RegistryItem>();
 
-  // Matching is one-to-one for physical goods, so two orders cannot collapse
-  // onto one registry item. A cash fund is the exception: it is a single
-  // registry item that legitimately receives many contributions, so it is never
-  // marked claimed. Without this, the second contributor to a honeymoon fund
-  // lands in ORPHAN_ORDER and reads as a data error.
-  const claim = (item: RegistryItem) => {
-    if (!isCashFund(item)) claimed.add(item);
+  // Physical goods are matched against remaining unit capacity, so more orders
+  // than an item has units cannot collapse onto it — but a multi-unit request
+  // bought by several guests is not reported as ORPHAN_ORDERs either. A cash
+  // fund is a single registry item that legitimately receives any number of
+  // contributions, so it never fills up. Without that, the second contributor
+  // to a honeymoon fund lands in ORPHAN_ORDER and reads as a data error.
+  const remaining = new Map<RegistryItem, number>();
+  for (const item of registryItems) {
+    const { requested_qty, purchased_qty } = item.purchase_state;
+    remaining.set(item, Math.max(requested_qty, purchased_qty, 1));
+  }
+  const full = (item: RegistryItem) => !isCashFund(item) && (remaining.get(item) ?? 0) <= 0;
+  const claim = (item: RegistryItem, line: TrackerLine) => {
+    if (isCashFund(item)) return;
+    remaining.set(item, (remaining.get(item) ?? 0) - Math.max(line.quantity, 1));
   };
 
   const byId = new Map<string, RegistryItem>();
@@ -160,8 +169,8 @@ export function joinTrackerToRegistry(
     const ids = [...(rawLineIds[index] ?? []), line.order_item_id ?? ''].filter(Boolean);
     for (const id of ids) {
       const hit = byId.get(id);
-      if (hit && !claimed.has(hit)) {
-        claim(hit);
+      if (hit && !full(hit)) {
+        claim(hit, line);
         matches.set(index, hit);
         matchedBy.set(index, 'item_id');
         return;
@@ -176,9 +185,9 @@ export function joinTrackerToRegistry(
     const target = normalizeProductName(line.product_name);
     if (target === '') return;
     for (const item of registryItems) {
-      if (claimed.has(item)) continue;
+      if (full(item)) continue;
       if (normalizeProductName(item.name) === target) {
-        claim(item);
+        claim(item, line);
         matches.set(index, item);
         matchedBy.set(index, 'product_name');
         return;
@@ -192,7 +201,7 @@ export function joinTrackerToRegistry(
     let best: RegistryItem | null = null;
     let bestScore = 0;
     for (const item of registryItems) {
-      if (claimed.has(item)) continue;
+      if (full(item)) continue;
       const score = similarity(line.product_name, item.name);
       if (score > bestScore) {
         bestScore = score;
@@ -200,7 +209,7 @@ export function joinTrackerToRegistry(
       }
     }
     if (best && isSameProduct(line.product_name, best.name)) {
-      claim(best);
+      claim(best, line);
       matches.set(index, best);
       matchedBy.set(index, 'product_name');
     }

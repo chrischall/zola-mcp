@@ -251,7 +251,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
     'set_event_guests',
     {
       description:
-        'Set which guest groups are invited to an event (bulk). For each group, invited:true ensures every guest in the group is invited to the event; invited:false removes the invitation. Other events’ invitations are preserved. Idempotent. Use this to assign guests to events in bulk (e.g. by tier/affiliation/location).',
+        'Set which guest groups are invited to an event (bulk). For each group, invited:true ensures every guest in the group is invited to the event; invited:false removes the invitation — and with it any RSVP the guest recorded for this event (response, meal choice), which cannot be restored. Other events’ invitations are preserved. Idempotent. Use this to assign guests to events in bulk (e.g. by tier/affiliation/location).',
       inputSchema: z.object({
         event_id: z.number().describe('Event entity ID from list_events (event_entity_id)'),
         guest_groups: z
@@ -263,7 +263,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
           )
           .describe('Guest groups to set for this event. Only the listed groups are affected.'),
       }),
-      annotations: { destructiveHint: false },
+      annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args) => setEventGuests(client, args)
   );
@@ -278,7 +278,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
         guest_group_id: z.number().optional().describe('Guest group ID — invites every guest in the group'),
         guest_id: z.number().optional().describe('Single guest ID — invites just that guest'),
       }),
-      annotations: { destructiveHint: false },
+      annotations: { destructiveHint: false, idempotentHint: true },
     },
     (args) => inviteGuestToEvent(client, args)
   );
@@ -287,13 +287,13 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
     'remove_event_invitation',
     {
       description:
-        'Remove an event invitation for a single guest or guest group. Pass exactly one of guest_group_id (removes for all guests in the group) or guest_id (removes for just that guest). Other events’ invitations are preserved. Idempotent.',
+        'Remove an event invitation for a single guest or guest group. Pass exactly one of guest_group_id (removes for all guests in the group) or guest_id (removes for just that guest). Removing an invitation discards the guest’s recorded RSVP for this event (response, meal choice); re-inviting does not restore it. Other events’ invitations are preserved. Idempotent.',
       inputSchema: z.object({
         event_id: z.number().describe('Event entity ID from list_events (event_entity_id)'),
         guest_group_id: z.number().optional().describe('Guest group ID — removes for every guest in the group'),
         guest_id: z.number().optional().describe('Single guest ID — removes for just that guest'),
       }),
-      annotations: { destructiveHint: false },
+      annotations: { destructiveHint: true, idempotentHint: true },
     },
     (args) => removeEventInvitation(client, args)
   );

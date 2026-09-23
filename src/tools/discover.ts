@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
+import { pathSegment } from '../path.js';
 
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 
@@ -44,7 +45,7 @@ export async function searchStorefronts(client: ZolaClient, args: {
 export async function getStorefront(client: ZolaClient, args: { uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
     'GET',
-    `/v3/storefronts/${encodeURIComponent(args.uuid)}`
+    `/v3/storefronts/${pathSegment(args.uuid)}`
   );
   return jsonResult(response.data);
 }
