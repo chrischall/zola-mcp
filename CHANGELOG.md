@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.2](https://github.com/chrischall/zola-mcp/compare/v2.1.1...v2.1.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* **deps:** require zod ^4.6.5 to match @chrischall/mcp-utils 2.4.0 ([#242](https://github.com/chrischall/zola-mcp/issues/242)) ([d3cc718](https://github.com/chrischall/zola-mcp/commit/d3cc71882c19482d484116677741b7c2d019f2bf))
+* **deps:** upgrade @chrischall/mcp-utils to 2.4.0 and @fetchproxy/* to 3.2.0 ([#240](https://github.com/chrischall/zola-mcp/issues/240)) ([1b7a361](https://github.com/chrischall/zola-mcp/commit/1b7a361a6957f99e3c0e5a4ae162aa76ca39d906))
+
 ## [2.1.1](https://github.com/chrischall/zola-mcp/compare/v2.1.0...v2.1.1) (2026-09-21)
 
 
