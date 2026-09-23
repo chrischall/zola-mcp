@@ -4,9 +4,9 @@ import { listEvents, trackRsvps, getGiftTracker, getRegistry, updateEvent } from
 import { setupClientMocks } from './_fixtures.js';
 
 const MOCK_EVENT = {
-  event_entity_id: 5108495,
+  event_entity_id: 2000001,
   uuid: 'event-uuid-1',
-  wedding_account_id: 4664323,
+  wedding_account_id: 1000001,
   type: 'RECEPTION',
   name: 'Reception',
   venue_name: 'Rooftop 230',
@@ -33,7 +33,7 @@ const MOCK_EVENTS_RESPONSE = {
 };
 
 const MOCK_RSVP_MODULE = {
-  event_id: 5108495,
+  event_id: 2000001,
   event_name: 'Reception',
   event_start_date: '2026-10-17T18:30:00Z',
   num_guests_attending: 50,
@@ -64,7 +64,7 @@ const MOCK_GIFT_TRACKER_RESPONSE = {
         title: 'Le Creuset Dutch Oven',
         price_cents: 15000,
         quantity: 1,
-        gifter_name: 'Jennifer Acerra',
+        gifter_name: 'Pat Morgan',
         thank_you_note_status: 'NOT_STARTED',
       },
     ],
@@ -87,7 +87,7 @@ describe('events & wedding tools', () => {
 
     const result = await listEvents(client);
 
-    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/events/wedding-accounts/4664323/groups');
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/events/wedding-accounts/1000001/groups');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed).toHaveLength(1);
     expect(parsed[0].name).toBe('Reception');
@@ -148,16 +148,16 @@ describe('events & wedding tools', () => {
     const updatedEvent = { ...MOCK_EVENT, name: 'Updated Reception' };
     reqSpy.mockResolvedValueOnce({ data: updatedEvent } as never);
 
-    const result = await updateEvent(client, { event_id: 5108495, name: 'Updated Reception' });
+    const result = await updateEvent(client, { event_id: 2000001, name: 'Updated Reception' });
 
     expect(reqSpy).toHaveBeenCalledTimes(2);
-    expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/websites/events/wedding-accounts/4664323/groups');
+    expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/websites/events/wedding-accounts/1000001/groups');
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
       'PUT',
-      '/v3/websites/events/5108495',
+      '/v3/websites/events/2000001',
       expect.objectContaining({
-        event_entity_id: 5108495,
+        event_entity_id: 2000001,
         name: 'Updated Reception',
         start_at: '2026-10-17T18:30:00Z',
       })
@@ -185,7 +185,7 @@ describe('events & wedding tools', () => {
     reqSpy.mockResolvedValueOnce({ data: [{ start_date: 'x', events: [fullEvent] }] } as never);
     reqSpy.mockResolvedValueOnce({ data: fullEvent } as never);
 
-    await updateEvent(client, { event_id: 5108495, name: 'Dinner & Dancing' });
+    await updateEvent(client, { event_id: 2000001, name: 'Dinner & Dancing' });
 
     const body = reqSpy.mock.calls[1][2] as Record<string, unknown>;
     expect(body.name).toBe('Dinner & Dancing');
@@ -202,7 +202,7 @@ describe('events & wedding tools', () => {
     reqSpy.mockResolvedValueOnce({ data: [{ start_date: 'x', events: [fullEvent] }] } as never);
     reqSpy.mockResolvedValueOnce({ data: fullEvent } as never);
 
-    await updateEvent(client, { event_id: 5108495, note: 'new note', attire: '' });
+    await updateEvent(client, { event_id: 2000001, note: 'new note', attire: '' });
 
     const body = reqSpy.mock.calls[1][2] as Record<string, unknown>;
     expect(body.note).toBe('new note');

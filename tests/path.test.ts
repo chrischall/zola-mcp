@@ -4,7 +4,7 @@ import { pathSegment } from '../src/path.js';
 describe('pathSegment', () => {
   it('passes an ordinary id through unchanged', () => {
     expect(pathSegment('3f2a9c1e-0b7d-4c55-9e2a-1f0d5b6c7a88')).toBe('3f2a9c1e-0b7d-4c55-9e2a-1f0d5b6c7a88');
-    expect(pathSegment(5108495)).toBe('5108495');
+    expect(pathSegment(2000001)).toBe('2000001');
   });
 
   it('percent-encodes "/", "?", "#" and whitespace so an id cannot add segments or a query', () => {

@@ -147,7 +147,7 @@ describe('invitation (card-project) tools', () => {
     it('getRsvpPage uses weddingAccountId from context', async () => {
       reqSpy.mockResolvedValueOnce({ data: { page_id: 41938923, type: 'RSVP', hidden: true } } as never);
       await getRsvpPage(client);
-      expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/rsvps/wedding-accounts/4664323');
+      expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/rsvps/wedding-accounts/1000001');
     });
   });
 
@@ -165,7 +165,7 @@ describe('invitation (card-project) tools', () => {
         quantity: 150,
         lead_variation_uuid: LEAD_VARIATION_UUID,
         extra_customizable: false,
-        account_id: 4664323,
+        account_id: 1000001,
         suite_uuid: SUITE_UUID,
       });
     });
@@ -215,9 +215,9 @@ describe('invitation (card-project) tools', () => {
       reqSpy.mockResolvedValueOnce({ data: { templates_by_variation: {} } } as never);
       await previewCardTemplate(client, {
         variation_uuids: ['ee423186-65e0-49b9-8edb-763b3f703e50'],
-        first_name: 'Meredith',
-        last_name: 'Suffron',
-        partner_first_name: 'Christopher',
+        first_name: 'Alex',
+        last_name: 'Rivera',
+        partner_first_name: 'Jordan',
         partner_last_name: 'Hall',
         wedding_date: '2026-10-17',
       });
@@ -232,9 +232,9 @@ describe('invitation (card-project) tools', () => {
       expect(body.customizable).toBe(true);
       expect(body.variation_uuids).toEqual(['ee423186-65e0-49b9-8edb-763b3f703e50']);
       expect(body.substitutions).toEqual({
-        first_name: 'Meredith',
-        last_name: 'Suffron',
-        partner_first_name: 'Christopher',
+        first_name: 'Alex',
+        last_name: 'Rivera',
+        partner_first_name: 'Jordan',
         partner_last_name: 'Hall',
         wedding_date: '2026-10-17',
       });
@@ -254,7 +254,7 @@ describe('invitation (card-project) tools', () => {
 
     it('previewCardTemplate omits substitutions entirely when none provided and context has no date', async () => {
       vi.spyOn(client, 'getContext').mockResolvedValue({
-        weddingAccountId: 4664323,
+        weddingAccountId: 1000001,
         weddingId: 1,
         registryId: 'r',
         userId: 'u',

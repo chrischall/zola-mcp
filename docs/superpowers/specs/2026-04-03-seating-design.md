@@ -26,7 +26,7 @@ Adds seating chart management tools to the Zola MCP server. The seating feature 
   {
     "uuid": "97b217b4-3a8d-45de-a2e7-ee8a1415327c",
     "name": "Reception",
-    "event_id": 5108495
+    "event_id": 2000001
   }
 ]
 ```
@@ -37,7 +37,7 @@ Adds seating chart management tools to the Zola MCP server. The seating feature 
 {
   "uuid": "97b217b4-...",
   "name": "Reception",
-  "event_id": 5108495,
+  "event_id": 2000001,
   "width": 3000,
   "height": 3000,
   "tables": [
@@ -54,13 +54,13 @@ Adds seating chart management tools to the Zola MCP server. The seating feature 
           "table_uuid": "3eca2fd9-...",
           "seating_chart_uuid": "97b217b4-...",
           "occupant": {
-            "display_name": "Jennifer Acerra",
+            "display_name": "Pat Morgan",
             "initials": "JA",
             "affiliation": "PRIMARY_FRIEND",
             "relationship_type": "PRIMARY",
             "rsvp_type": "NO_RESPONSE",
             "guest_uuid": "0fef22b9-...",
-            "guest_group_id": 152644475
+            "guest_group_id": 3000001
           }
         }
       ],
@@ -80,10 +80,10 @@ Each guest_group has a `guests` array where each guest has:
 ```json
 {
   "guest": {
-    "guest_id": 280379459,
+    "guest_id": 4000001,
     "uuid": "0fef22b9-f8dc-4d55-9b01-329299b5485c",
-    "first_name": "Jennifer",
-    "family_name": "Acerra",
+    "first_name": "Pat",
+    "family_name": "Morgan",
     "relationship_type": "PRIMARY",
     "rsvp": "NO_RESPONSE"
   },
@@ -131,7 +131,7 @@ Add `requestMobile<T>(method, path, body?)` method to `ZolaClient`:
 - Handles 401 retry (same as existing pattern) and 429 retry
 - Does NOT include `cookie` header or `x-csrf-token`
 
-Also export `WEDDING_ACCOUNT_ID` constant from client (needed by seating tools to call guestlists/directory). Value: `4664323` (from the captured requests). But this is dynamic — better to extract it from the existing JWT sub claim or from an env var `ZOLA_ACCOUNT_ID`. Simplest: add `getAccountId()` method that reads `ZOLA_ACCOUNT_ID` env var (throw if missing), or use a known hardcoded approach. **Design decision:** require `ZOLA_ACCOUNT_ID` env var, throw descriptive error if missing.
+Also export `WEDDING_ACCOUNT_ID` constant from client (needed by seating tools to call guestlists/directory). Value: `1000001` (from the captured requests). But this is dynamic — better to extract it from the existing JWT sub claim or from an env var `ZOLA_ACCOUNT_ID`. Simplest: add `getAccountId()` method that reads `ZOLA_ACCOUNT_ID` env var (throw if missing), or use a known hardcoded approach. **Design decision:** require `ZOLA_ACCOUNT_ID` env var, throw descriptive error if missing.
 
 ### New file: `src/tools/seating.ts`
 
@@ -171,7 +171,7 @@ Follows existing pattern — `requestMobile()` throws on non-OK with status + me
 
 ## Environment Variables
 
-- `ZOLA_ACCOUNT_ID` — numeric wedding account ID (required for `list_unseated_guests`). Value is `4664323` for this account.
+- `ZOLA_ACCOUNT_ID` — numeric wedding account ID (required for `list_unseated_guests`). Value is `1000001` for this account.
 
 ## Testing
 

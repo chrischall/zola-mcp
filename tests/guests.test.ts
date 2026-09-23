@@ -6,12 +6,12 @@ import { setupClientMocks } from './_fixtures.js';
 // FLAT guest shape — matches the live /v3/guestlists/directory response.
 // (Fields sit directly on the guest object; there is NO { guest: {...} } wrapper.)
 const MOCK_GUEST = {
-  guest_id: 280379459,
+  guest_id: 4000001,
   relationship_type: 'PRIMARY',
   prefix: null,
-  first_name: 'Jennifer',
+  first_name: 'Pat',
   middle_name: null,
-  family_name: 'Acerra',
+  family_name: 'Morgan',
   suffix: null,
   email_address: null,
   home_phone: '',
@@ -30,7 +30,7 @@ const MOCK_GUEST = {
   rsvp: 'NO_RESPONSE',
   meal_option: null,
   event_invitations: [
-    { id: 111, event_id: 5108473, meal_option_id: null, rsvp_type: 'NO_RESPONSE', rsvp_at: null },
+    { id: 111, event_id: 2000002, meal_option_id: null, rsvp_type: 'NO_RESPONSE', rsvp_at: null },
   ],
   tags: [],
 };
@@ -42,10 +42,10 @@ const MOCK_DIRECTORY = {
     num_addresses_missing: 0,
     guest_groups: [
       {
-        guest_group_id: 152644475,
+        guest_group_id: 3000001,
         guest_group_uuid: 'group-uuid-1',
-        wedding_account_id: 4664323,
-        envelope_recipient: 'Jennifer Acerra and Jason Shuba',
+        wedding_account_id: 1000001,
+        envelope_recipient: 'Pat Morgan and Sam Morgan',
         addressing_style: 'SEMI_FORMAL',
         guest_group_affiliation: 'PRIMARY_FRIEND',
         guest_group_tier: 'A',
@@ -80,13 +80,13 @@ describe('guest tools (mobile API)', () => {
 
     expect(reqSpy).toHaveBeenCalledWith(
       'POST',
-      '/v3/guestlists/directory/wedding-accounts/4664323',
+      '/v3/guestlists/directory/wedding-accounts/1000001',
       { sort_by_name_asc: true }
     );
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.stats.num_guests).toBe(193);
     expect(parsed.guest_groups).toHaveLength(1);
-    expect(parsed.guest_groups[0].guests[0].first_name).toBe('Jennifer');
+    expect(parsed.guest_groups[0].guests[0].first_name).toBe('Pat');
   });
 
   it('addGuest: POSTs to groups with correct body', async () => {
@@ -98,7 +98,7 @@ describe('guest tools (mobile API)', () => {
       'POST',
       '/v3/guestlists/groups',
       expect.objectContaining({
-        wedding_account_id: 4664323,
+        wedding_account_id: 1000001,
         invited: true,
         guests: [expect.objectContaining({
           first_name: 'Test',
@@ -113,17 +113,17 @@ describe('guest tools (mobile API)', () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
 
     await addGuest(client, {
-      first_name: 'Jennifer',
-      last_name: 'Acerra',
-      plus_one_first_name: 'Jason',
-      plus_one_last_name: 'Shuba',
+      first_name: 'Pat',
+      last_name: 'Morgan',
+      plus_one_first_name: 'Sam',
+      plus_one_last_name: 'Morgan',
     });
 
     const body = reqSpy.mock.calls[0][2] as { guests: Record<string, unknown>[] };
     expect(body.guests).toHaveLength(2);
     expect(body.guests[1]).toEqual(expect.objectContaining({
-      first_name: 'Jason',
-      family_name: 'Shuba',
+      first_name: 'Sam',
+      family_name: 'Morgan',
       relationship_type: 'PARTNER',
     }));
   });
@@ -133,17 +133,17 @@ describe('guest tools (mobile API)', () => {
       .mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never)
       .mockResolvedValueOnce({ data: {} } as never);
 
-    await updateGuestAddress(client, { guest_group_id: 152644475, city: 'Evanston' });
+    await updateGuestAddress(client, { guest_group_id: 3000001, city: 'Evanston' });
 
     expect(reqSpy).toHaveBeenCalledTimes(2);
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
       'PUT',
-      '/v3/guestlists/groups/wedding-accounts/4664323/bulk/directory',
+      '/v3/guestlists/groups/wedding-accounts/1000001/bulk/directory',
       expect.objectContaining({
         updated_guest_groups: [
           expect.objectContaining({
-            guest_group_id: 152644475,
+            guest_group_id: 3000001,
             guests: [expect.objectContaining({
               city: 'Evanston',
               address1: '3839 N Alta Vista Terrace',
@@ -159,13 +159,13 @@ describe('guest tools (mobile API)', () => {
       .mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never)
       .mockResolvedValueOnce({ data: {} } as never);
 
-    await updateGuestAddress(client, { guest_group_id: 152644475, city: 'Evanston' });
+    await updateGuestAddress(client, { guest_group_id: 3000001, city: 'Evanston' });
 
     const body = reqSpy.mock.calls[1][2] as {
       updated_guest_groups: Array<{ guests: Array<{ event_invitations: Array<{ event_id: number }> }> }>;
     };
     const invitations = body.updated_guest_groups[0].guests[0].event_invitations;
-    expect(invitations).toContainEqual(expect.objectContaining({ id: 111, event_id: 5108473 }));
+    expect(invitations).toContainEqual(expect.objectContaining({ id: 111, event_id: 2000002 }));
   });
 
   it('updateGuestAddress: throws when group not found', async () => {
@@ -180,13 +180,13 @@ describe('guest tools (mobile API)', () => {
   it('removeGuest: PUTs to delete endpoint with guest_group_ids', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
 
-    const result = await removeGuest(client, { guest_group_id: 152644475 });
+    const result = await removeGuest(client, { guest_group_id: 3000001 });
 
     expect(reqSpy).toHaveBeenCalledWith(
       'PUT',
-      '/v3/guestlists/groups/wedding-accounts/4664323/delete',
-      { wedding_account_id: 4664323, guest_group_ids: [152644475] }
+      '/v3/guestlists/groups/wedding-accounts/1000001/delete',
+      { wedding_account_id: 1000001, guest_group_ids: [3000001] }
     );
-    expect(result.content[0].text).toContain('152644475');
+    expect(result.content[0].text).toContain('3000001');
   });
 });

@@ -8,3 +8,4 @@ coverage/
 .DS_Store
 .claude/
 curls.log
+tests/leak-denylist.local.txt

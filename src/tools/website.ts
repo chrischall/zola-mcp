@@ -185,7 +185,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       wedding_date: z.string().optional().describe('YYYY-MM-DD'),
       city: z.string().optional(),
       state_province: z.string().optional(),
-      hashtag: z.string().optional().describe('e.g. #merchris2026 — empty string clears it'),
+      hashtag: z.string().optional().describe('e.g. #alexjordan2026 — empty string clears it'),
       guest_count: z.number().optional(),
       enable_search_engine: z.boolean().optional().describe('Allow search engines (Google, etc.) to index the site'),
       enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),

@@ -17,7 +17,7 @@ Ask Claude things like:
 - *"Find a photographer in Charlotte, NC"*
 - *"Update the venue cost to $25,000"*
 - *"Who hasn't RSVP'd yet?"*
-- *"Seat Jennifer at Table 1"*
+- *"Seat Pat at Table 1"*
 - *"Any new vendor messages?"*
 - *"Add my cousin Mike to the guest list"*
 - *"Show me the gift tracker"*

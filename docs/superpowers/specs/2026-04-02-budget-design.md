@@ -22,7 +22,7 @@ The budget API lives at `https://www.zola.com/web-api/v1/` — same base URL as 
 ```json
 {
   "uuid": "...",
-  "account_id": 4664323,
+  "account_id": 1000001,
   "budgeted_cents": 3000000,
   "actual_cost_cents": 2456900,
   "paid_cents": 75000,

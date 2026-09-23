@@ -68,7 +68,7 @@ describe('website-content: travel items', () => {
       data: [{ travel_entity_id: 4752577, type: 'HOTEL', name: 'DoubleTree' }],
     } as never);
     const result = await listTravelItems();
-    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/travel/wedding-accounts/4664323');
+    expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/websites/travel/wedding-accounts/1000001');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed[0].name).toBe('DoubleTree');
   });
@@ -94,7 +94,7 @@ describe('website-content: travel items', () => {
       'POST',
       '/v3/websites/travel',
       expect.objectContaining({
-        wedding_account_id: 4664323,
+        wedding_account_id: 1000001,
         travel_entity_id: 0,
         type: 'HOTEL',
         name: 'DoubleTree Suites',
@@ -123,7 +123,7 @@ describe('website-content: travel items', () => {
       'PUT',
       '/v3/websites/travel/4752577',
       expect.objectContaining({
-        wedding_account_id: 4664323,
+        wedding_account_id: 1000001,
         travel_entity_id: 4752577,
         name: 'Renamed',
       })
@@ -137,7 +137,7 @@ describe('website-content: travel items', () => {
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
       'DELETE',
-      '/v3/websites/pages/41938918/entities/4752577/wedding-accounts/4664323'
+      '/v3/websites/pages/41938918/entities/4752577/wedding-accounts/1000001'
     );
   });
 });
@@ -351,7 +351,7 @@ import {
 } from '../src/tools/website-theme.js';
 
 const MOCK_CTX = {
-  weddingAccountId: 4664323,
+  weddingAccountId: 1000001,
   weddingId: 7585869,
   registryId: 'registry-1',
   userId: 'user-1',
@@ -616,7 +616,7 @@ import {
 } from '../src/tools/registry-items.js';
 
 const MOCK_CTX = {
-  weddingAccountId: 4664323,
+  weddingAccountId: 1000001,
   weddingId: 7585869,
   registryId: 'registry-1',
   userId: 'user-1',

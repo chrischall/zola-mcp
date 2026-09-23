@@ -60,7 +60,7 @@ describe('website tools', () => {
     const result = await reorderPages(client, { page_ids: newOrder });
     expect(reqSpy).toHaveBeenCalledWith(
       'PUT',
-      '/v3/websites/pages/wedding-accounts/4664323/reorder',
+      '/v3/websites/pages/wedding-accounts/1000001/reorder',
       { ids: newOrder }
     );
     expect(result.content[0].text).toBeDefined();
@@ -98,16 +98,16 @@ describe('website tools', () => {
   const MOCK_CONTEXT_RESPONSE = {
     data: {
       user: { id: 'user-1' },
-      wedding_account: { wedding_account_id: 4664323 },
+      wedding_account: { wedding_account_id: 1000001 },
       wedding: {
         wedding_id: 7585869,
         account_id: 7585875,
         slug: 'chrismer26',
-        owner_first_name: 'Meredith',
-        owner_last_name: 'Suffron',
-        partner_first_name: 'Christopher',
+        owner_first_name: 'Alex',
+        owner_last_name: 'Rivera',
+        partner_first_name: 'Jordan',
         partner_last_name: 'Hall',
-        title: 'Meredith & Chris',
+        title: 'Alex & Jordan',
         wedding_date: '2026-10-17',
         hashtag: null,
         enable_search_engine: false,
@@ -125,7 +125,7 @@ describe('website tools', () => {
     const result = await getWeddingSettings(client);
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/users/me/context');
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.title).toBe('Meredith & Chris');
+    expect(parsed.title).toBe('Alex & Jordan');
     expect(parsed.slug).toBe('chrismer26');
     expect(parsed.wedding_id).toBe(7585869);
   });
@@ -150,7 +150,7 @@ describe('website tools', () => {
         title: 'New Title',
         hashtag: '#mer-chris',
         slug: 'chrismer26',
-        partner_first_name: 'Christopher',
+        partner_first_name: 'Jordan',
         wedding_date: '2026-10-17',
       })
     );
@@ -159,8 +159,8 @@ describe('website tools', () => {
 
     // Gap 2: untouched fields are preserved from current wedding
     const putBody = reqSpy.mock.calls[1][2] as Record<string, unknown>;
-    expect(putBody.owner_first_name).toBe('Meredith');
-    expect(putBody.owner_last_name).toBe('Suffron');
+    expect(putBody.owner_first_name).toBe('Alex');
+    expect(putBody.owner_last_name).toBe('Rivera');
     expect(putBody.enable_search_engine).toBe(false);
     expect(putBody.enable_search_zola).toBe(false);
     expect(putBody.guest_count).toBe(100);
