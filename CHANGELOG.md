@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.3](https://github.com/chrischall/zola-mcp/compare/v2.1.2...v2.1.3) (2026-09-23)
+
+
+### Bug Fixes
+
+* resolve 2026-09-23 audit mediums (update_event wipe, unseated guests, multi-unit reconcile, path encoding, destructive hints, PII) ([#243](https://github.com/chrischall/zola-mcp/issues/243)) ([fc0002a](https://github.com/chrischall/zola-mcp/commit/fc0002ab340e62ed3014a4d9847584829ef5901b))
+
 ## [2.1.2](https://github.com/chrischall/zola-mcp/compare/v2.1.1...v2.1.2) (2026-09-23)
 
 
