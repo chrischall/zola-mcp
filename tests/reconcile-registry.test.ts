@@ -182,6 +182,63 @@ describe('joinTrackerToRegistry', () => {
     expect(matches.size).toBe(1);
     expect(orphanOrders).toHaveLength(1);
   });
+
+  describe('multi-quantity items', () => {
+    // One registry request for 3 units, bought by three different guests in
+    // three separate orders. Each order must land on that item, not orphan.
+    const withQty = (requested: number, purchased: number) => {
+      const base = ITEMS.find((i) => i.name === 'Madeira Oak Flatware Caddy')!;
+      return {
+        ...base,
+        purchase_state: { ...base.purchase_state, requested_qty: requested, purchased_qty: purchased },
+      };
+    };
+
+    it('absorbs one order per requested unit, by name', () => {
+      const item = withQty(3, 3);
+      const lines: TrackerLine[] = [1, 2, 3].map(() => ({
+        ...blankLine(),
+        product_name: 'Madeira Oak Flatware Caddy',
+      }));
+      const { matches, orphanOrders } = joinTrackerToRegistry([item], lines);
+      expect(orphanOrders).toHaveLength(0);
+      expect([...matches.values()]).toEqual([item, item, item]);
+    });
+
+    it('absorbs one order per requested unit, by item id', () => {
+      const item = withQty(3, 3);
+      const lines: TrackerLine[] = [1, 2, 3].map(() => ({ ...blankLine(), product_name: 'x' }));
+      const { matches, orphanOrders } = joinTrackerToRegistry(
+        [item],
+        lines,
+        lines.map(() => [item.item_id!])
+      );
+      expect(orphanOrders).toHaveLength(0);
+      expect(matches.size).toBe(3);
+    });
+
+    it('uses purchased_qty as capacity when it exceeds the request', () => {
+      const item = withQty(1, 2);
+      const lines: TrackerLine[] = [1, 2].map(() => ({
+        ...blankLine(),
+        product_name: 'Madeira Oak Flatware Caddy',
+      }));
+      const { orphanOrders } = joinTrackerToRegistry([item], lines);
+      expect(orphanOrders).toHaveLength(0);
+    });
+
+    it('still orphans orders beyond the item capacity', () => {
+      const item = withQty(3, 3);
+      const lines: TrackerLine[] = [
+        { ...blankLine(), product_name: 'Madeira Oak Flatware Caddy', quantity: 2 },
+        { ...blankLine(), product_name: 'Madeira Oak Flatware Caddy', quantity: 1 },
+        { ...blankLine(), product_name: 'Madeira Oak Flatware Caddy', quantity: 1 },
+      ];
+      const { matches, orphanOrders } = joinTrackerToRegistry([item], lines);
+      expect(matches.size).toBe(2);
+      expect(orphanOrders).toHaveLength(1);
+    });
+  });
 });
 
 describe('bucketing against the real fixtures', () => {
