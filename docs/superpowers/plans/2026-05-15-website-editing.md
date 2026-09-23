@@ -533,9 +533,9 @@ Append to `tests/website.test.ts`:
         slug: 'alexjordan2026',
         owner_first_name: 'Alex',
         owner_last_name: 'Rivera',
-        partner_first_name: 'Christopher',
+        partner_first_name: 'Jordan',
         partner_last_name: 'Hall',
-        title: 'Alex & Chris',
+        title: 'Alex & Jordan',
         wedding_date: '2026-10-17',
         hashtag: null,
         enable_search_engine: false,
@@ -553,7 +553,7 @@ Append to `tests/website.test.ts`:
     const result = await getWeddingSettings();
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/users/me/context');
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.title).toBe('Alex & Chris');
+    expect(parsed.title).toBe('Alex & Jordan');
     expect(parsed.slug).toBe('alexjordan2026');
     expect(parsed.wedding_id).toBe(7585869);
   });
@@ -578,7 +578,7 @@ Append to `tests/website.test.ts`:
         title: 'New Title',
         hashtag: '#alexjordan2026',
         slug: 'alexjordan2026',
-        partner_first_name: 'Christopher',
+        partner_first_name: 'Jordan',
         wedding_date: '2026-10-17',
       })
     );
@@ -701,7 +701,7 @@ Register inside `registerWebsiteTools`:
     'update_wedding_settings',
     'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
     {
-      title: z.string().optional().describe('Wedding title (e.g., "Alex & Chris")'),
+      title: z.string().optional().describe('Wedding title (e.g., "Alex & Jordan")'),
       slug: z.string().optional().describe('URL slug — appears in the public website URL'),
       owner_first_name: z.string().optional(),
       owner_last_name: z.string().optional(),

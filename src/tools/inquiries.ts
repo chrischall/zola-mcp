@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
+import { pathSegment } from '../path.js';
 import { ToolResult, jsonResult } from '../types.js';
 
 interface VendorCard {
@@ -98,13 +99,13 @@ export async function listInquiries(client: ZolaClient): Promise<ToolResult> {
 export async function getInquiryConversation(client: ZolaClient, args: { uuid: string }): Promise<ToolResult> {
   const response = await client.requestMobile<ConversationResponse>(
     'GET',
-    `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation`
+    `/v3/inquiries/${pathSegment(args.uuid)}/conversation`
   );
   return jsonResult(response.data);
 }
 
 export async function markInquiryRead(client: ZolaClient, args: { uuid: string }): Promise<ToolResult> {
-  await client.requestMobile('PUT', `/v3/inquiries/${encodeURIComponent(args.uuid)}/conversation/read`);
+  await client.requestMobile('PUT', `/v3/inquiries/${pathSegment(args.uuid)}/conversation/read`);
   return {
     content: [{ type: 'text', text: `Marked inquiry ${args.uuid} as read` }],
   };

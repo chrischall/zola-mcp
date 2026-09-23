@@ -105,9 +105,9 @@ describe('website tools', () => {
         slug: 'alexjordan2026',
         owner_first_name: 'Alex',
         owner_last_name: 'Rivera',
-        partner_first_name: 'Christopher',
+        partner_first_name: 'Jordan',
         partner_last_name: 'Hall',
-        title: 'Alex & Chris',
+        title: 'Alex & Jordan',
         wedding_date: '2026-10-17',
         hashtag: null,
         enable_search_engine: false,
@@ -125,7 +125,7 @@ describe('website tools', () => {
     const result = await getWeddingSettings(client);
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/users/me/context');
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.title).toBe('Alex & Chris');
+    expect(parsed.title).toBe('Alex & Jordan');
     expect(parsed.slug).toBe('alexjordan2026');
     expect(parsed.wedding_id).toBe(7585869);
   });
@@ -150,7 +150,7 @@ describe('website tools', () => {
         title: 'New Title',
         hashtag: '#alexjordan2026',
         slug: 'alexjordan2026',
-        partner_first_name: 'Christopher',
+        partner_first_name: 'Jordan',
         wedding_date: '2026-10-17',
       })
     );

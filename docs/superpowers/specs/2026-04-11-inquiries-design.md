@@ -97,7 +97,7 @@ Response envelope: `{data: {...}}`
     "messages": [
       {
         "type": "VENDOR_OUTREACH",
-        "body": "Hi Alex & Christopher...",
+        "body": "Hi Alex & Jordan...",
         "sent_by_participant_key": "683b9faf-...",
         "sent_at": 1775502625582,
         "new_message": false

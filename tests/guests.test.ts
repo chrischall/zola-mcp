@@ -30,7 +30,7 @@ const MOCK_GUEST = {
   rsvp: 'NO_RESPONSE',
   meal_option: null,
   event_invitations: [
-    { id: 111, event_id: 5108473, meal_option_id: null, rsvp_type: 'NO_RESPONSE', rsvp_at: null },
+    { id: 111, event_id: 2000002, meal_option_id: null, rsvp_type: 'NO_RESPONSE', rsvp_at: null },
   ],
   tags: [],
 };
@@ -165,7 +165,7 @@ describe('guest tools (mobile API)', () => {
       updated_guest_groups: Array<{ guests: Array<{ event_invitations: Array<{ event_id: number }> }> }>;
     };
     const invitations = body.updated_guest_groups[0].guests[0].event_invitations;
-    expect(invitations).toContainEqual(expect.objectContaining({ id: 111, event_id: 5108473 }));
+    expect(invitations).toContainEqual(expect.objectContaining({ id: 111, event_id: 2000002 }));
   });
 
   it('updateGuestAddress: throws when group not found', async () => {

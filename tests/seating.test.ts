@@ -21,7 +21,7 @@ const MOCK_SEAT_OCCUPIED = {
   seating_chart_uuid: 'chart-uuid-1',
   occupant: {
     display_name: 'Pat Morgan',
-    initials: 'JA',
+    initials: "PM",
     affiliation: 'PRIMARY_FRIEND',
     relationship_type: 'PRIMARY',
     rsvp_type: 'NO_RESPONSE',
@@ -53,6 +53,8 @@ const MOCK_CHART = {
   objects: [],
 };
 
+// The live directory returns a FLAT guest shape — fields sit directly on each
+// guest, no `{ guest: {...} }` wrapper (docs/zola-api-quirks.md §5).
 const MOCK_DIRECTORY = {
   data: {
     num_invited_guests: 10,
@@ -61,26 +63,31 @@ const MOCK_DIRECTORY = {
         guest_group_id: 3000001,
         guests: [
           {
-            guest: {
-              guest_id: 4000001,
-              uuid: 'guest-uuid-1',
-              first_name: 'Pat',
-              family_name: 'Morgan',
-              relationship_type: 'PRIMARY',
-              rsvp: 'NO_RESPONSE',
-            },
+            guest_id: 4000001,
+            uuid: 'guest-uuid-1',
+            first_name: 'Pat',
+            family_name: 'Morgan',
+            relationship_type: 'PRIMARY',
+            rsvp: 'NO_RESPONSE',
             seating_chart_seat: { seat_uuid: 'seat-uuid-2', table_name: 'Table 1' },
           },
           {
-            guest: {
-              guest_id: 4000002,
-              uuid: 'guest-uuid-2',
-              first_name: 'Sam',
-              family_name: 'Morgan',
-              relationship_type: 'PARTNER',
-              rsvp: 'NO_RESPONSE',
-            },
+            guest_id: 4000002,
+            uuid: 'guest-uuid-2',
+            first_name: 'Sam',
+            family_name: 'Morgan',
+            relationship_type: 'PARTNER',
+            rsvp: 'NO_RESPONSE',
             seating_chart_seat: null,
+          },
+          {
+            // No seating_chart_seat key at all — also unseated.
+            guest_id: 4000003,
+            uuid: 'guest-uuid-3',
+            first_name: 'Robin',
+            family_name: 'Example',
+            relationship_type: 'CHILD',
+            rsvp: 'ATTENDING',
           },
         ],
       },
@@ -129,9 +136,22 @@ describe('seating tools', () => {
 
     expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/guestlists/directory/wedding-accounts/1000001', { sort_by_name_asc: true });
     const parsed = JSON.parse(result.content[0].text);
-    expect(parsed).toHaveLength(1);
-    expect(parsed[0].first_name).toBe('Sam');
-    expect(parsed[0].guest_uuid).toBe('guest-uuid-2');
+    expect(parsed).toEqual([
+      {
+        guest_uuid: 'guest-uuid-2',
+        first_name: 'Sam',
+        family_name: 'Morgan',
+        relationship_type: 'PARTNER',
+        rsvp: 'NO_RESPONSE',
+      },
+      {
+        guest_uuid: 'guest-uuid-3',
+        first_name: 'Robin',
+        family_name: 'Example',
+        relationship_type: 'CHILD',
+        rsvp: 'ATTENDING',
+      },
+    ]);
   });
 
   it('assignSeat: PUTs correct body and returns confirmation', async () => {

@@ -75,7 +75,7 @@ function group(
   };
 }
 
-const CEREMONY = 5108473;
+const CEREMONY = 2000002;
 const RECEPTION = 2000001;
 
 function directory(groups: ReturnType<typeof group>[]) {

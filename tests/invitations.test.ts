@@ -104,6 +104,23 @@ describe('invitation (card-project) tools', () => {
       expect(reqSpy).toHaveBeenCalledWith('POST', `/v4/card-catalog/suites/details/${SUITE_UUID}`);
     });
 
+    it('encodes caller-supplied ids so they cannot redirect the request to another route', async () => {
+      reqSpy.mockResolvedValue({ data: {} } as never);
+      await getCardSuite(client, { suite_uuid: '../../../v3/users/me?' });
+      await getCardProject(client, { project_uuid: 'x/../../v3/weddings' });
+      await setCardProjectQrcode(client, { project_uuid: 'p#frag', page_uuid: 'a/b', url: 'https://x' });
+      const paths = reqSpy.mock.calls.map((c) => c[1] as string);
+      expect(paths[0]).toBe('/v4/card-catalog/suites/details/..%2F..%2F..%2Fv3%2Fusers%2Fme%3F');
+      expect(paths[1]).toBe('/v3/card-projects/x%2F..%2F..%2Fv3%2Fweddings');
+      expect(paths[2]).toBe('/v3/card-projects/p%23frag/customization/page/a%2Fb/qrcode');
+    });
+
+    it('refuses a bare dot-segment id without sending anything', async () => {
+      await expect(getCardSuite(client, { suite_uuid: '..' })).rejects.toThrow(/path segment/i);
+      await expect(validateCardProject(client, { project_uuid: '.' })).rejects.toThrow(/path segment/i);
+      expect(reqSpy).not.toHaveBeenCalled();
+    });
+
     it('searchCardCatalog defaults to INVITATION lead card type', async () => {
       reqSpy.mockResolvedValueOnce({ data: { suites: [] } } as never);
       await searchCardCatalog(client, {});
@@ -200,7 +217,7 @@ describe('invitation (card-project) tools', () => {
         variation_uuids: ['ee423186-65e0-49b9-8edb-763b3f703e50'],
         first_name: 'Alex',
         last_name: 'Rivera',
-        partner_first_name: 'Christopher',
+        partner_first_name: 'Jordan',
         partner_last_name: 'Hall',
         wedding_date: '2026-10-17',
       });
@@ -217,7 +234,7 @@ describe('invitation (card-project) tools', () => {
       expect(body.substitutions).toEqual({
         first_name: 'Alex',
         last_name: 'Rivera',
-        partner_first_name: 'Christopher',
+        partner_first_name: 'Jordan',
         partner_last_name: 'Hall',
         wedding_date: '2026-10-17',
       });
