@@ -165,4 +165,47 @@ describe('events & wedding tools', () => {
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.name).toBe('Updated Reception');
   });
+
+  it('updateEvent: round-trips every field the caller did not change (no wipe)', async () => {
+    // The PUT is a full replace. A rename must not blank the dress code, notes,
+    // street line 2, custom RSVP questions or display order the event already has.
+    const rsvpQuestions = [{ id: 77, question: 'Any dietary restrictions?', type: 'TEXT' }];
+    const fullEvent = {
+      ...MOCK_EVENT,
+      address1: '230 Example Ave',
+      address2: 'Floor 12',
+      postal_code: '00000',
+      country_code: 'US',
+      note: 'Shuttle leaves the hotel at 6pm',
+      attire: 'Black tie optional',
+      display_order: 3,
+      rsvp_questions: rsvpQuestions,
+      some_future_field: 'kept',
+    };
+    reqSpy.mockResolvedValueOnce({ data: [{ start_date: 'x', events: [fullEvent] }] } as never);
+    reqSpy.mockResolvedValueOnce({ data: fullEvent } as never);
+
+    await updateEvent(client, { event_id: 5108495, name: 'Dinner & Dancing' });
+
+    const body = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    expect(body.name).toBe('Dinner & Dancing');
+    expect(body.note).toBe('Shuttle leaves the hotel at 6pm');
+    expect(body.attire).toBe('Black tie optional');
+    expect(body.address2).toBe('Floor 12');
+    expect(body.display_order).toBe(3);
+    expect(body.rsvp_questions).toEqual(rsvpQuestions);
+    expect(body.some_future_field).toBe('kept');
+  });
+
+  it('updateEvent: provided args still override the current values', async () => {
+    const fullEvent = { ...MOCK_EVENT, note: 'old note', attire: 'old attire' };
+    reqSpy.mockResolvedValueOnce({ data: [{ start_date: 'x', events: [fullEvent] }] } as never);
+    reqSpy.mockResolvedValueOnce({ data: fullEvent } as never);
+
+    await updateEvent(client, { event_id: 5108495, note: 'new note', attire: '' });
+
+    const body = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    expect(body.note).toBe('new note');
+    expect(body.attire).toBe('');
+  });
 });
