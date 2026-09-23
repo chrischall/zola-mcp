@@ -294,6 +294,6 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
       attire: z.string().optional().describe('Dress code'),
       collect_rsvps: z.boolean().optional().describe('Whether to collect RSVPs for this event'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: true, idempotentHint: true },
   }, (args) => updateEvent(client, args));
 }

@@ -171,7 +171,7 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       personal_note: z.string(),
       most_wanted: z.boolean(),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: true, idempotentHint: true },
   }, (args) => updateRegistryItem(client, args));
 
   server.registerTool('remove_registry_item', {
