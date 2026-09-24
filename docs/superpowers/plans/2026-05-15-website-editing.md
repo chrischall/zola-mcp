@@ -36,7 +36,7 @@ it('getContext: returns weddingId from context response', async () => {
     data: {
       user: { id: 'user-1' },
       wedding_account: { wedding_account_id: 1000001 },
-      wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'chrismer26' },
+      wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'alexjordan2026' },
       registry: { id: 'registry-1' },
     },
   } as never);
@@ -134,7 +134,7 @@ vi.spyOn(client, 'getContext').mockResolvedValue({
   registryId: 'registry-id-1',
   userId: 'user-id-1',
   weddingDate: '2026-10-17',
-  weddingSlug: 'chrismer26',
+  weddingSlug: 'alexjordan2026',
 });
 ```
 
@@ -179,7 +179,7 @@ const MOCK_CTX = {
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',
-  weddingSlug: 'chrismer26',
+  weddingSlug: 'alexjordan2026',
 };
 
 const MOCK_PAGES_RESPONSE = {
@@ -530,7 +530,7 @@ Append to `tests/website.test.ts`:
       wedding: {
         wedding_id: 7585869,
         account_id: 7585875,
-        slug: 'chrismer26',
+        slug: 'alexjordan2026',
         owner_first_name: 'Alex',
         owner_last_name: 'Rivera',
         partner_first_name: 'Jordan',
@@ -554,7 +554,7 @@ Append to `tests/website.test.ts`:
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/users/me/context');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.title).toBe('Alex & Jordan');
-    expect(parsed.slug).toBe('chrismer26');
+    expect(parsed.slug).toBe('alexjordan2026');
     expect(parsed.wedding_id).toBe(7585869);
   });
 
@@ -564,7 +564,7 @@ Append to `tests/website.test.ts`:
       data: { ...MOCK_CONTEXT_RESPONSE.data.wedding, title: 'New Title' },
     } as never);
 
-    const result = await updateWeddingSettings({ title: 'New Title', hashtag: '#mer-chris' });
+    const result = await updateWeddingSettings({ title: 'New Title', hashtag: '#alexjordan2026' });
 
     expect(reqSpy).toHaveBeenCalledTimes(2);
     expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/users/me/context');
@@ -576,8 +576,8 @@ Append to `tests/website.test.ts`:
         wedding_id: 7585869,
         account_id: 7585875,
         title: 'New Title',
-        hashtag: '#mer-chris',
-        slug: 'chrismer26',
+        hashtag: '#alexjordan2026',
+        slug: 'alexjordan2026',
         partner_first_name: 'Jordan',
         wedding_date: '2026-10-17',
       })
@@ -800,7 +800,7 @@ const MOCK_CTX = {
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',
-  weddingSlug: 'chrismer26',
+  weddingSlug: 'alexjordan2026',
 };
 
 const MOCK_PAGES_RESPONSE = {

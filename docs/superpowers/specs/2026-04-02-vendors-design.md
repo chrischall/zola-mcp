@@ -63,7 +63,7 @@ The vendors API lives at `https://www.zola.com/web-marketplace-api/` — a diffe
   "id": "...",
   "uuid": "...",
   "name": "AAM Entertainment Group",
-  "email": "aamentandpromotions@gmail.com",
+  "email": "vendor@example.com",
   "address": { "city": "Charlotte", "stateProvince": "NC" },
   "storefrontUuid": "...",
   "taxonomyNodeId": "...",

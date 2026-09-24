@@ -343,7 +343,7 @@ describe('ZolaClient', () => {
       data: {
         user: { id: 'user-1' },
         wedding_account: { wedding_account_id: 1000001 },
-        wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'chrismer26' },
+        wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'alexjordan2026' },
         registry: { id: 'registry-1' },
       },
     } as never);
@@ -449,7 +449,7 @@ describe('ZolaClient', () => {
       data: {
         user: { id: 'user-1' },
         wedding_account: { wedding_account_id: 1000001 },
-        wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'chrismer26' },
+        wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'alexjordan2026' },
         registry: { id: 'registry-1' },
       },
     };

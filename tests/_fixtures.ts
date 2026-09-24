@@ -8,7 +8,7 @@ export const MOCK_CTX: UserContext = {
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',
-  weddingSlug: 'chrismer26',
+  weddingSlug: 'alexjordan2026',
 };
 
 /**

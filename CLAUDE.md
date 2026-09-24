@@ -101,6 +101,8 @@ If response size is worth attacking here, the lever is already in the repo and i
 
 Tests in `tests/`. Run with `npm test`. No real network — `client.requestMobile` is stubbed via `vi.spyOn`, and `client.getContext` is mocked the same way. Shared fixtures live in `tests/_fixtures.ts`. `vitest.config.ts` enables v8 coverage but does not currently enforce a threshold.
 
+`tests/fixtures.leak.test.ts` guards this public repo against live-account data. Its email and phone checks are committed; the list of real identifiers (names, the wedding slug and hashtag) is **not**, in any form — a salted digest of a name is dictionary-recoverable. Keep that list in the gitignored `tests/leak-denylist.local.txt` (one entry per line, `=` prefix for a case-sensitive match) or `ZOLA_LEAK_DENYLIST`.
+
 Confirm-gated writes (`src/tools/_confirm.ts`) are exercised end-to-end in `tests/confirm-gates.test.ts`; unit tests drive a gated function through both phases with `confirmed()` from `tests/_confirm-helpers.ts`.
 
 `tests/version-sync.test.ts` is an invariant test (shared `versionSyncTest` from `@chrischall/mcp-utils/test`): every `// x-release-please-version` constant in `src/` must match `package.json`'s `version`, or CI fails. Tag any new version-bearing constant with that marker so release-please bumps it and the test asserts it.

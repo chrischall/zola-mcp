@@ -103,7 +103,7 @@ describe('website tools', () => {
       wedding: {
         wedding_id: 7585869,
         account_id: 7585875,
-        slug: 'chrismer26',
+        slug: 'alexjordan2026',
         owner_first_name: 'Alex',
         owner_last_name: 'Rivera',
         partner_first_name: 'Jordan',
@@ -127,7 +127,7 @@ describe('website tools', () => {
     expect(reqSpy).toHaveBeenCalledWith('GET', '/v3/users/me/context');
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.title).toBe('Alex & Jordan');
-    expect(parsed.slug).toBe('chrismer26');
+    expect(parsed.slug).toBe('alexjordan2026');
     expect(parsed.wedding_id).toBe(7585869);
   });
 
@@ -140,7 +140,7 @@ describe('website tools', () => {
     } as never);
 
     const result = await confirmed((ctx, confirmToken) =>
-      updateWeddingSettings(client, { title: 'New Title', hashtag: '#mer-chris', confirmToken }, ctx)
+      updateWeddingSettings(client, { title: 'New Title', hashtag: '#alexjordan2026', confirmToken }, ctx)
     );
 
     expect(reqSpy).toHaveBeenCalledTimes(3);
@@ -154,8 +154,8 @@ describe('website tools', () => {
         wedding_id: 7585869,
         account_id: 7585875,
         title: 'New Title',
-        hashtag: '#mer-chris',
-        slug: 'chrismer26',
+        hashtag: '#alexjordan2026',
+        slug: 'alexjordan2026',
         partner_first_name: 'Jordan',
         wedding_date: '2026-10-17',
       })

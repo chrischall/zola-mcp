@@ -356,7 +356,7 @@ const MOCK_CTX = {
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',
-  weddingSlug: 'chrismer26',
+  weddingSlug: 'alexjordan2026',
 };
 
 describe('website-theme tools', () => {
@@ -621,7 +621,7 @@ const MOCK_CTX = {
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',
-  weddingSlug: 'chrismer26',
+  weddingSlug: 'alexjordan2026',
 };
 
 const MOCK_REGISTRY_RESPONSE = {

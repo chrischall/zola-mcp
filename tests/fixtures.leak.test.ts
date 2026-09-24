@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, existsSync } from 'fs';
-import { createHash } from 'crypto';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -12,17 +11,17 @@ import { fileURLToPath } from 'url';
  * `THANK_YOU_CARDS_PROMO` titles kept the giver's *first* name because the
  * redaction map keyed on full names.
  *
- * The guard must not publish what it guards. It used to list the live
- * account's names, street, ZIP and phone fragment in plaintext — so the
- * denylist below holds only salted SHA-256 digests of them, and the text being
- * scanned is hashed word-by-word (and pair-by-pair, for two-word identifiers)
- * against it. Values too short to hash safely (a 5-digit ZIP falls to brute
- * force in milliseconds) are not committed at all: phone numbers are caught by
- * shape, and anything else can be supplied locally via ZOLA_LEAK_DENYLIST or
- * the gitignored tests/leak-denylist.local.txt.
+ * The guard must not publish what it guards. It first listed the live
+ * account's names in plaintext, then as salted SHA-256 digests — but the salt
+ * sat beside the digests and the values were names, so a first/last-name
+ * dictionary recovered them in under a second. So the identifier denylist is
+ * no longer committed in ANY form: it comes only from ZOLA_LEAK_DENYLIST
+ * (comma-separated) or the gitignored tests/leak-denylist.local.txt (one entry
+ * per line, `#` comments). What IS committed are the shape checks — emails and
+ * phone numbers — which need no secret to run.
  *
  * It scans every fixture AND every test source, doc and source file, so a new
- * capture or a copy-pasted real name is covered without anyone opting in.
+ * capture or a copy-pasted real value is covered without anyone opting in.
  */
 
 const TESTS = dirname(fileURLToPath(import.meta.url));
@@ -49,35 +48,12 @@ function scannedFiles(): string[] {
   return out;
 }
 
-const SALT = 'zola-mcp/leak-guard/v1';
-const digest = (token: string) =>
-  createHash('sha256').update(`${SALT}:${token}`).digest('hex').slice(0, 16);
-
 /**
- * Salted digests of live-account identifiers — the couple, the registry slug,
- * gift givers, guests and the street name — matched case-insensitively as a
- * whole word or a two-word pair. Add one with:
- *   node -e 'console.log(require("crypto").createHash("sha256").update("zola-mcp/leak-guard/v1:"+process.argv[1].toLowerCase()).digest("hex").slice(0,16))' "<token>"
+ * Plaintext identifiers supplied locally, never committed. An entry matches as
+ * a whole word or phrase, ignoring case — except one written with a leading
+ * `=`, which matches case-sensitively (a first name that is also a lowercase
+ * brand word in the registry fixture, e.g. "=Kate" against "kate spade").
  */
-const FORBIDDEN_DIGESTS = new Set([
-  'b488f172b85050e3', '3455cd2b0811f3eb', 'c755b30434baaa5d', '7a1e588f8b2d8227',
-  'b0f68ffcd40ade5a', '4360e47cbdbedaf6', '9699932ca880eb5d', 'b7e39a156f034741',
-  '3d795c0de772c942', '511cdbd16fce6a64', 'c05a9f1a8c11e85a', '30a80e51e44ac424',
-  'b72358d1332eeb8c', 'd0f4ce0314c966f3',
-]);
-
-/**
- * Salted digests of first names matched CASE-SENSITIVELY as whole words:
- * lowercase "kate" is the brand "kate spade new york" in the registry fixture,
- * so only the capitalised name counts. Digest the token as written (no
- * lowercasing) to add one.
- */
-const FORBIDDEN_NAME_DIGESTS = new Set([
-  'b92e297bd0e885bb', 'c1bbddcc1fd51653', '95eb322ece7d9798',
-  '9aa8ed3af5d38deb', '95a93b6b43965a7d', '9c26d6a77c7b5c45',
-]);
-
-/** Extra plaintext identifiers supplied locally, never committed. */
 function localDenylist(): string[] {
   const fromEnv = (process.env.ZOLA_LEAK_DENYLIST ?? '').split(',');
   const file = join(TESTS, 'leak-denylist.local.txt');
@@ -85,55 +61,64 @@ function localDenylist(): string[] {
   return [...fromEnv, ...fromFile].map((t) => t.trim()).filter((t) => t !== '' && !t.startsWith('#'));
 }
 
-/** Words and adjacent word pairs, as the digests were computed over. */
-function grams(text: string, lower: boolean): string[] {
-  const words = (lower ? text.toLowerCase() : text).split(/[^A-Za-z0-9]+/).filter(Boolean);
-  const out = [...words];
-  for (let i = 0; i + 1 < words.length; i++) out.push(`${words[i]} ${words[i + 1]}`);
-  return out;
-}
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-export function findLeaks(
-  text: string,
-  digests: Set<string> = FORBIDDEN_DIGESTS,
-  nameDigests: Set<string> = FORBIDDEN_NAME_DIGESTS,
-  plaintext: string[] = localDenylist()
-): string[] {
+export function findLeaks(text: string, denylist: string[] = localDenylist()): string[] {
   const hits = new Set<string>();
-  for (const g of grams(text, true)) if (digests.has(digest(g))) hits.add(g);
-  for (const g of grams(text, false)) if (nameDigests.has(digest(g))) hits.add(g);
-  const lower = text.toLowerCase();
-  for (const t of plaintext) if (lower.includes(t.toLowerCase())) hits.add(t);
+  for (const entry of denylist) {
+    const caseSensitive = entry.startsWith('=');
+    const value = caseSensitive ? entry.slice(1) : entry;
+    if (value === '') continue;
+    const re = new RegExp(`(?<![A-Za-z0-9])${escapeRegExp(value)}(?![A-Za-z0-9])`, caseSensitive ? '' : 'i');
+    if (re.test(text)) hits.add(value);
+  }
   return [...hits];
 }
 
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const ALLOWED_EMAIL_DOMAINS = ['example.com', 'example.org'];
+/** The maintainer's published contact address (manifest.json author) is not a leak. */
+const MAINTAINER_EMAIL = (
+  JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8')) as { author?: { email?: string } }
+).author?.email?.toLowerCase();
+
+export function realEmails(text: string): string[] {
+  return [...(text.match(EMAIL) ?? [])].filter((a) => {
+    const lower = a.toLowerCase();
+    if (lower === MAINTAINER_EMAIL) return false;
+    return !ALLOWED_EMAIL_DOMAINS.some((d) => lower.endsWith(`@${d}`));
+  });
+}
 
 /** A US phone number, with or without area code / punctuation. */
 const PHONE = /(?:\(?\b\d{3}\)?[\s.-]?)?\b\d{3}-\d{4}\b/g;
 
 describe('the leak guard itself', () => {
-  it('publishes no plaintext identifiers — only digests', () => {
+  it('commits no identifier list in any form — no plaintext, no digests', () => {
     const self = readFileSync(fileURLToPath(import.meta.url), 'utf8');
-    expect(findLeaks(self)).toEqual([]);
+    // A truncated hash of a name is dictionary-recoverable, so none belong here.
+    expect(self.match(/['"][0-9a-f]{16}['"]/g) ?? []).toEqual([]);
+    expect(self).not.toMatch(/from ['"](node:)?crypto['"]/);
   });
 
-  it('detects a digested word and a digested word pair', () => {
-    const digests = new Set([digest('zzsecret'), digest('aunt zzname')]);
-    expect(findLeaks('a ZZsecret here', digests, new Set(), [])).toEqual(['zzsecret']);
-    expect(findLeaks('"Aunt ZZName"', digests, new Set(), [])).toEqual(['aunt zzname']);
-    expect(findLeaks('zzsecretive', digests, new Set(), [])).toEqual([]);
+  it('matches a local entry as a whole word or phrase, ignoring case', () => {
+    expect(findLeaks('a ZZsecret here', ['zzsecret'])).toEqual(['zzsecret']);
+    expect(findLeaks('"Aunt ZZName"', ['aunt zzname'])).toEqual(['aunt zzname']);
+    expect(findLeaks('zzsecretive', ['zzsecret'])).toEqual([]);
+    expect(findLeaks('#zzcouple2026 on the site', ['#zzcouple2026'])).toEqual(['#zzcouple2026']);
   });
 
-  it('matches names case-sensitively (a lowercase brand word is not a capitalised name)', () => {
-    const names = new Set([digest('Zelda')]);
-    expect(findLeaks('zelda brand', new Set(), names, [])).toEqual([]);
-    expect(findLeaks('Love, Zelda', new Set(), names, [])).toEqual(['Zelda']);
+  it('matches an "="-prefixed entry case-sensitively (a lowercase brand word is not a capitalised name)', () => {
+    expect(findLeaks('zelda brand', ['=Zelda'])).toEqual([]);
+    expect(findLeaks('Love, Zelda', ['=Zelda'])).toEqual(['Zelda']);
   });
 
-  it('honours a local plaintext denylist', () => {
-    expect(findLeaks('zip 99999-1', new Set(), new Set(), ['99999'])).toEqual(['99999']);
+  it('flags a real email address and allows placeholders and the maintainer contact', () => {
+    // Assembled at runtime so this file does not itself trip the scan below.
+    const real = ['florist', 'gmail.com'].join('@');
+    expect(realEmails(`write to ${real}`)).toEqual([real]);
+    expect(realEmails('pat@example.com, a@example.org')).toEqual([]);
+    if (MAINTAINER_EMAIL) expect(realEmails(`contact ${MAINTAINER_EMAIL}`)).toEqual([]);
   });
 });
 
@@ -146,17 +131,12 @@ describe('the repo carries no live identifiers', () => {
     expect(scanned.some((f) => f.endsWith('.test.ts'))).toBe(true);
   });
 
-  it.each(scanned)('%s contains no forbidden identifier', (file) => {
+  it.each(scanned)('%s contains no locally denylisted identifier', (file) => {
     expect(findLeaks(readFileSync(join(ROOT, file), 'utf8'))).toEqual([]);
   });
 
-  it.each(files)('fixture %s contains no real email address', (file) => {
-    const text = readFileSync(join(FIXTURES, file), 'utf8');
-    const addresses = [...(text.match(EMAIL) ?? [])];
-    const real = addresses.filter(
-      (a) => !ALLOWED_EMAIL_DOMAINS.some((d) => a.toLowerCase().endsWith(`@${d}`))
-    );
-    expect(real).toEqual([]);
+  it.each(scanned)('%s contains no real email address', (file) => {
+    expect(realEmails(readFileSync(join(ROOT, file), 'utf8'))).toEqual([]);
   });
 
   it.each(files)('fixture %s contains no phone number', (file) => {
