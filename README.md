@@ -162,7 +162,7 @@ Ask Claude: *"How's wedding planning going?"* — it should show your wedding da
 
 27 tools across 8 domains. Read-only tools run automatically. Write tools ask for confirmation.
 
-The writes that cannot be undone or that change what guests see are also confirmed by the server itself: `remove_guest`, `set_event_guests` (when it uninvites anyone), `remove_event_invitation`, `update_event`, `update_wedding_settings`, `remove_registry_item`, `remove_faq`, `remove_home_section`, `remove_poi` and `remove_travel_item`. Each first shows a preview naming the household, event, item or page content and exactly what changes (for a slug change, the old and new website URL), then proceeds only once you approve — see `MCP_CONFIRM_MODE` above.
+The writes that cannot be undone or that change what guests see are also confirmed by the server itself: `remove_guest`, `set_event_guests` (when it uninvites anyone), `remove_event_invitation`, `update_event`, `update_wedding_settings`, `remove_registry_item`, `remove_faq`, `remove_home_section`, `remove_poi` and `remove_travel_item`. Each first shows a preview naming the household, event, item or page content and exactly what changes (for a slug change, the old and new website URL; a registry item on a private or passcode-gated registry, or outside the default collection, is shown by id because only the public page names it), then proceeds only once you approve — see `MCP_CONFIRM_MODE` above.
 
 ### Vendors
 

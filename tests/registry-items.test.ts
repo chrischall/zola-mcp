@@ -7,9 +7,9 @@ import {
   removeRegistryItem,
   _resetRegistryCollectionCache,
 } from '../src/tools/registry-items.js';
-import { fetchRegistryCollection } from '../src/registry-collection.js';
+import { fetchRegistryCollection, RegistryReadError } from '../src/registry-collection.js';
 import { setupClientMocks } from './_fixtures.js';
-import { confirmed } from './_confirm-helpers.js';
+import { confirmed, preview } from './_confirm-helpers.js';
 
 // remove_registry_item names the item before deleting it, via the collection
 // read (a www.zola.com page scrape). Stub it; it has its own tests.
@@ -172,6 +172,64 @@ describe('registry-items tools', () => {
     expect(reqSpy).toHaveBeenCalledTimes(1);
     expect(reqSpy).toHaveBeenCalledWith('DELETE', '/v3/registries/registry-1/items/item-1');
     expect(JSON.parse(result.content[0].text as string)).toEqual({ removed: 'item-1', name: 'Stand Mixer' });
+  });
+
+  // The collection is only readable from the PUBLIC registry page, but the
+  // DELETE is an owner call that works regardless. A registry the couple keeps
+  // private (or passcode-gated), or an item in a non-default collection, must
+  // still be removable: the preview falls back to naming the item by id.
+  for (const [label, err] of [
+    ['private registry', new RegistryReadError('resolve:public', 'Registry couple-registry is not public')],
+    ['passcode-gated registry', new RegistryReadError('fetch:gated', 'Registry page is passcode-gated')],
+  ] as const) {
+    it(`removeRegistryItem: still deletes on a ${label}, with an id-only preview`, async () => {
+      vi.mocked(fetchRegistryCollection).mockRejectedValue(err);
+      const phase1 = await preview((ctx, confirmToken) =>
+        removeRegistryItem(client, { collection_item_id: 'item-7', confirmToken }, ctx)
+      );
+      const shown = JSON.stringify(phase1.preview);
+      expect(shown).toContain('item-7');
+      expect(shown).toMatch(/could not be read/i);
+      expect(reqSpy).not.toHaveBeenCalled();
+
+      reqSpy.mockResolvedValueOnce({ data: null } as never);
+      const result = await confirmed((ctx, confirmToken) =>
+        removeRegistryItem(client, { collection_item_id: 'item-7', confirmToken }, ctx)
+      );
+      expect(reqSpy).toHaveBeenCalledWith('DELETE', '/v3/registries/registry-1/items/item-7');
+      expect(JSON.parse(result.content[0].text as string)).toEqual({ removed: 'item-7', name: null });
+    });
+  }
+
+  it('removeRegistryItem: still deletes an item outside the default collection, with an id-only preview', async () => {
+    vi.mocked(fetchRegistryCollection).mockResolvedValue({
+      items: [],
+      total: 0,
+      limit: 100,
+      offset: 0,
+      registry_key: 'couple-registry',
+      source: 'https://www.zola.com/registry/couple-registry',
+    } as never);
+    const phase1 = await preview((ctx, confirmToken) =>
+      removeRegistryItem(client, { collection_item_id: 'item-other', confirmToken }, ctx)
+    );
+    expect(JSON.stringify(phase1.preview)).toMatch(/not in the default collection/i);
+
+    reqSpy.mockResolvedValueOnce({ data: null } as never);
+    await confirmed((ctx, confirmToken) =>
+      removeRegistryItem(client, { collection_item_id: 'item-other', confirmToken }, ctx)
+    );
+    expect(reqSpy).toHaveBeenCalledWith('DELETE', '/v3/registries/registry-1/items/item-other');
+  });
+
+  it('removeRegistryItem: a non-registry-read failure is not swallowed', async () => {
+    vi.mocked(fetchRegistryCollection).mockRejectedValue(new Error('network down'));
+    await expect(
+      preview((ctx, confirmToken) =>
+        removeRegistryItem(client, { collection_item_id: 'item-1', confirmToken }, ctx)
+      )
+    ).rejects.toThrow('network down');
+    expect(reqSpy).not.toHaveBeenCalled();
   });
 
   it('addRegistryItem: falls back to collection_ids[0] when default_collection_id is absent', async () => {

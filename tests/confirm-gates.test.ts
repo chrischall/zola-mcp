@@ -388,9 +388,13 @@ describe('confirm-token gates on irreversible Zola writes', () => {
     expect(writes).toHaveLength(0);
   });
 
-  it('remove_registry_item names the item it would delete, and refuses an unknown one', async () => {
-    const result = await h.callTool('remove_registry_item', { collection_item_id: 'no-such-item' });
-    expect(result.isError).toBe(true);
+  it('remove_registry_item previews an id it cannot name (another collection) instead of blocking, and writes nothing', async () => {
+    // The collection read only sees the public default collection; an item in
+    // another collection is still legally deletable, so it is previewed by id.
+    const result = parseToolResult<PhaseOne>(await h.callTool('remove_registry_item', { collection_item_id: 'no-such-item' }));
+    expect(result.status).toBe('confirmation-required');
+    expect(JSON.stringify(result.preview)).toContain('no-such-item');
+    expect(JSON.stringify(result.preview)).toMatch(/not in the default collection/i);
     expect(writes).toHaveLength(0);
   });
 
