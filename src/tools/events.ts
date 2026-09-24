@@ -69,6 +69,7 @@ interface GiftTracker {
 
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 import { fetchRegistryCollection } from '../registry-collection.js';
+import { CONFIRM_NOTE, confirmTokenParam, confirmWrite, diffFields, type GatedResult, type ServerContext } from './_confirm.js';
 
 export async function listEvents(client: ZolaClient): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
@@ -204,7 +205,8 @@ export async function updateEvent(client: ZolaClient, args: {
   note?: string;
   attire?: string;
   collect_rsvps?: boolean;
-}): Promise<ToolResult> {
+  confirmToken?: string;
+}, ctx: ServerContext): Promise<GatedResult> {
   const { weddingAccountId } = await client.getContext();
   const listResponse = await client.requestMobile<MobileEnvelope<EventGroup[]>>(
     'GET',
@@ -241,11 +243,37 @@ export async function updateEvent(client: ZolaClient, args: {
     add_booked_vendor: false,
   };
 
-  const result = await client.requestMobile<MobileEnvelope<WeddingEvent>>(
-    'PUT',
-    `/v3/websites/events/${args.event_id}`,
-    body
+  // Guests plan travel around these details and collect_rsvps turns RSVPs on
+  // or off, so the change is previewed old -> new and confirmed first.
+  const supplied = (Object.keys(args) as Array<keyof typeof args>).filter(
+    (k) => k !== 'event_id' && k !== 'confirmToken' && args[k] !== undefined
   );
+  const changes = diffFields(current as Record<string, unknown>, body as Record<string, unknown>, supplied);
+  const path = `/v3/websites/events/${args.event_id}`;
+  const changed = Object.keys(changes);
+  const gate = await confirmWrite(ctx, {
+    tool: 'update_event',
+    action: 'zola.event.update',
+    label: `Update event "${current.name}"` + (changed.length > 0 ? `: ${changed.join(', ')}` : ' (no field changes)'),
+    method: 'PUT',
+    path,
+    target: String(args.event_id),
+    current,
+    body,
+    showBody: false,
+    about: {
+      event: current.name,
+      starts_at: current.start_at,
+      changes,
+      ...('collect_rsvps' in changes
+        ? { note: body.collect_rsvps ? 'Guests will be asked to RSVP for this event.' : 'Guests can no longer RSVP for this event.' }
+        : {}),
+    },
+    confirmToken: args.confirmToken,
+  });
+  if (gate) return gate;
+
+  const result = await client.requestMobile<MobileEnvelope<WeddingEvent>>('PUT', path, body);
   return jsonResult(result.data);
 }
 
@@ -278,7 +306,7 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
   }, (args) => getRegistry(client, args));
 
   server.registerTool('update_event', {
-    description: 'Update a wedding event (name, time, venue, location, dress code, RSVP settings)',
+    description: `Update a wedding event (name, time, venue, location, dress code, RSVP settings). Guests see these details on the website. ${CONFIRM_NOTE}`,
     inputSchema: z.object({
       event_id: z.number().describe('Event entity ID from list_events'),
       name: z.string().optional().describe('Event name'),
@@ -293,7 +321,8 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
       note: z.string().optional().describe('Event notes/description'),
       attire: z.string().optional().describe('Dress code'),
       collect_rsvps: z.boolean().optional().describe('Whether to collect RSVPs for this event'),
+      confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, idempotentHint: true },
-  }, (args) => updateEvent(client, args));
+  }, (args, ctx) => updateEvent(client, args, ctx));
 }

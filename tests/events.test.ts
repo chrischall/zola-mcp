@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
 import { listEvents, trackRsvps, getGiftTracker, getRegistry, updateEvent } from '../src/tools/events.js';
 import { setupClientMocks } from './_fixtures.js';
+import { NO_ELICIT_CTX, confirmed } from './_confirm-helpers.js';
 
 const MOCK_EVENT = {
   event_entity_id: 2000001,
@@ -136,24 +137,27 @@ describe('events & wedding tools', () => {
     // Return an empty group array — no events at all
     reqSpy.mockResolvedValueOnce({ data: [] } as never);
 
-    await expect(updateEvent(client, { event_id: 999, name: 'X' })).rejects.toThrow(
+    await expect(updateEvent(client, { event_id: 999, name: 'X' }, NO_ELICIT_CTX)).rejects.toThrow(
       'Event with ID 999 not found'
     );
   });
 
   it('updateEvent: loads current event, merges fields, PUTs update', async () => {
-    // First call: list events to get current data
+    // Each confirm phase lists events to get the current data; phase 2 then PUTs.
     reqSpy.mockResolvedValueOnce(MOCK_EVENTS_RESPONSE as never);
-    // Second call: PUT update
+    reqSpy.mockResolvedValueOnce(MOCK_EVENTS_RESPONSE as never);
     const updatedEvent = { ...MOCK_EVENT, name: 'Updated Reception' };
     reqSpy.mockResolvedValueOnce({ data: updatedEvent } as never);
 
-    const result = await updateEvent(client, { event_id: 2000001, name: 'Updated Reception' });
+    const result = await confirmed((ctx, confirmToken) =>
+      updateEvent(client, { event_id: 2000001, name: 'Updated Reception', confirmToken }, ctx)
+    );
 
-    expect(reqSpy).toHaveBeenCalledTimes(2);
+    expect(reqSpy).toHaveBeenCalledTimes(3);
     expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/websites/events/wedding-accounts/1000001/groups');
+    expect(reqSpy).toHaveBeenNthCalledWith(2, 'GET', '/v3/websites/events/wedding-accounts/1000001/groups');
     expect(reqSpy).toHaveBeenNthCalledWith(
-      2,
+      3,
       'PUT',
       '/v3/websites/events/2000001',
       expect.objectContaining({
@@ -183,11 +187,14 @@ describe('events & wedding tools', () => {
       some_future_field: 'kept',
     };
     reqSpy.mockResolvedValueOnce({ data: [{ start_date: 'x', events: [fullEvent] }] } as never);
+    reqSpy.mockResolvedValueOnce({ data: [{ start_date: 'x', events: [fullEvent] }] } as never);
     reqSpy.mockResolvedValueOnce({ data: fullEvent } as never);
 
-    await updateEvent(client, { event_id: 2000001, name: 'Dinner & Dancing' });
+    await confirmed((ctx, confirmToken) =>
+      updateEvent(client, { event_id: 2000001, name: 'Dinner & Dancing', confirmToken }, ctx)
+    );
 
-    const body = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    const body = reqSpy.mock.calls[2][2] as Record<string, unknown>;
     expect(body.name).toBe('Dinner & Dancing');
     expect(body.note).toBe('Shuttle leaves the hotel at 6pm');
     expect(body.attire).toBe('Black tie optional');
@@ -200,11 +207,14 @@ describe('events & wedding tools', () => {
   it('updateEvent: provided args still override the current values', async () => {
     const fullEvent = { ...MOCK_EVENT, note: 'old note', attire: 'old attire' };
     reqSpy.mockResolvedValueOnce({ data: [{ start_date: 'x', events: [fullEvent] }] } as never);
+    reqSpy.mockResolvedValueOnce({ data: [{ start_date: 'x', events: [fullEvent] }] } as never);
     reqSpy.mockResolvedValueOnce({ data: fullEvent } as never);
 
-    await updateEvent(client, { event_id: 2000001, note: 'new note', attire: '' });
+    await confirmed((ctx, confirmToken) =>
+      updateEvent(client, { event_id: 2000001, note: 'new note', attire: '', confirmToken }, ctx)
+    );
 
-    const body = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    const body = reqSpy.mock.calls[2][2] as Record<string, unknown>;
     expect(body.note).toBe('new note');
     expect(body.attire).toBe('');
   });

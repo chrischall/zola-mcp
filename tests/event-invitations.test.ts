@@ -6,6 +6,7 @@ import {
   removeEventInvitation,
 } from '../src/tools/event-invitations.js';
 import { setupClientMocks } from './_fixtures.js';
+import { NO_ELICIT_CTX, confirmed } from './_confirm-helpers.js';
 
 // ─── Fixtures (FLAT guest shape — matches the live mobile-api directory) ───────
 
@@ -152,7 +153,7 @@ describe('event-invitation tools (mobile API)', () => {
     await setEventGuests(client, {
       event_id: CEREMONY,
       guest_groups: [{ guest_group_id: 3000001, invited: true }],
-    });
+    }, NO_ELICIT_CTX);
 
     const { path, body } = putBody(reqSpy);
     expect(path).toBe('/v3/guestlists/groups/wedding-accounts/1000001/bulk/directory');
@@ -177,10 +178,13 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await setEventGuests(client, {
-      event_id: CEREMONY,
-      guest_groups: [{ guest_group_id: 3000001, invited: false }],
-    });
+    await confirmed((ctx, confirmToken) =>
+      setEventGuests(client, {
+        event_id: CEREMONY,
+        guest_groups: [{ guest_group_id: 3000001, invited: false }],
+        confirmToken,
+      }, ctx)
+    );
 
     const { body } = putBody(reqSpy);
     const inv = body.updated_guest_groups[0].guests[0].event_invitations;
@@ -203,7 +207,7 @@ describe('event-invitation tools (mobile API)', () => {
     await setEventGuests(client, {
       event_id: CEREMONY,
       guest_groups: [{ guest_group_id: 3000001, invited: true }],
-    });
+    }, NO_ELICIT_CTX);
 
     const { body } = putBody(reqSpy);
     const inv = body.updated_guest_groups[0].guests[0].event_invitations;
@@ -222,7 +226,7 @@ describe('event-invitation tools (mobile API)', () => {
     await setEventGuests(client, {
       event_id: CEREMONY,
       guest_groups: [{ guest_group_id: 3000001, invited: true }],
-    });
+    }, NO_ELICIT_CTX);
 
     const { body } = putBody(reqSpy);
     expect(body.updated_guest_groups[0].guests[0].rsvp).toBe('NO_RESPONSE');
@@ -234,13 +238,16 @@ describe('event-invitation tools (mobile API)', () => {
       group(2, 'Group Two', [guest(20, 'B', 'PRIMARY', [])]),
     ]);
 
-    await setEventGuests(client, {
-      event_id: CEREMONY,
-      guest_groups: [
-        { guest_group_id: 1, invited: true },
-        { guest_group_id: 2, invited: false },
-      ],
-    });
+    await confirmed((ctx, confirmToken) =>
+      setEventGuests(client, {
+        event_id: CEREMONY,
+        guest_groups: [
+          { guest_group_id: 1, invited: true },
+          { guest_group_id: 2, invited: false },
+        ],
+        confirmToken,
+      }, ctx)
+    );
 
     const puts = reqSpy.mock.calls.filter(
       (c) => c[0] === 'PUT' && String(c[1]).includes('/bulk/directory')
@@ -253,14 +260,14 @@ describe('event-invitation tools (mobile API)', () => {
   it('setEventGuests: rejects an unknown event_id', async () => {
     wire(reqSpy, () => [group(3000001, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
     await expect(
-      setEventGuests(client, { event_id: 99999, guest_groups: [{ guest_group_id: 3000001, invited: true }] })
+      setEventGuests(client, { event_id: 99999, guest_groups: [{ guest_group_id: 3000001, invited: true }] }, NO_ELICIT_CTX)
     ).rejects.toThrow(/99999/);
   });
 
   it('setEventGuests: rejects an unknown guest_group_id', async () => {
     wire(reqSpy, () => [group(3000001, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
     await expect(
-      setEventGuests(client, { event_id: CEREMONY, guest_groups: [{ guest_group_id: 999, invited: true }] })
+      setEventGuests(client, { event_id: CEREMONY, guest_groups: [{ guest_group_id: 999, invited: true }] }, NO_ELICIT_CTX)
     ).rejects.toThrow(/999/);
   });
 
@@ -323,7 +330,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await removeEventInvitation(client, { event_id: CEREMONY, guest_group_id: 3000001 });
+    await confirmed((ctx, confirmToken) => removeEventInvitation(client, { event_id: CEREMONY, guest_group_id: 3000001, confirmToken }, ctx));
 
     const { body } = putBody(reqSpy);
     for (const gu of body.updated_guest_groups[0].guests) {
@@ -344,7 +351,7 @@ describe('event-invitation tools (mobile API)', () => {
       ]),
     ]);
 
-    await removeEventInvitation(client, { event_id: CEREMONY, guest_id: 4000001 });
+    await confirmed((ctx, confirmToken) => removeEventInvitation(client, { event_id: CEREMONY, guest_id: 4000001, confirmToken }, ctx));
 
     const { body } = putBody(reqSpy);
     const guests = body.updated_guest_groups[0].guests;

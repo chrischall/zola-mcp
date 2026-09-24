@@ -154,10 +154,15 @@ Ask Claude: *"How's wedding planning going?"* — it should show your wedding da
 | `ZOLA_TOKEN_FILE` | No | Absolute path for the cache file. Defaults to `$MCP_DATA_DIR/.zola-mcp/refresh-token.json`, else `$HOME/.zola-mcp/refresh-token.json`. |
 | `ZOLA_ACCOUNT_ID` | No | Auto-resolved from API on first use |
 | `ZOLA_REGISTRY_ID` | No | Auto-resolved from API on first use |
+| `MCP_CONFIRM_MODE` | No | Default `ask-user`. What a confirmed write does on a client that cannot show a confirmation prompt (claude.ai, Claude Desktop). `ask-user`: two steps — the first call writes nothing and returns a preview plus a token, and the model must get your approval in chat before calling again with it. `auto`: the same two steps, but the model may use the token after reviewing the preview itself. `refuse`: those writes are refused on such clients. A client that can show prompts (Claude Code) always gets the real prompt. An unrecognised value is treated as `refuse`. |
+| `MCP_CONFIRM_TTL_SECONDS` | No | Default `600`. How long a confirm token stays valid. |
+| `MCP_CONFIRM_SECRET` | No | Signing key for confirm tokens (default: random per process). Set it only if tokens must survive a server restart. |
 
 ## Available tools
 
 27 tools across 8 domains. Read-only tools run automatically. Write tools ask for confirmation.
+
+The writes that cannot be undone or that change what guests see are also confirmed by the server itself: `remove_guest`, `set_event_guests` (when it uninvites anyone), `remove_event_invitation`, `update_event`, `update_wedding_settings`, `remove_registry_item`, `remove_faq`, `remove_home_section`, `remove_poi` and `remove_travel_item`. Each first shows a preview naming the household, event, item or page content and exactly what changes (for a slug change, the old and new website URL; a registry item on a private or passcode-gated registry, or outside the default collection, is shown by id because only the public page names it), then proceeds only once you approve — see `MCP_CONFIRM_MODE` above.
 
 ### Vendors
 
@@ -180,10 +185,10 @@ Ask Claude: *"How's wedding planning going?"* — it should show your wedding da
 
 | Tool | What it does | Permission |
 |------|-------------|------------|
-| `list_guests` | List all guest groups with stats | Auto |
+| `list_guests` | List all guest groups with stats — names, tier and RSVP state by default; `view: "full"` adds addresses, emails and phones | Auto |
 | `add_guest` | Add a guest group | Confirm |
 | `update_guest_address` | Update mailing address | Confirm |
-| `remove_guest` | Remove a guest group | Confirm |
+| `remove_guest` | Remove a guest group (with its RSVPs and seats) | Confirm (server-side preview) |
 
 ### Seating
 

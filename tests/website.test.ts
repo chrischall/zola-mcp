@@ -9,6 +9,7 @@ import {
   updateWeddingSettings,
 } from '../src/tools/website.js';
 import { MOCK_CTX, setupClientMocks } from './_fixtures.js';
+import { confirmed } from './_confirm-helpers.js';
 
 const MOCK_PAGES_RESPONSE = {
   data: {
@@ -131,17 +132,22 @@ describe('website tools', () => {
   });
 
   it('updateWeddingSettings: GETs current wedding, merges args, PUTs to /v3/weddings/{id}', async () => {
+    // Each confirm phase re-reads the current wedding; phase 2 then PUTs.
+    reqSpy.mockResolvedValueOnce(MOCK_CONTEXT_RESPONSE as never);
     reqSpy.mockResolvedValueOnce(MOCK_CONTEXT_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({
       data: { ...MOCK_CONTEXT_RESPONSE.data.wedding, title: 'New Title' },
     } as never);
 
-    const result = await updateWeddingSettings(client, { title: 'New Title', hashtag: '#alexjordan2026' });
+    const result = await confirmed((ctx, confirmToken) =>
+      updateWeddingSettings(client, { title: 'New Title', hashtag: '#alexjordan2026', confirmToken }, ctx)
+    );
 
-    expect(reqSpy).toHaveBeenCalledTimes(2);
+    expect(reqSpy).toHaveBeenCalledTimes(3);
     expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/users/me/context');
+    expect(reqSpy).toHaveBeenNthCalledWith(2, 'GET', '/v3/users/me/context');
     expect(reqSpy).toHaveBeenNthCalledWith(
-      2,
+      3,
       'PUT',
       '/v3/weddings/7585869',
       expect.objectContaining({
@@ -158,7 +164,7 @@ describe('website tools', () => {
     expect(parsed.title).toBe('New Title');
 
     // Gap 2: untouched fields are preserved from current wedding
-    const putBody = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    const putBody = reqSpy.mock.calls[2][2] as Record<string, unknown>;
     expect(putBody.owner_first_name).toBe('Alex');
     expect(putBody.owner_last_name).toBe('Rivera');
     expect(putBody.enable_search_engine).toBe(false);
@@ -174,11 +180,13 @@ describe('website tools', () => {
       data: { ...MOCK_CONTEXT_RESPONSE.data, wedding: { ...MOCK_CONTEXT_RESPONSE.data.wedding, hashtag: null } },
     };
     reqSpy.mockResolvedValueOnce(ctxWithNullHashtag as never);
+    reqSpy.mockResolvedValueOnce(ctxWithNullHashtag as never);
     reqSpy.mockResolvedValueOnce({ data: ctxWithNullHashtag.data.wedding } as never);
 
-    await updateWeddingSettings(client, { title: 'X' }); // no hashtag arg
+    // no hashtag arg
+    await confirmed((ctx, confirmToken) => updateWeddingSettings(client, { title: 'X', confirmToken }, ctx));
 
-    const putBody = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    const putBody = reqSpy.mock.calls[2][2] as Record<string, unknown>;
     expect(putBody.hashtag).toBe('');
   });
 
@@ -186,11 +194,14 @@ describe('website tools', () => {
   it('updateWeddingSettings: passes enable_search_engine: true through ?? merge correctly', async () => {
     // current has enable_search_engine: false; caller passes true
     reqSpy.mockResolvedValueOnce(MOCK_CONTEXT_RESPONSE as never);
+    reqSpy.mockResolvedValueOnce(MOCK_CONTEXT_RESPONSE as never);
     reqSpy.mockResolvedValueOnce({ data: MOCK_CONTEXT_RESPONSE.data.wedding } as never);
 
-    await updateWeddingSettings(client, { enable_search_engine: true });
+    await confirmed((ctx, confirmToken) =>
+      updateWeddingSettings(client, { enable_search_engine: true, confirmToken }, ctx)
+    );
 
-    const putBody = reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    const putBody = reqSpy.mock.calls[2][2] as Record<string, unknown>;
     expect(putBody.enable_search_engine).toBe(true);
   });
 });

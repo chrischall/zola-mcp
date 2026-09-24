@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { client } from '../src/client.js';
 import { listGuests, addGuest, updateGuestAddress, removeGuest } from '../src/tools/guests.js';
 import { setupClientMocks } from './_fixtures.js';
+import { confirmed } from './_confirm-helpers.js';
 
 // FLAT guest shape — matches the live /v3/guestlists/directory response.
 // (Fields sit directly on the guest object; there is NO { guest: {...} } wrapper.)
@@ -87,6 +88,60 @@ describe('guest tools (mobile API)', () => {
     expect(parsed.stats.num_guests).toBe(193);
     expect(parsed.guest_groups).toHaveLength(1);
     expect(parsed.guest_groups[0].guests[0].first_name).toBe('Pat');
+  });
+
+  it('listGuests: the default view leaves out every contact detail (addresses, emails, phones)', async () => {
+    const directory = structuredClone(MOCK_DIRECTORY);
+    Object.assign(directory.data.guest_groups[0].guests[0], {
+      email_address: 'pat@example.com',
+      mobile_phone: '555-0100',
+      home_phone: '555-0101',
+      address2: 'Apt 2',
+    });
+    reqSpy.mockResolvedValueOnce(directory as never);
+
+    const result = await listGuests(client);
+
+    const text = result.content[0].text as string;
+    for (const leaked of ['Alta Vista', 'Apt 2', 'Chicago', '60613', 'pat@example.com', '555-0100', '555-0101']) {
+      expect(text).not.toContain(leaked);
+    }
+    const parsed = JSON.parse(text);
+    expect(parsed.stats.num_addresses_missing).toBe(0);
+    const group = parsed.guest_groups[0];
+    expect(group).toMatchObject({
+      guest_group_id: 3000001,
+      envelope_recipient: 'Pat Morgan and Sam Morgan',
+      tier: 'A',
+      invited: true,
+    });
+    expect(group.guests[0]).toEqual({
+      guest_id: 4000001,
+      first_name: 'Pat',
+      family_name: 'Morgan',
+      relationship_type: 'PRIMARY',
+      rsvp: 'NO_RESPONSE',
+      has_address: true,
+      event_invitations: [{ event_id: 2000002, rsvp_type: 'NO_RESPONSE' }],
+    });
+  });
+
+  it('listGuests: view "full" returns the directory records untouched', async () => {
+    reqSpy.mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never);
+
+    const result = await listGuests(client, { view: 'full' });
+
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.guest_groups).toEqual(MOCK_DIRECTORY.data.guest_groups);
+  });
+
+  it('removeGuest: refuses an unknown household without writing', async () => {
+    reqSpy.mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never);
+
+    await expect(
+      confirmed((ctx, confirmToken) => removeGuest(client, { guest_group_id: 999, confirmToken }, ctx))
+    ).rejects.toThrow('Guest group with ID 999 not found');
+    expect(reqSpy).toHaveBeenCalledTimes(1);
   });
 
   it('addGuest: POSTs to groups with correct body', async () => {
@@ -178,9 +233,14 @@ describe('guest tools (mobile API)', () => {
   });
 
   it('removeGuest: PUTs to delete endpoint with guest_group_ids', async () => {
+    // Each confirm phase reads the household it is about to delete; phase 2 then PUTs.
+    reqSpy.mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never);
+    reqSpy.mockResolvedValueOnce(structuredClone(MOCK_DIRECTORY) as never);
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
 
-    const result = await removeGuest(client, { guest_group_id: 3000001 });
+    const result = await confirmed((ctx, confirmToken) =>
+      removeGuest(client, { guest_group_id: 3000001, confirmToken }, ctx)
+    );
 
     expect(reqSpy).toHaveBeenCalledWith(
       'PUT',

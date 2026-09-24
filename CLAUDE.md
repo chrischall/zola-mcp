@@ -83,21 +83,27 @@ This is the canonical "browser-bootstrap + Node-direct" shape shared with ofw-mc
 
 **Stale-cache recovery is the load-bearing part.** A cached token can be revoked or age out, and without recovery it would throw on every later call forever — the cache would turn a browser problem into a brick. So `ZolaClient.refresh()` discards it and re-resolves **once** when the API answers 4xx. A 5xx or network error says nothing about the credential and leaves it intact; destroying a valid token on a transient blip would force a needless re-bridge. Only a `source: 'cache'` token is retried — the env var would re-resolve to the same value, and a token just lifted from the browser is already as fresh as the bridge can make it.
 
-## Response shape — minified, and deliberately no `view` parameter
+## Response shape — minified, and a `view` parameter only where privacy needs one
 
 `jsonResult` (`src/types.ts`) is `minifiedResult` from `@chrischall/mcp-utils`: every one of the 76 tool results is a single line of JSON with no indentation. Indentation is tokens the caller pays for and never reads; whitespace *inside* a value is untouched.
 
-There is **no `view: compact | full` parameter, and it was measured before being declined.** A `src/view.ts` was added by a fleet rollout, wired to nothing, and removed. Three findings, all from the captured fixtures in `tests/fixtures/`, and none of them matching the story that rollout told:
+There is **no blanket `view: compact | full` parameter for size, and it was measured before being declined.** A `src/view.ts` was added by a fleet rollout, wired to nothing, and removed. Three findings, all from the captured fixtures in `tests/fixtures/`, and none of them matching the story that rollout told:
 
 - **Most reads here are NOT projected.** `projectRegistryItem` (`src/registry-collection.ts` — top level, not under `src/tools/`), `projectGiftTracker` (`src/tools/events.ts`) and `flattenGiftTracker` (`src/tools/reconcile-registry.ts`) have one call site each; add the three hand-written literals in `get_budget`, `list_inquiries` and `list_unseated_guests` and it is 6 of 38 read tools. The other 32 are verbatim passthrough, many literally typed `MobileEnvelope<unknown>` — a type annotation that is itself proof no field knowledge exists.
 - **`stripMediaUrls` barely fires on Zola's payloads.** Its key regex is anchored with no separator before the suffix (`^<noun>s?(?:link|uri|url)s?$`), built for camelCase; Zola's API is snake_case. `image_url`, `image_links`, `images_urls`, `plp_front_image_url`, `universal_photo_url`, `photo_preview` are all **kept**; only bare `images` / `thumbnail` / `avatar` drop. Its value rule needs an image extension ending the path, and Zola's CDN URLs are extension-less (`https://images.zola.com/<id>?fit=fill&w=640&h=640`). Measured: `gift-tracker.raw.json` 153,197 → 151,847 bytes (**0.9%**); registry items after `projectRegistryItem` 25,392 → 25,098 (**1.2%**), with the `image_url` still in the row. A tool description promising "compact strips image/avatar URLs" that then does not strip them is worse than no parameter.
 - **Nine of the verbatim reads are a stationery catalog** (`get_card_suite`, `search_card_catalog`, `list_card_projects`, `list_favorite_card_suites`, …), plus `get_storefront`. Their product IS the picture. Blanket stripping empties those responses rather than shrinking them.
+
+**The one `view` parameter is on `list_guests`, and it is for privacy, not size.** Its default `compact` rung keeps ids, names, tier, invited/RSVP state and per-event invitations and drops every guest's street address, email and phone; `view: "full"` returns the directory records untouched. The directory is the whole third-party guest list, and "who has not RSVP'd" must not put it in the transcript.
 
 If response size is worth attacking here, the lever is already in the repo and is 10-100× larger: `projectGiftTracker` takes the tracker from ~154 KB to ~12 KB, and its docblock records that the bulk was `THANK_YOU_CARDS_PROMO` modules — *not* the image links. Extending that pattern to `get_storefront` / `search_storefronts` / `get_wedding_dashboard` from a captured payload is the work that pays. A subtractive rule that measurably does nothing is not.
 
 ## Testing
 
 Tests in `tests/`. Run with `npm test`. No real network — `client.requestMobile` is stubbed via `vi.spyOn`, and `client.getContext` is mocked the same way. Shared fixtures live in `tests/_fixtures.ts`. `vitest.config.ts` enables v8 coverage but does not currently enforce a threshold.
+
+`tests/fixtures.leak.test.ts` guards this public repo against live-account data. Its email and phone checks are committed; the list of real identifiers (names, the wedding slug and hashtag) is **not**, in any form — a salted digest of a name is dictionary-recoverable. Keep that list in the gitignored `tests/leak-denylist.local.txt` (one entry per line, `=` prefix for a case-sensitive match) or `ZOLA_LEAK_DENYLIST`.
+
+Confirm-gated writes (`src/tools/_confirm.ts`) are exercised end-to-end in `tests/confirm-gates.test.ts`; unit tests drive a gated function through both phases with `confirmed()` from `tests/_confirm-helpers.ts`.
 
 `tests/version-sync.test.ts` is an invariant test (shared `versionSyncTest` from `@chrischall/mcp-utils/test`): every `// x-release-please-version` constant in `src/` must match `package.json`'s `version`, or CI fails. Tag any new version-bearing constant with that marker so release-please bumps it and the test asserts it.
 
