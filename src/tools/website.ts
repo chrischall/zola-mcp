@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
+import { CONFIRM_NOTE, confirmTokenParam, confirmWrite, diffFields, type GatedResult, type ServerContext } from './_confirm.js';
 
 export async function listPages(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
@@ -102,7 +103,8 @@ export async function updateWeddingSettings(client: ZolaClient, args: {
   guest_count?: number;
   enable_search_engine?: boolean;
   enable_search_zola?: boolean;
-}): Promise<ToolResult> {
+  confirmToken?: string;
+}, ctx: ServerContext): Promise<GatedResult> {
   const current = await fetchWeddingFields(client);
   const body = {
     wedding_id: current.wedding_id,
@@ -122,11 +124,48 @@ export async function updateWeddingSettings(client: ZolaClient, args: {
     guest_count: args.guest_count ?? current.guest_count,
   };
 
-  const response = await client.requestMobile<MobileEnvelope<WeddingFields>>(
-    'PUT',
-    `/v3/weddings/${current.wedding_id}`,
-    body
+  // Preview only what the caller asked to change, old -> new, so the user sees
+  // the slug they are about to break every printed link with, not a wall of
+  // unchanged fields.
+  const supplied = (Object.keys(args) as Array<keyof typeof args>).filter(
+    (k) => k !== 'confirmToken' && args[k] !== undefined
   );
+  const changes = diffFields(
+    current as unknown as Record<string, unknown>,
+    body as unknown as Record<string, unknown>,
+    supplied
+  );
+  const path = `/v3/weddings/${current.wedding_id}`;
+  const changed = Object.keys(changes);
+  const gate = await confirmWrite(ctx, {
+    tool: 'update_wedding_settings',
+    action: 'zola.wedding.update_settings',
+    label: `Update wedding settings for "${current.title}"` + (changed.length > 0 ? `: ${changed.join(', ')}` : ' (no field changes)'),
+    method: 'PUT',
+    path,
+    target: String(current.wedding_id),
+    current,
+    body,
+    showBody: false,
+    about: {
+      wedding: current.title,
+      changes,
+      ...('slug' in changes
+        ? {
+            warning:
+              `The public website URL changes from zola.com/wedding/${current.slug} to zola.com/wedding/${body.slug}. ` +
+              'Every link and QR code already shared or printed with the old URL stops working.',
+          }
+        : {}),
+      ...('enable_search_engine' in changes || 'enable_search_zola' in changes
+        ? { note: 'Search visibility changes who can find the website.' }
+        : {}),
+    },
+    confirmToken: args.confirmToken,
+  });
+  if (gate) return gate;
+
+  const response = await client.requestMobile<MobileEnvelope<WeddingFields>>('PUT', path, body);
   return jsonResult(response.data);
 }
 
@@ -174,7 +213,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
   }, () => getWeddingSettings(client));
 
   server.registerTool('update_wedding_settings', {
-    description: 'Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved.',
+    description: `Update top-level wedding settings. Provide only the fields you want to change; the rest are preserved. ${CONFIRM_NOTE}`,
     inputSchema: z.object({
       title: z.string().optional().describe('Wedding title (e.g., "Alex & Jordan")'),
       slug: z.string().optional().describe('URL slug — appears in the public website URL. Changing it breaks every link and QR code already shared or printed with the old URL'),
@@ -189,7 +228,8 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       guest_count: z.number().optional(),
       enable_search_engine: z.boolean().optional().describe('Allow search engines (Google, etc.) to index the site'),
       enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),
+      confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, idempotentHint: true },
-  }, (args) => updateWeddingSettings(client, args));
+  }, (args, ctx) => updateWeddingSettings(client, args, ctx));
 }

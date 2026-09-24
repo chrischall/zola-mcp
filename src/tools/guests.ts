@@ -1,8 +1,18 @@
 import { McpServer } from '@modelcontextprotocol/server';
+import { resolveView, viewParam } from '@chrischall/mcp-utils';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
+import {
+  CONFIRM_NOTE,
+  confirmTokenParam,
+  confirmWrite,
+  guestName,
+  householdLabel,
+  type GatedResult,
+  type ServerContext,
+} from './_confirm.js';
 
 // The live /v3/guestlists/directory response returns a FLAT guest shape:
 // fields sit directly on each guest object (no `{ guest: {...} }` wrapper).
@@ -50,7 +60,51 @@ interface DirectoryResponse {
   guest_groups: GuestGroup[];
 }
 
-export async function listGuests(client: ZolaClient): Promise<ToolResult> {
+/**
+ * The rungs `list_guests` honours. This is the one read in the repo with a
+ * `view` parameter, and it exists for privacy rather than size (CLAUDE.md,
+ * "Response shape"): the directory is the whole third-party guest list, and
+ * the default answer must not put every household's street address, email and
+ * phone number into the transcript when the question was "who has not RSVP'd".
+ */
+const GUEST_VIEWS = ['compact', 'full'] as const;
+
+const GUEST_VIEW_NOTE =
+  'compact keeps ids, names, tier, invited/RSVP state, per-event invitations and whether an address is on file; ' +
+  'it leaves out street addresses, emails and phone numbers. Ask for "full" only when you need contact details.';
+
+/** A guest's directory record without its contact details. */
+function compactGuest(guest: DirectoryGuest) {
+  const invitations = Array.isArray(guest.event_invitations) ? guest.event_invitations : [];
+  return {
+    guest_id: guest.guest_id,
+    first_name: guest.first_name,
+    family_name: guest.family_name,
+    relationship_type: guest.relationship_type,
+    rsvp: guest.rsvp,
+    has_address: Boolean(guest.address1 || guest.city || guest.postal_code),
+    event_invitations: invitations.map((inv) => {
+      const { event_id, rsvp_type } = (inv ?? {}) as { event_id?: unknown; rsvp_type?: unknown };
+      return { event_id, rsvp_type };
+    }),
+  };
+}
+
+/** A household with its guests projected by {@link compactGuest}. */
+function compactGroup(group: GuestGroup) {
+  return {
+    guest_group_id: group.guest_group_id,
+    envelope_recipient: group.envelope_recipient,
+    tier: group.guest_group_tier,
+    affiliation: group.guest_group_affiliation,
+    invited: group.invited,
+    invitation_sent: group.invitation_sent,
+    save_the_date_sent: group.save_the_date_sent,
+    guests: group.guests.map(compactGuest),
+  };
+}
+
+export async function listGuests(client: ZolaClient, args: { view?: string } = {}): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<DirectoryResponse>>(
     'POST',
@@ -58,7 +112,8 @@ export async function listGuests(client: ZolaClient): Promise<ToolResult> {
     { sort_by_name_asc: true }
   );
   const { guest_groups, ...stats } = response.data;
-  return jsonResult({ stats, guest_groups });
+  const rung = resolveView(args.view, GUEST_VIEWS);
+  return jsonResult({ stats, guest_groups: rung === 'full' ? guest_groups : guest_groups.map(compactGroup) });
 }
 
 export async function addGuest(client: ZolaClient, args: {
@@ -205,26 +260,64 @@ export async function updateGuestAddress(client: ZolaClient, args: {
   return jsonResult(result.data);
 }
 
-export async function removeGuest(client: ZolaClient, args: { guest_group_id: number }): Promise<ToolResult> {
+export async function removeGuest(
+  client: ZolaClient,
+  args: { guest_group_id: number; confirmToken?: string },
+  ctx: ServerContext
+): Promise<GatedResult> {
   const { weddingAccountId } = await client.getContext();
-  await client.requestMobile(
-    'PUT',
-    `/v3/guestlists/groups/wedding-accounts/${weddingAccountId}/delete`,
-    {
-      wedding_account_id: weddingAccountId,
-      guest_group_ids: [args.guest_group_id],
-    }
+  // Read the household first: the preview names who is about to be deleted,
+  // and the token binds to the household as it was read, so a group edited in
+  // the meantime is refused rather than deleted blind.
+  const dirResponse = await client.requestMobile<MobileEnvelope<DirectoryResponse>>(
+    'POST',
+    `/v3/guestlists/directory/wedding-accounts/${weddingAccountId}`,
+    { sort_by_name_asc: true }
   );
+  const group = dirResponse.data.guest_groups.find((g) => g.guest_group_id === args.guest_group_id);
+  if (!group) {
+    throw new Error(`Guest group with ID ${args.guest_group_id} not found`);
+  }
+
+  const path = `/v3/guestlists/groups/wedding-accounts/${weddingAccountId}/delete`;
+  const body = { wedding_account_id: weddingAccountId, guest_group_ids: [args.guest_group_id] };
+  const household = householdLabel(group);
+  const gate = await confirmWrite(ctx, {
+    tool: 'remove_guest',
+    action: 'zola.guest.remove',
+    label: `Delete guest household "${household}" (${group.guests.length} guest${group.guests.length === 1 ? '' : 's'})`,
+    method: 'PUT',
+    path,
+    target: String(args.guest_group_id),
+    current: group,
+    body,
+    about: {
+      household,
+      guests: group.guests.map((g) => ({ name: guestName(g), relationship_type: g.relationship_type, rsvp: g.rsvp })),
+      invited: group.invited,
+      also_deleted: 'every RSVP, event invitation and seat assignment for these guests; there is no trash to restore from',
+    },
+    confirmToken: args.confirmToken,
+  });
+  if (gate) return gate;
+
+  await client.requestMobile('PUT', path, body);
   return {
-    content: [{ type: 'text', text: `Deleted guest group ${args.guest_group_id}` }],
+    content: [{ type: 'text', text: `Deleted guest group ${args.guest_group_id} ("${household}")` }],
   };
 }
 
 export function registerGuestTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_guests', {
-    description: 'List all guest groups with stats (total, invited, missing addresses)',
+    description:
+      'List all guest groups (households) with stats (total, invited, missing addresses). ' +
+      'The default view carries names, ids, tier, invited/RSVP state and per-event invitations but no contact details; ' +
+      'pass view:"full" for addresses, emails and phone numbers.',
+    inputSchema: z.object({
+      view: viewParam(GUEST_VIEWS, { note: GUEST_VIEW_NOTE }),
+    }),
     annotations: { readOnlyHint: true },
-  }, () => listGuests(client));
+  }, (args) => listGuests(client, args));
 
   server.registerTool('add_guest', {
     description: 'Add a new guest group (household) to the guest list',
@@ -255,8 +348,13 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
   }, (args) => updateGuestAddress(client, args));
 
   server.registerTool('remove_guest', {
-    description: 'Remove a guest group from the guest list',
-    inputSchema: z.object({ guest_group_id: z.number().describe('Guest group ID from list_guests') }),
+    description:
+      'Remove a guest group (household) from the guest list. This permanently deletes the household with every RSVP, ' +
+      `event invitation and seat assignment its guests had; there is no trash. ${CONFIRM_NOTE}`,
+    inputSchema: z.object({
+      guest_group_id: z.number().describe('Guest group ID from list_guests'),
+      confirmToken: confirmTokenParam,
+    }),
     annotations: { destructiveHint: true },
-  }, (args) => removeGuest(client, args));
+  }, (args, ctx) => removeGuest(client, args, ctx));
 }

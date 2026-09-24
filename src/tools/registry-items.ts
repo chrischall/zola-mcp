@@ -2,7 +2,9 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { pathSegment } from '../path.js';
+import { fetchRegistryCollection } from '../registry-collection.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
+import { CONFIRM_NOTE, confirmTokenParam, confirmWrite, type GatedResult, type ServerContext } from './_confirm.js';
 
 const collectionIdCache = new Map<string, string>();
 
@@ -128,13 +130,47 @@ export async function updateRegistryItem(client: ZolaClient, args: {
   return jsonResult(response.data);
 }
 
-export async function removeRegistryItem(client: ZolaClient, args: { collection_item_id: string }): Promise<ToolResult> {
+export async function removeRegistryItem(
+  client: ZolaClient,
+  args: { collection_item_id: string; confirmToken?: string },
+  ctx: ServerContext
+): Promise<GatedResult> {
   const { registryId } = await client.getContext();
-  await client.requestMobile<MobileEnvelope<unknown>>(
-    'DELETE',
-    `/v3/registries/${registryId}/items/${pathSegment(args.collection_item_id)}`
-  );
-  return jsonResult({ removed: args.collection_item_id });
+  // Name the item before deleting it. The collection is only readable from the
+  // public registry page (see src/registry-collection.ts), so this is the same
+  // read get_registry makes; an id that is not in the collection is refused
+  // rather than sent to DELETE blind.
+  const { items } = await fetchRegistryCollection(client, { limit: Number.MAX_SAFE_INTEGER });
+  const item = items.find((i) => i.item_id === args.collection_item_id);
+  if (!item) {
+    throw new Error(`Registry item ${args.collection_item_id} not found in the registry collection`);
+  }
+
+  const path = `/v3/registries/${registryId}/items/${pathSegment(args.collection_item_id)}`;
+  const gate = await confirmWrite(ctx, {
+    tool: 'remove_registry_item',
+    action: 'zola.registry.remove_item',
+    label: `Remove "${item.name}"${item.brand ? ` by ${item.brand}` : ''} from the registry`,
+    method: 'DELETE',
+    path,
+    target: args.collection_item_id,
+    current: item,
+    about: {
+      item: item.name,
+      brand: item.brand,
+      store: item.store_name,
+      price_cents: item.price_cents,
+      requested_qty: item.purchase_state.requested_qty,
+      purchased_qty: item.purchase_state.purchased_qty,
+      marked_fulfilled: item.purchase_state.marked_fulfilled,
+      note: 'Guests can no longer buy this from the registry. Any purchase already made is unaffected.',
+    },
+    confirmToken: args.confirmToken,
+  });
+  if (gate) return gate;
+
+  await client.requestMobile<MobileEnvelope<unknown>>('DELETE', path);
+  return jsonResult({ removed: args.collection_item_id, name: item.name });
 }
 
 export function registerRegistryItemTools(server: McpServer, client: ZolaClient): void {
@@ -175,10 +211,11 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
   }, (args) => updateRegistryItem(client, args));
 
   server.registerTool('remove_registry_item', {
-    description: 'Remove an item from the registry',
+    description: `Remove an item from the registry guests shop from. ${CONFIRM_NOTE}`,
     inputSchema: z.object({
-      collection_item_id: z.string(),
+      collection_item_id: z.string().describe('Item ID (item_id) from get_registry'),
+      confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true },
-  }, (args) => removeRegistryItem(client, args));
+  }, (args, ctx) => removeRegistryItem(client, args, ctx));
 }

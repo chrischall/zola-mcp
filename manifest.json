@@ -80,7 +80,7 @@
     },
     {
       "name": "list_guests",
-      "description": "List all guest groups with stats"
+      "description": "List all guest groups with stats (contact details only with view: full)"
     },
     {
       "name": "add_guest",
@@ -92,7 +92,7 @@
     },
     {
       "name": "remove_guest",
-      "description": "Remove a guest group"
+      "description": "Remove a guest group (confirmed first)"
     },
     {
       "name": "list_seating_charts",

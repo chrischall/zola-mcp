@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
+import { CONFIRM_NOTE, confirmTokenParam, confirmWrite, type GatedResult, type ServerContext } from './_confirm.js';
 
 type PageType = 'HOME' | 'FAQ' | 'POI' | 'TRAVEL';
 
@@ -47,18 +48,127 @@ async function getPageId(client: ZolaClient, pageType: PageType): Promise<number
   return pageId;
 }
 
-async function removeEntity(client: ZolaClient, pageType: PageType, entityId: number): Promise<ToolResult> {
-  await deletePageEntity(client, pageType, entityId);
-  return jsonResult({ removed: entityId });
+/** How each public-content type is listed, identified and described to the user. */
+interface EntitySpec {
+  tool: string;
+  action: string;
+  noun: string;
+  pageType: PageType;
+  /** The list endpoint, given the wedding account id. */
+  listPath: (weddingAccountId: number) => string;
+  idField: string;
+  /** What the user calls this record: an FAQ's question, a hotel's name. */
+  describe: (record: Record<string, unknown>) => string;
+  /** The fields worth echoing in the preview beside the label. */
+  about: (record: Record<string, unknown>) => Record<string, unknown>;
 }
 
-async function deletePageEntity(client: ZolaClient, pageType: PageType, entityId: number): Promise<void> {
+const str = (value: unknown): string | null => (typeof value === 'string' && value !== '' ? value : null);
+
+const FAQ_SPEC: EntitySpec = {
+  tool: 'remove_faq',
+  action: 'zola.website.remove_faq',
+  noun: 'FAQ',
+  pageType: 'FAQ',
+  listPath: (acct) => `/v3/websites/faqs/wedding-accounts/${acct}`,
+  idField: 'faq_entity_id',
+  describe: (r) => str(r.question) ?? `FAQ ${String(r.faq_entity_id)}`,
+  about: (r) => ({ question: r.question ?? null, answer: r.answer ?? null }),
+};
+
+const HOME_SECTION_SPEC: EntitySpec = {
+  tool: 'remove_home_section',
+  action: 'zola.website.remove_home_section',
+  noun: 'home page section',
+  pageType: 'HOME',
+  listPath: (acct) => `/v3/websites/home-sections/wedding-accounts/${acct}`,
+  idField: 'homepage_entity_id',
+  describe: (r) => str(r.title) ?? `section ${String(r.homepage_entity_id)}`,
+  about: (r) => ({ title: r.title ?? null, subtitle: r.subtitle ?? null, hidden: r.hidden ?? null }),
+};
+
+const POI_SPEC: EntitySpec = {
+  tool: 'remove_poi',
+  action: 'zola.website.remove_poi',
+  noun: 'point of interest',
+  pageType: 'POI',
+  listPath: (acct) => `/v3/websites/points-of-interest/wedding-accounts/${acct}`,
+  idField: 'poi_entity_id',
+  describe: (r) => str(r.title) ?? `point of interest ${String(r.poi_entity_id)}`,
+  about: (r) => ({ title: r.title ?? null, city: r.city ?? null, description: r.description ?? null }),
+};
+
+const TRAVEL_SPEC: EntitySpec = {
+  tool: 'remove_travel_item',
+  action: 'zola.website.remove_travel_item',
+  noun: 'travel item',
+  pageType: 'TRAVEL',
+  listPath: (acct) => `/v3/websites/travel/wedding-accounts/${acct}`,
+  idField: 'travel_entity_id',
+  describe: (r) => str(r.name) ?? `travel item ${String(r.travel_entity_id)}`,
+  about: (r) => ({ name: r.name ?? null, type: r.type ?? null, city: r.city ?? null }),
+};
+
+/**
+ * Find the record with `idField === id` in a list response: the array itself,
+ * or — should the endpoint wrap its list — the first array-valued property
+ * that holds one.
+ */
+function findEntity(data: unknown, idField: string, id: number): Record<string, unknown> | undefined {
+  const matches = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && (value as Record<string, unknown>)[idField] === id;
+  if (Array.isArray(data)) return data.find(matches);
+  if (typeof data === 'object' && data !== null) {
+    for (const value of Object.values(data as Record<string, unknown>)) {
+      if (Array.isArray(value)) {
+        const hit = value.find(matches);
+        if (hit) return hit;
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Delete one piece of public website content, confirmed first.
+ *
+ * The record is read back before anything happens so the preview can say
+ * WHICH FAQ / section / place / hotel is about to disappear from the live
+ * site, and the token binds to that record as read: an id that no longer
+ * exists is an error rather than a blind DELETE, and a record edited between
+ * the preview and the confirmed call is refused as DRAFT_CHANGED.
+ */
+async function removeEntity(
+  client: ZolaClient,
+  spec: EntitySpec,
+  entityId: number,
+  confirmToken: string | undefined,
+  ctx: ServerContext
+): Promise<GatedResult> {
   const { weddingAccountId } = await client.getContext();
-  const pageId = await getPageId(client, pageType);
-  await client.requestMobile<MobileEnvelope<unknown>>(
-    'DELETE',
-    `/v3/websites/pages/${pageId}/entities/${entityId}/wedding-accounts/${weddingAccountId}`
-  );
+  const list = await client.requestMobile<MobileEnvelope<unknown>>('GET', spec.listPath(weddingAccountId));
+  const record = findEntity(list.data, spec.idField, entityId);
+  if (!record) {
+    throw new Error(`${spec.noun[0].toUpperCase()}${spec.noun.slice(1)} with ID ${entityId} not found`);
+  }
+
+  const pageId = await getPageId(client, spec.pageType);
+  const path = `/v3/websites/pages/${pageId}/entities/${entityId}/wedding-accounts/${weddingAccountId}`;
+  const gate = await confirmWrite(ctx, {
+    tool: spec.tool,
+    action: spec.action,
+    label: `Remove ${spec.noun} "${spec.describe(record)}" from the wedding website`,
+    method: 'DELETE',
+    path,
+    target: String(entityId),
+    current: record,
+    about: { ...spec.about(record), note: 'This deletes the content from the public website; there is no trash.' },
+    confirmToken,
+  });
+  if (gate) return gate;
+
+  await client.requestMobile<MobileEnvelope<unknown>>('DELETE', path);
+  return jsonResult({ removed: entityId, [spec.idField]: entityId, description: spec.describe(record) });
 }
 
 // ===== FAQs =====
@@ -115,8 +225,12 @@ export async function updateFaq(client: ZolaClient, args: {
   return jsonResult(response.data);
 }
 
-export async function removeFaq(client: ZolaClient, args: { faq_entity_id: number }): Promise<ToolResult> {
-  return removeEntity(client, 'FAQ', args.faq_entity_id);
+export async function removeFaq(
+  client: ZolaClient,
+  args: { faq_entity_id: number; confirmToken?: string },
+  ctx: ServerContext
+): Promise<GatedResult> {
+  return removeEntity(client, FAQ_SPEC, args.faq_entity_id, args.confirmToken, ctx);
 }
 
 // ===== Home page sections (story blocks) =====
@@ -181,8 +295,12 @@ export async function updateHomeSection(client: ZolaClient, args: {
   return jsonResult(response.data);
 }
 
-export async function removeHomeSection(client: ZolaClient, args: { homepage_entity_id: number }): Promise<ToolResult> {
-  return removeEntity(client, 'HOME', args.homepage_entity_id);
+export async function removeHomeSection(
+  client: ZolaClient,
+  args: { homepage_entity_id: number; confirmToken?: string },
+  ctx: ServerContext
+): Promise<GatedResult> {
+  return removeEntity(client, HOME_SECTION_SPEC, args.homepage_entity_id, args.confirmToken, ctx);
 }
 
 // ===== Points of Interest =====
@@ -245,8 +363,12 @@ export async function updatePoi(client: ZolaClient, args: PoiFields & { poi_enti
   return jsonResult(response.data);
 }
 
-export async function removePoi(client: ZolaClient, args: { poi_entity_id: number }): Promise<ToolResult> {
-  return removeEntity(client, 'POI', args.poi_entity_id);
+export async function removePoi(
+  client: ZolaClient,
+  args: { poi_entity_id: number; confirmToken?: string },
+  ctx: ServerContext
+): Promise<GatedResult> {
+  return removeEntity(client, POI_SPEC, args.poi_entity_id, args.confirmToken, ctx);
 }
 
 // ===== Travel items (hotels, flights, transportation) =====
@@ -316,8 +438,12 @@ export async function updateTravelItem(client: ZolaClient, args: TravelFields & 
   return jsonResult(response.data);
 }
 
-export async function removeTravelItem(client: ZolaClient, args: { travel_entity_id: number }): Promise<ToolResult> {
-  return removeEntity(client, 'TRAVEL', args.travel_entity_id);
+export async function removeTravelItem(
+  client: ZolaClient,
+  args: { travel_entity_id: number; confirmToken?: string },
+  ctx: ServerContext
+): Promise<GatedResult> {
+  return removeEntity(client, TRAVEL_SPEC, args.travel_entity_id, args.confirmToken, ctx);
 }
 
 export function registerWebsiteContentTools(server: McpServer, client: ZolaClient): void {
@@ -348,12 +474,13 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
   }, (args) => updateFaq(client, args));
 
   server.registerTool('remove_faq', {
-    description: 'Remove an FAQ from the website',
+    description: `Remove an FAQ from the public website. ${CONFIRM_NOTE}`,
     inputSchema: z.object({
       faq_entity_id: z.number().describe('FAQ entity ID from list_faqs'),
+      confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true },
-  }, (args) => removeFaq(client, args));
+  }, (args, ctx) => removeFaq(client, args, ctx));
 
   server.registerTool('list_home_sections', {
     description: 'List the story sections on the website home page',
@@ -386,12 +513,13 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
   }, (args) => updateHomeSection(client, args));
 
   server.registerTool('remove_home_section', {
-    description: 'Remove a story section from the home page',
+    description: `Remove a story section from the public home page. ${CONFIRM_NOTE}`,
     inputSchema: z.object({
-      homepage_entity_id: z.number(),
+      homepage_entity_id: z.number().describe('Home section ID from list_home_sections'),
+      confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true },
-  }, (args) => removeHomeSection(client, args));
+  }, (args, ctx) => removeHomeSection(client, args, ctx));
 
   server.registerTool('list_pois', {
     description: 'List points-of-interest on the "Things to Do" page',
@@ -442,12 +570,13 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
   }, (args) => updatePoi(client, args));
 
   server.registerTool('remove_poi', {
-    description: 'Remove a point-of-interest from the Things-to-Do page',
+    description: `Remove a point-of-interest from the public Things-to-Do page. ${CONFIRM_NOTE}`,
     inputSchema: z.object({
-      poi_entity_id: z.number(),
+      poi_entity_id: z.number().describe('POI ID from list_pois'),
+      confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true },
-  }, (args) => removePoi(client, args));
+  }, (args, ctx) => removePoi(client, args, ctx));
 
   server.registerTool('list_travel_items', {
     description: 'List hotels, flights, and transportation on the website Travel page',
@@ -508,10 +637,11 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
   }, (args) => updateTravelItem(client, args));
 
   server.registerTool('remove_travel_item', {
-    description: 'Remove a travel item from the Travel page',
+    description: `Remove a travel item from the public Travel page. ${CONFIRM_NOTE}`,
     inputSchema: z.object({
-      travel_entity_id: z.number(),
+      travel_entity_id: z.number().describe('Travel entity ID from list_travel_items'),
+      confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true },
-  }, (args) => removeTravelItem(client, args));
+  }, (args, ctx) => removeTravelItem(client, args, ctx));
 }

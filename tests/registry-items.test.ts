@@ -7,7 +7,16 @@ import {
   removeRegistryItem,
   _resetRegistryCollectionCache,
 } from '../src/tools/registry-items.js';
+import { fetchRegistryCollection } from '../src/registry-collection.js';
 import { setupClientMocks } from './_fixtures.js';
+import { confirmed } from './_confirm-helpers.js';
+
+// remove_registry_item names the item before deleting it, via the collection
+// read (a www.zola.com page scrape). Stub it; it has its own tests.
+vi.mock('../src/registry-collection.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/registry-collection.js')>();
+  return { ...actual, fetchRegistryCollection: vi.fn() };
+});
 
 /**
  * `GET /v3/registries/{id}` — the real shape, from the live account.
@@ -139,9 +148,30 @@ describe('registry-items tools', () => {
   });
 
   it('removeRegistryItem: DELETEs /items/{id}', async () => {
+    vi.mocked(fetchRegistryCollection).mockResolvedValue({
+      items: [
+        {
+          item_id: 'item-1',
+          name: 'Stand Mixer',
+          brand: 'Example Kitchen',
+          store_name: 'Zola',
+          price_cents: 42999,
+          purchase_state: { requested_qty: 1, purchased_qty: 0, marked_fulfilled: false },
+        },
+      ],
+      total: 1,
+      limit: 100,
+      offset: 0,
+      registry_key: 'couple-registry',
+      source: 'https://www.zola.com/registry/couple-registry',
+    } as never);
     reqSpy.mockResolvedValueOnce({ data: null } as never);
-    await removeRegistryItem(client, { collection_item_id: 'item-1' });
+    const result = await confirmed((ctx, confirmToken) =>
+      removeRegistryItem(client, { collection_item_id: 'item-1', confirmToken }, ctx)
+    );
+    expect(reqSpy).toHaveBeenCalledTimes(1);
     expect(reqSpy).toHaveBeenCalledWith('DELETE', '/v3/registries/registry-1/items/item-1');
+    expect(JSON.parse(result.content[0].text as string)).toEqual({ removed: 'item-1', name: 'Stand Mixer' });
   });
 
   it('addRegistryItem: falls back to collection_ids[0] when default_collection_id is absent', async () => {

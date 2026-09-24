@@ -20,6 +20,7 @@ import {
   _resetPageIdCache,
 } from '../src/tools/website-content.js';
 import { setupClientMocks } from './_fixtures.js';
+import { confirmed } from './_confirm-helpers.js';
 
 const MOCK_PAGES_RESPONSE = {
   data: {
@@ -29,6 +30,41 @@ const MOCK_PAGES_RESPONSE = {
     travel_page: { page_id: 41938918, type: 'TRAVEL' },
   },
 };
+
+const PAGES_PATH = '/v3/websites/pages/wedding-accounts/full';
+
+/**
+ * Routing mock for the remove_* tools. Each confirm phase reads the entity's
+ * list (to name what is being deleted) and the page map; phase 2 then DELETEs.
+ * Routes by method + path so the tests do not depend on call order.
+ */
+function wireRemovals(
+  reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>,
+  pages: unknown = MOCK_PAGES_RESPONSE
+) {
+  reqSpy.mockImplementation((async (method: string, path: string) => {
+    if (method === 'GET' && path === PAGES_PATH) return pages;
+    if (method === 'GET' && path.startsWith('/v3/websites/faqs/')) {
+      return { data: [6522901, 6522902, 999].map((id) => ({ faq_entity_id: id, question: `Question ${id}?`, answer: 'A' })) };
+    }
+    if (method === 'GET' && path.startsWith('/v3/websites/home-sections/')) {
+      return { data: [{ homepage_entity_id: 1381564, title: 'Our Story' }] };
+    }
+    if (method === 'GET' && path.startsWith('/v3/websites/points-of-interest/')) {
+      return { data: [{ poi_entity_id: 5506041, title: 'Example Museum' }] };
+    }
+    if (method === 'GET' && path.startsWith('/v3/websites/travel/')) {
+      return { data: [4, 4752577].map((id) => ({ travel_entity_id: id, name: `Example Hotel ${id}`, type: 'HOTEL' })) };
+    }
+    if (method === 'DELETE') return { data: null };
+    throw new Error(`unexpected request ${method} ${path}`);
+  }) as never);
+}
+
+const pageLookups = (reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>) =>
+  reqSpy.mock.calls.filter((c) => c[0] === 'GET' && c[1] === PAGES_PATH);
+const deletes = (reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>) =>
+  reqSpy.mock.calls.filter((c) => c[0] === 'DELETE');
 
 describe('website-content: faqs', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
@@ -99,30 +135,24 @@ describe('website-content: faqs', () => {
   });
 
   it('removeFaq: looks up FAQ page_id then DELETEs entity', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never); // pages lookup
-    reqSpy.mockResolvedValueOnce({ data: null } as never); // DELETE
+    wireRemovals(reqSpy);
 
-    await removeFaq(client, { faq_entity_id: 6522901 });
+    await confirmed((ctx, confirmToken) => removeFaq(client, { faq_entity_id: 6522901, confirmToken }, ctx));
 
-    expect(reqSpy).toHaveBeenNthCalledWith(1, 'GET', '/v3/websites/pages/wedding-accounts/full');
-    expect(reqSpy).toHaveBeenNthCalledWith(
-      2,
-      'DELETE',
-      '/v3/websites/pages/41938921/entities/6522901/wedding-accounts/1000001'
-    );
+    expect(reqSpy).toHaveBeenCalledWith('GET', PAGES_PATH);
+    expect(deletes(reqSpy)).toEqual([
+      ['DELETE', '/v3/websites/pages/41938921/entities/6522901/wedding-accounts/1000001'],
+    ]);
   });
 
   it('removeFaq: caches page_id lookup across calls', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never); // pages lookup (once)
-    reqSpy.mockResolvedValueOnce({ data: null } as never); // first DELETE
-    reqSpy.mockResolvedValueOnce({ data: null } as never); // second DELETE
+    wireRemovals(reqSpy);
 
-    await removeFaq(client, { faq_entity_id: 6522901 });
-    await removeFaq(client, { faq_entity_id: 6522902 });
+    await confirmed((ctx, confirmToken) => removeFaq(client, { faq_entity_id: 6522901, confirmToken }, ctx));
+    await confirmed((ctx, confirmToken) => removeFaq(client, { faq_entity_id: 6522902, confirmToken }, ctx));
 
-    expect(reqSpy).toHaveBeenCalledTimes(3);
-    const getCalls = reqSpy.mock.calls.filter((c) => c[0] === 'GET');
-    expect(getCalls).toHaveLength(1);
+    expect(deletes(reqSpy)).toHaveLength(2);
+    expect(pageLookups(reqSpy)).toHaveLength(1);
   });
 
   // Gap 4: getPageId error path when faq_page is absent
@@ -134,9 +164,12 @@ describe('website-content: faqs', () => {
         // faq_page deliberately absent
       },
     };
-    reqSpy.mockResolvedValueOnce(pagesWithoutFaq as never);
+    wireRemovals(reqSpy, pagesWithoutFaq);
 
-    await expect(removeFaq(client, { faq_entity_id: 999 })).rejects.toThrow(/Page of type FAQ not found/);
+    await expect(
+      confirmed((ctx, confirmToken) => removeFaq(client, { faq_entity_id: 999, confirmToken }, ctx))
+    ).rejects.toThrow(/Page of type FAQ not found/);
+    expect(deletes(reqSpy)).toHaveLength(0);
   });
 
   // Gap 6: addFaq default display_order when omitted
@@ -153,30 +186,26 @@ describe('website-content: faqs', () => {
 
   // Gap 8: removeFaq return content
   it('removeFaq: returns {removed: faq_entity_id} in content', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
-    reqSpy.mockResolvedValueOnce({ data: null } as never);
+    wireRemovals(reqSpy);
 
-    const result = await removeFaq(client, { faq_entity_id: 6522901 });
+    const result = await confirmed((ctx, confirmToken) =>
+      removeFaq(client, { faq_entity_id: 6522901, confirmToken }, ctx)
+    );
 
     expect(JSON.parse(result.content[0].text).removed).toBe(6522901);
   });
 
   // Gap 5: cross-type cache — one GET populates HOME, FAQ, POI, and TRAVEL
   it('cache: one GET populates all four page types (FAQ + HOME + POI + TRAVEL removes = 1 GET + 4 DELETEs)', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never); // single pages lookup
-    reqSpy.mockResolvedValueOnce({ data: null } as never); // removeFaq DELETE
-    reqSpy.mockResolvedValueOnce({ data: null } as never); // removeHomeSection DELETE
-    reqSpy.mockResolvedValueOnce({ data: null } as never); // removePoi DELETE
-    reqSpy.mockResolvedValueOnce({ data: null } as never); // removeTravelItem DELETE
+    wireRemovals(reqSpy);
 
-    await removeFaq(client, { faq_entity_id: 6522901 });
-    await removeHomeSection(client, { homepage_entity_id: 1381564 });
-    await removePoi(client, { poi_entity_id: 5506041 });
-    await removeTravelItem(client, { travel_entity_id: 4 });
+    await confirmed((ctx, confirmToken) => removeFaq(client, { faq_entity_id: 6522901, confirmToken }, ctx));
+    await confirmed((ctx, confirmToken) => removeHomeSection(client, { homepage_entity_id: 1381564, confirmToken }, ctx));
+    await confirmed((ctx, confirmToken) => removePoi(client, { poi_entity_id: 5506041, confirmToken }, ctx));
+    await confirmed((ctx, confirmToken) => removeTravelItem(client, { travel_entity_id: 4, confirmToken }, ctx));
 
-    expect(reqSpy).toHaveBeenCalledTimes(5);
-    const getCalls = reqSpy.mock.calls.filter((c) => c[0] === 'GET');
-    expect(getCalls).toHaveLength(1);
+    expect(deletes(reqSpy)).toHaveLength(4);
+    expect(pageLookups(reqSpy)).toHaveLength(1);
   });
 });
 
@@ -255,16 +284,15 @@ describe('website-content: home sections', () => {
   });
 
   it('removeHomeSection: looks up HOME page_id then DELETEs entity', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
-    reqSpy.mockResolvedValueOnce({ data: null } as never);
+    wireRemovals(reqSpy);
 
-    await removeHomeSection(client, { homepage_entity_id: 1381564 });
-
-    expect(reqSpy).toHaveBeenNthCalledWith(
-      2,
-      'DELETE',
-      '/v3/websites/pages/41938915/entities/1381564/wedding-accounts/1000001'
+    await confirmed((ctx, confirmToken) =>
+      removeHomeSection(client, { homepage_entity_id: 1381564, confirmToken }, ctx)
     );
+
+    expect(deletes(reqSpy)).toEqual([
+      ['DELETE', '/v3/websites/pages/41938915/entities/1381564/wedding-accounts/1000001'],
+    ]);
   });
 
   // Gap 7: addHomeSection defaults display_order and hidden when omitted
@@ -282,10 +310,11 @@ describe('website-content: home sections', () => {
 
   // Gap 8: removeHomeSection return content
   it('removeHomeSection: returns {removed: homepage_entity_id} in content', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
-    reqSpy.mockResolvedValueOnce({ data: null } as never);
+    wireRemovals(reqSpy);
 
-    const result = await removeHomeSection(client, { homepage_entity_id: 1381564 });
+    const result = await confirmed((ctx, confirmToken) =>
+      removeHomeSection(client, { homepage_entity_id: 1381564, confirmToken }, ctx)
+    );
 
     expect(JSON.parse(result.content[0].text).removed).toBe(1381564);
   });
@@ -379,24 +408,22 @@ describe('website-content: points of interest', () => {
   });
 
   it('removePoi: looks up POI page_id then DELETEs entity', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
-    reqSpy.mockResolvedValueOnce({ data: null } as never);
+    wireRemovals(reqSpy);
 
-    await removePoi(client, { poi_entity_id: 5506041 });
+    await confirmed((ctx, confirmToken) => removePoi(client, { poi_entity_id: 5506041, confirmToken }, ctx));
 
-    expect(reqSpy).toHaveBeenNthCalledWith(
-      2,
-      'DELETE',
-      '/v3/websites/pages/41938922/entities/5506041/wedding-accounts/1000001'
-    );
+    expect(deletes(reqSpy)).toEqual([
+      ['DELETE', '/v3/websites/pages/41938922/entities/5506041/wedding-accounts/1000001'],
+    ]);
   });
 
   // Gap 8: removePoi return content
   it('removePoi: returns {removed: poi_entity_id} in content', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
-    reqSpy.mockResolvedValueOnce({ data: null } as never);
+    wireRemovals(reqSpy);
 
-    const result = await removePoi(client, { poi_entity_id: 5506041 });
+    const result = await confirmed((ctx, confirmToken) =>
+      removePoi(client, { poi_entity_id: 5506041, confirmToken }, ctx)
+    );
 
     expect(JSON.parse(result.content[0].text).removed).toBe(5506041);
   });
@@ -482,13 +509,12 @@ describe('website-content: travel items', () => {
   });
 
   it('removeTravelItem: looks up TRAVEL page_id then DELETEs', async () => {
-    reqSpy.mockResolvedValueOnce(MOCK_PAGES_RESPONSE as never);
-    reqSpy.mockResolvedValueOnce({ data: null } as never);
-    await removeTravelItem(client, { travel_entity_id: 4752577 });
-    expect(reqSpy).toHaveBeenNthCalledWith(
-      2,
-      'DELETE',
-      '/v3/websites/pages/41938918/entities/4752577/wedding-accounts/1000001'
+    wireRemovals(reqSpy);
+    await confirmed((ctx, confirmToken) =>
+      removeTravelItem(client, { travel_entity_id: 4752577, confirmToken }, ctx)
     );
+    expect(deletes(reqSpy)).toEqual([
+      ['DELETE', '/v3/websites/pages/41938918/entities/4752577/wedding-accounts/1000001'],
+    ]);
   });
 });
