@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.4](https://github.com/chrischall/zola-mcp/compare/v2.1.3...v2.1.4) (2026-09-25)
+
+
+### Bug Fixes
+
+* **deps:** bump dotenv from 17.4.2 to 18.0.2 in the production-majors group ([#247](https://github.com/chrischall/zola-mcp/issues/247)) ([dc63d23](https://github.com/chrischall/zola-mcp/commit/dc63d233883afb00ae01074f48f10a60ee19f008))
+* **tools:** confirm irreversible Zola writes and keep guest contact details out of list_guests ([#249](https://github.com/chrischall/zola-mcp/issues/249)) ([68eb508](https://github.com/chrischall/zola-mcp/commit/68eb508d3651afc30c37335229ee9d91383cd796))
+
 ## [2.1.3](https://github.com/chrischall/zola-mcp/compare/v2.1.2...v2.1.3) (2026-09-23)
 
 
