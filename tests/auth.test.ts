@@ -156,7 +156,7 @@ describe('resolveRefreshToken', () => {
       });
       bootstrapMock.mockRejectedValue(downErr);
 
-      await expect(resolveRefreshToken()).rejects.toThrow(/fetchproxy bridge is down/);
+      await expect(resolveRefreshToken()).rejects.toThrow(/ContextMint Bridge is down \(its extension service worker is unreachable\)/);
       await expect(resolveRefreshToken()).rejects.toThrow(downErr.hint);
 
       // The hint must also survive as the structured `.hint` on the thrown
