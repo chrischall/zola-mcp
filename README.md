@@ -27,7 +27,7 @@ Ask Claude things like:
 - [Claude Desktop](https://claude.ai/download) or [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - [Node.js](https://nodejs.org) 22 or later
 - A [Zola](https://www.zola.com) account
-- For the no-env-var path: the [ContextMint Bridge](https://github.com/nullnet-app/contextmint-bridge/releases) Chrome / Safari extension
+- For the no-env-var path: the [ContextMint Bridge](https://github.com/nullnet-app/contextmint-bridge/releases) Chrome extension (Safari is not available yet — use Chrome for now)
 
 ## Acknowledgement of Terms
 
@@ -119,7 +119,7 @@ You have two options. Both produce the same `usr` cookie value — a ~1-year JWT
 
 #### Option A — ContextMint Bridge (recommended)
 
-1. Install [ContextMint Bridge](https://github.com/nullnet-app/contextmint-bridge/releases) — Chrome: download the chrome zip from the latest release, unzip it, and load it unpacked at `chrome://extensions` (Developer mode on); Safari: it ships inside the ContextMint app, which has no public download link yet.
+1. Install [ContextMint Bridge](https://github.com/nullnet-app/contextmint-bridge/releases) — Chrome: download the chrome zip from the latest release, unzip it, and load it unpacked at `chrome://extensions` (Developer mode on). Safari is not available yet (it will ship inside the ContextMint app, which has no public download), so use Chrome for now.
 
    ContextMint Bridge is the fetchproxy browser extension under its new name, from the same maintainer — fetchproxy's own README ([fetchproxy#extension](https://github.com/chrischall/fetchproxy#extension)) points to it. Its source is public at [nullnet-app/contextmint-bridge](https://github.com/nullnet-app/contextmint-bridge): build it yourself, or check a release zip against the `.sha256` file published beside it (`shasum -a 256 -c contextmint-bridge-chrome-<version>.zip.sha256`).
 2. Sign in at [zola.com/account/login](https://www.zola.com/account/login) in that browser.
