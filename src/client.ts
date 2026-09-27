@@ -442,7 +442,7 @@ export class ZolaClient {
    *
    * The refresh token comes from `resolveRefreshToken()`, which tries
    * (1) the ZOLA_REFRESH_TOKEN env var, then (2) the on-disk cache, then
-   * (3) the fetchproxy extension's `usr` cookie on zola.com, then (4) errors
+   * (3) the ContextMint Bridge extension's `usr` cookie (via fetchproxy) on zola.com, then (4) errors
    * with actionable guidance.
    */
   private async refresh(): Promise<MintedToken> {
@@ -500,7 +500,7 @@ export class ZolaClient {
       // untrusted body before it can reach a tool result.
       throw new RefreshFailedError(
         `Zola session refresh failed (${response.status}): ${truncateErrorMessage(text)}\n` +
-          'To fix: set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com.',
+          'To fix: set ZOLA_REFRESH_TOKEN, or install the ContextMint Bridge extension and sign into zola.com.',
         response.status
       );
     }

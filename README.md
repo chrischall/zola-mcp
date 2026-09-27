@@ -27,7 +27,7 @@ Ask Claude things like:
 - [Claude Desktop](https://claude.ai/download) or [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 - [Node.js](https://nodejs.org) 22 or later
 - A [Zola](https://www.zola.com) account
-- For the no-env-var path: the [fetchproxy Chrome / Safari extension](https://github.com/chrischall/fetchproxy)
+- For the no-env-var path: the [ContextMint Bridge](https://github.com/nullnet-app/contextmint-bridge/releases) Chrome / Safari extension
 
 ## Acknowledgement of Terms
 
@@ -117,9 +117,9 @@ Add to Claude Desktop config:
 
 You have two options. Both produce the same `usr` cookie value — a ~1-year JWT that doubles as the refresh token.
 
-#### Option A — fetchproxy extension (recommended)
+#### Option A — ContextMint Bridge (recommended)
 
-1. Install the [fetchproxy extension](https://github.com/chrischall/fetchproxy) (Chrome Web Store or Safari `.dmg`).
+1. Install [ContextMint Bridge](https://github.com/nullnet-app/contextmint-bridge/releases) — Chrome: download the chrome zip from the latest release, unzip it, and load it unpacked at `chrome://extensions` (Developer mode on); Safari: it ships inside the ContextMint app.
 2. Sign in at [zola.com/account/login](https://www.zola.com/account/login) in that browser.
 3. Leave `ZOLA_REFRESH_TOKEN` **unset** in your Claude config.
 
@@ -148,7 +148,7 @@ Ask Claude: *"How's wedding planning going?"* — it should show your wedding da
 
 | Env var | Required | Notes |
 |---------|----------|-------|
-| `ZOLA_REFRESH_TOKEN` | Conditional | Refresh token JWT (~1 year lifetime). When unset, the MCP falls back to the [fetchproxy extension](https://github.com/chrischall/fetchproxy) to read the `usr` cookie from your signed-in zola.com tab. |
+| `ZOLA_REFRESH_TOKEN` | Conditional | Refresh token JWT (~1 year lifetime). When unset, the MCP falls back to the [ContextMint Bridge](https://github.com/nullnet-app/contextmint-bridge/releases) browser extension to read the `usr` cookie from your signed-in zola.com tab. |
 | `ZOLA_DISABLE_FETCHPROXY` | No | Set to `1` to opt out of the fetchproxy fallback (headless / CI). Does not disable the token cache — a headless run can still reuse a token an earlier bootstrap cached, since reading a file is not opening a browser. |
 | `ZOLA_TOKEN_CACHE` | No | Set to `false` to disable the on-disk refresh-token cache and ask the browser on every start. Defaults to enabled, and is inert when `ZOLA_REFRESH_TOKEN` is set. |
 | `ZOLA_TOKEN_FILE` | No | Absolute path for the cache file. Defaults to `$MCP_DATA_DIR/.zola-mcp/refresh-token.json`, else `$HOME/.zola-mcp/refresh-token.json`. |
@@ -235,9 +235,9 @@ The writes that cannot be undone or that change what guests see are also confirm
 
 ## Troubleshooting
 
-**"Zola auth: set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension…"** — either set `ZOLA_REFRESH_TOKEN` in your config or install the fetchproxy extension and sign into zola.com.
+**"Zola auth: set ZOLA_REFRESH_TOKEN, or install the ContextMint Bridge extension…"** — either set `ZOLA_REFRESH_TOKEN` in your config or install the ContextMint Bridge extension and sign into zola.com.
 
-**"Zola session refresh failed"** — your refresh token has expired (~1 year) or been revoked. Either capture a new `usr` cookie (DevTools) or sign back into zola.com with the fetchproxy extension installed.
+**"Zola session refresh failed"** — your refresh token has expired (~1 year) or been revoked. Either capture a new `usr` cookie (DevTools) or sign back into zola.com with the ContextMint Bridge extension installed.
 
 **403 from mobile API** — the `x-zola-session-id` header may be missing. Update to the latest version.
 
