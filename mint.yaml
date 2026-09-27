@@ -17,8 +17,8 @@ env:
     required: false
     help: >-
       Zola refresh token JWT (~1 year lifetime). Optional — when unset, the MCP
-      falls back to the fetchproxy browser extension to read the `usr`
-      cookie from your signed-in zola.com tab.
+      falls back to ContextMint Bridge, the browser extension, to read the
+      `usr` cookie from your signed-in zola.com tab.
   - name: ZOLA_ACCOUNT_ID
     required: false
     help: >-
