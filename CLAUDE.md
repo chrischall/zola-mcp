@@ -74,8 +74,8 @@ Blank, `undefined`, `null`, and unsubstituted `${FOO}` placeholders are treated 
 
 1. **`ZOLA_REFRESH_TOKEN` env var** — returned directly. Legacy users are unchanged.
 2. **disk cache** (`src/token-cache.ts`) — the refresh token a previous bootstrap lifted from the browser, under `$MCP_DATA_DIR` when the host provides one. Inert whenever the env var is set, so path 1 keeps precedence without being checked twice.
-3. **fetchproxy fallback** — calls `@fetchproxy/bootstrap` which spins up a one-shot WebSocket bridge to the fetchproxy Chrome/Safari extension and reads the HttpOnly `usr` cookie on zola.com via `chrome.cookies.get`. Returns once, and the result is written to the cache. All subsequent Zola API calls go direct to `mobile-api.zola.com` from Node — fetchproxy is NOT in the hot path.
-4. **Error** — surface both fixes side-by-side ("set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com").
+3. **fetchproxy fallback** — calls `@fetchproxy/bootstrap` which spins up a one-shot WebSocket bridge to the ContextMint Bridge Chrome/Safari extension and reads the HttpOnly `usr` cookie on zola.com via `chrome.cookies.get`. Returns once, and the result is written to the cache. All subsequent Zola API calls go direct to `mobile-api.zola.com` from Node — fetchproxy is NOT in the hot path.
+4. **Error** — surface both fixes side-by-side ("set ZOLA_REFRESH_TOKEN, or install the ContextMint Bridge extension and sign into zola.com").
 
 This is the canonical "browser-bootstrap + Node-direct" shape shared with ofw-mcp, resy-mcp, opentable-mcp, signupgenius-mcp, …
 

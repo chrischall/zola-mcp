@@ -38,7 +38,7 @@ describe('zola_healthcheck', () => {
     const r = await call(
       clientWith(
         async () => {
-          throw new Error('To fix: set ZOLA_REFRESH_TOKEN, or install the fetchproxy extension and sign into zola.com.');
+          throw new Error('To fix: set ZOLA_REFRESH_TOKEN, or install the ContextMint Bridge extension and sign into zola.com.');
         },
         async () => ({}),
       ),

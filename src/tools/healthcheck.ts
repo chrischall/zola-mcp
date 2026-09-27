@@ -26,7 +26,7 @@ export function registerHealthcheckTools(server: McpServer, client: ZolaClient):
     probeFn: () => client.requestMobile('GET', '/v4/your-wedding'),
     hints: {
       credential_rejected:
-        'Zola rejected the refresh token. Re-sign in at zola.com so the fetchproxy extension can lift a fresh `usr` cookie, or set a new ZOLA_REFRESH_TOKEN.',
+        'Zola rejected the refresh token. Re-sign in at zola.com so the ContextMint Bridge extension can lift a fresh `usr` cookie, or set a new ZOLA_REFRESH_TOKEN.',
     },
   });
 }
