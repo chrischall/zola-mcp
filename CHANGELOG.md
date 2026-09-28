@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.1.5](https://github.com/chrischall/zola-mcp/compare/v2.1.4...v2.1.5) (2026-09-27)
+
+
+### Bug Fixes
+
+* **deps:** bump dotenv from 18.0.2 to 18.0.3 in the production-dependencies group ([#258](https://github.com/chrischall/zola-mcp/issues/258)) ([f5fb17d](https://github.com/chrischall/zola-mcp/commit/f5fb17d528027019ce184920c2d5be249724c0f1))
+* **deps:** move to [@fetchproxy](https://github.com/fetchproxy) 3.4 for ContextMint Bridge errors, capability subsets and managed pins ([#251](https://github.com/chrischall/zola-mcp/issues/251)) ([199e975](https://github.com/chrischall/zola-mcp/commit/199e97566c6cde8996e1cf0fda27c9c3e6817964))
+* **deps:** move to @chrischall/mcp-utils 2.8 and [@fetchproxy](https://github.com/fetchproxy) 3.4.1 for clearer browser-bridge errors ([#256](https://github.com/chrischall/zola-mcp/issues/256)) ([95213b7](https://github.com/chrischall/zola-mcp/commit/95213b72777dbe363b93cab2d5d292666d2d08eb))
+* **server:** name ContextMint Bridge in server.json's refresh-token hint ([#254](https://github.com/chrischall/zola-mcp/issues/254)) ([0e8a558](https://github.com/chrischall/zola-mcp/commit/0e8a558dfbeb70a3b2928c31e8d0213454becf81))
+
 ## [2.1.4](https://github.com/chrischall/zola-mcp/compare/v2.1.3...v2.1.4) (2026-09-25)
 
 
