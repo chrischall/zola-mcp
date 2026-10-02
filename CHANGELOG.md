@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.6](https://github.com/chrischall/zola-mcp/compare/v2.1.5...v2.1.6) (2026-10-02)
+
+
+### Bug Fixes
+
+* report a CloudFront block as edge_blocked, not a rejected credential ([#259](https://github.com/chrischall/zola-mcp/issues/259)) ([a9ff5ed](https://github.com/chrischall/zola-mcp/commit/a9ff5edfc63ca2f868493091c9bf11df2c0f2c85))
+
 ## [2.1.5](https://github.com/chrischall/zola-mcp/compare/v2.1.4...v2.1.5) (2026-09-27)
 
 
