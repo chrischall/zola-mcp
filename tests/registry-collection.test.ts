@@ -90,6 +90,43 @@ describe('extractItemsFromHtml', () => {
     }
   });
 
+  it('reads the tag regardless of attribute order (fleet-audit#1145)', () => {
+    const blob = JSON.stringify({
+      props: { pageProps: { initialReduxState: JSON.stringify({ manageRegistry: {} }) } },
+    });
+    // Same blob, `type` before `id`: the old exact-order regex missed it and
+    // reported a shape change.
+    expect(() =>
+      extractItemsFromHtml(`<script type="application/json" id="__NEXT_DATA__">${blob}</script>`)
+    ).toThrow(/default_collection/);
+  });
+
+  it('keeps "no blob" and "bad JSON" as different steps', () => {
+    const step = (html: string): string => {
+      try {
+        extractItemsFromHtml(html);
+      } catch (e) {
+        return (e as RegistryReadError).step;
+      }
+      throw new Error('expected a throw');
+    };
+    expect(step('<html></html>')).toBe('extract:__NEXT_DATA__');
+    expect(step('<script id="__NEXT_DATA__" type="application/json">{bad</script>')).toBe(
+      'parse:__NEXT_DATA__'
+    );
+    // An unterminated tag is "no blob", not a parse failure.
+    expect(step('<script id="__NEXT_DATA__" type="application/json">{"props":{}}')).toBe(
+      'extract:__NEXT_DATA__'
+    );
+  });
+
+  it('is linear on a hostile page whose </script> closer is withheld', () => {
+    const hostile = '<script id="__NEXT_DATA__" type="application/json">'.repeat(20_000);
+    const t0 = performance.now();
+    expect(() => extractItemsFromHtml(hostile)).toThrow(RegistryReadError);
+    expect(performance.now() - t0).toBeLessThan(1000);
+  });
+
   it('carries the failing step on the error', () => {
     try {
       extractItemsFromHtml('<html></html>');
