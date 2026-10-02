@@ -1,4 +1,4 @@
-import { truncateErrorMessage } from '@chrischall/mcp-utils';
+import { extractNextDataText, truncateErrorMessage } from '@chrischall/mcp-utils';
 import type { ZolaClient } from './client.js';
 import { byteLength, formatBytes } from './client.js';
 import { MobileEnvelope } from './types.js';
@@ -252,10 +252,12 @@ export function projectRegistryItem(raw: RawRegistryItem): RegistryItem {
  * different problem from "this registry is private".
  */
 export function extractItemsFromHtml(html: string): RawRegistryItem[] {
-  const script = /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/.exec(
-    html
-  );
-  if (!script) {
+  // Tag-bounded and linear (fleet-audit#1145): the old lazy
+  // `([\s\S]*?)<\/script>` regex was quadratic with the closer withheld, and
+  // demanded one exact attribute order. The text form keeps "no blob" and
+  // "blob is not JSON" apart, so each failure still names its own step.
+  const script = extractNextDataText(html);
+  if (script === undefined) {
     // `resolve:public` is a pre-check on the API's `public` flag. Zola can still
     // gate the page itself behind a passcode while reporting public: true, and
     // that lands here — where "the page shape changed" would point at the wrong
@@ -277,7 +279,7 @@ export function extractItemsFromHtml(html: string): RawRegistryItem[] {
 
   let nextData: unknown;
   try {
-    nextData = JSON.parse(script[1]);
+    nextData = JSON.parse(script);
   } catch (cause) {
     throw new RegistryReadError(
       'parse:__NEXT_DATA__',
