@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.1.7](https://github.com/chrischall/zola-mcp/compare/v2.1.6...v2.1.7) (2026-10-03)
+
+
+### Bug Fixes
+
+* **deps:** adopt @chrischall/mcp-utils 2.12.0 extractNextDataText for the registry page ([#264](https://github.com/chrischall/zola-mcp/issues/264)) ([a3a7a32](https://github.com/chrischall/zola-mcp/commit/a3a7a32d63d911149b0fc631e54163991bca5a72))
+* **deps:** bump @chrischall/mcp-utils to 2.10.0 ([#261](https://github.com/chrischall/zola-mcp/issues/261)) ([998c78f](https://github.com/chrischall/zola-mcp/commit/998c78f693931a25315320d4d732f5f9830d70b1))
+* **deps:** bump @chrischall/mcp-utils to 2.13.0 ([#266](https://github.com/chrischall/zola-mcp/issues/266)) ([68c3974](https://github.com/chrischall/zola-mcp/commit/68c3974057a6f887132811416a1c11875deccc92))
+* keep write approvals valid across a hosted restart (mcp-utils 2.11.0) ([#263](https://github.com/chrischall/zola-mcp/issues/263)) ([72d4c02](https://github.com/chrischall/zola-mcp/commit/72d4c021fc27739263ecca8faa4337cd89a65527))
+
+
+### Documentation
+
+* stop telling agents to arm the release PR ([#265](https://github.com/chrischall/zola-mcp/issues/265)) ([c3d3506](https://github.com/chrischall/zola-mcp/commit/c3d350670a87a90adf7fc9f7e79c8a3ae40faebc))
+
 ## [2.1.6](https://github.com/chrischall/zola-mcp/compare/v2.1.5...v2.1.6) (2026-10-02)
 
 
