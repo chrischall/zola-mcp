@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.8](https://github.com/chrischall/zola-mcp/compare/v2.1.7...v2.1.8) (2026-10-05)
+
+
+### Bug Fixes
+
+* **deps:** bump the production-dependencies group with 3 updates ([#269](https://github.com/chrischall/zola-mcp/issues/269)) ([b262836](https://github.com/chrischall/zola-mcp/commit/b262836f6b464f0d139fe60ac4a92a83f68545b6))
+* **deps:** require @chrischall/mcp-utils 2.14.0 and MCP SDK 2.3.0 ([#271](https://github.com/chrischall/zola-mcp/issues/271)) ([61f4247](https://github.com/chrischall/zola-mcp/commit/61f4247f849b4af0f231d1b65f11c0f8699b0c6e))
+
 ## [2.1.7](https://github.com/chrischall/zola-mcp/compare/v2.1.6...v2.1.7) (2026-10-03)
 
 
