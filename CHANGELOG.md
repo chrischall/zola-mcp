@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.9](https://github.com/chrischall/zola-mcp/compare/v2.1.8...v2.1.9) (2026-10-07)
+
+
+### Bug Fixes
+
+* **deps:** retry browser-bridge connections awaiting approval and add MCP_CONFIRM_ELICITATION=off ([#272](https://github.com/chrischall/zola-mcp/issues/272)) ([13d0bad](https://github.com/chrischall/zola-mcp/commit/13d0bad41fdfa8d172b55daf0fff0a3b374fb05e))
+
+
+### Documentation
+
+* document MCP_CONFIRM_ELICITATION ([#274](https://github.com/chrischall/zola-mcp/issues/274)) ([3bd2f1f](https://github.com/chrischall/zola-mcp/commit/3bd2f1f64c4630e30339cbb6b8d7990e1ae871ae))
+
 ## [2.1.8](https://github.com/chrischall/zola-mcp/compare/v2.1.7...v2.1.8) (2026-10-05)
 
 
