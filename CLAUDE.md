@@ -15,12 +15,13 @@ npm run dev          # node --env-file=.env dist/index.js (build first)
 
 ```
 src/
-  index.ts                MCP server entry — registers all tool modules, starts stdio transport
+  index.ts                MCP server entry — registers TOOL_REGISTRARS, starts stdio transport
   client.ts               ZolaClient — Bearer JWT auth, session refresh, context resolution
   auth.ts                 resolveRefreshToken() — env var / disk cache / fetchproxy fallback
   token-cache.ts          On-disk cache for the bootstrapped ~1-year refresh token
   types.ts                Shared types
   tools/
+    index.ts              TOOL_REGISTRARS — the one list of tool modules (manifest-sync test reads it)
     vendors.ts            list/search/add/update/remove booked vendors
     budget.ts             get budget, update budget items
     guests.ts             list/add/update/remove guest groups, update address
@@ -38,7 +39,7 @@ src/
 
 All API calls go through `client.requestMobile()`, which hits `mobile-api.zola.com` with Bearer JWT auth and a per-process `x-zola-session-id` header (CloudFront WAF requirement). No web API, no CSRF.
 
-Each tool file exports a `register*Tools(server)` function. `index.ts` imports and calls each one.
+Each tool file exports a `register*Tools(server, client)` function, listed once in `src/tools/index.ts` (`TOOL_REGISTRARS`). `tests/manifest-sync.test.ts` asserts `manifest.json`'s `tools` names exactly the registered set — add a new tool there too or CI fails.
 
 ## Environment
 
