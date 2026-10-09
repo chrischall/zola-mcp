@@ -50,6 +50,12 @@ export interface ConfirmWriteOptions {
    * the preview names the guests instead.
    */
   showBody?: boolean;
+  /**
+   * The tool's arguments as the model passed them (`confirmToken` is dropped
+   * before hashing). Bound into both the elicitation acceptance and the token,
+   * so an approval for one set of arguments cannot authorise another.
+   */
+  args: Record<string, unknown>;
   /** The phase-2 token from the tool's input. */
   confirmToken: string | undefined;
 }
@@ -86,6 +92,10 @@ export function confirmWrite(
       message: 'Review and confirm this Zola change:',
       details: preview,
       tool: opts.tool,
+      // Single-account server: one Zola sign-in per process, so there is no
+      // principal to bind beyond the process itself.
+      account: undefined,
+      args: opts.args,
       confirmToken: opts.confirmToken,
       subject: () => ({
         target: opts.target,

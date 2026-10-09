@@ -297,6 +297,7 @@ export async function removeGuest(
       invited: group.invited,
       also_deleted: 'every RSVP, event invitation and seat assignment for these guests; there is no trash to restore from',
     },
+    args,
     confirmToken: args.confirmToken,
   });
   if (gate) return gate;

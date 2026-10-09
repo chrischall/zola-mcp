@@ -142,7 +142,7 @@ async function removeEntity(
   client: ZolaClient,
   spec: EntitySpec,
   entityId: number,
-  confirmToken: string | undefined,
+  args: Record<string, unknown> & { confirmToken?: string },
   ctx: ServerContext
 ): Promise<GatedResult> {
   const { weddingAccountId } = await client.getContext();
@@ -163,7 +163,8 @@ async function removeEntity(
     target: String(entityId),
     current: record,
     about: { ...spec.about(record), note: 'This deletes the content from the public website; there is no trash.' },
-    confirmToken,
+    args,
+    confirmToken: args.confirmToken,
   });
   if (gate) return gate;
 
@@ -230,7 +231,7 @@ export async function removeFaq(
   args: { faq_entity_id: number; confirmToken?: string },
   ctx: ServerContext
 ): Promise<GatedResult> {
-  return removeEntity(client, FAQ_SPEC, args.faq_entity_id, args.confirmToken, ctx);
+  return removeEntity(client, FAQ_SPEC, args.faq_entity_id, args, ctx);
 }
 
 // ===== Home page sections (story blocks) =====
@@ -300,7 +301,7 @@ export async function removeHomeSection(
   args: { homepage_entity_id: number; confirmToken?: string },
   ctx: ServerContext
 ): Promise<GatedResult> {
-  return removeEntity(client, HOME_SECTION_SPEC, args.homepage_entity_id, args.confirmToken, ctx);
+  return removeEntity(client, HOME_SECTION_SPEC, args.homepage_entity_id, args, ctx);
 }
 
 // ===== Points of Interest =====
@@ -368,7 +369,7 @@ export async function removePoi(
   args: { poi_entity_id: number; confirmToken?: string },
   ctx: ServerContext
 ): Promise<GatedResult> {
-  return removeEntity(client, POI_SPEC, args.poi_entity_id, args.confirmToken, ctx);
+  return removeEntity(client, POI_SPEC, args.poi_entity_id, args, ctx);
 }
 
 // ===== Travel items (hotels, flights, transportation) =====
@@ -443,7 +444,7 @@ export async function removeTravelItem(
   args: { travel_entity_id: number; confirmToken?: string },
   ctx: ServerContext
 ): Promise<GatedResult> {
-  return removeEntity(client, TRAVEL_SPEC, args.travel_entity_id, args.confirmToken, ctx);
+  return removeEntity(client, TRAVEL_SPEC, args.travel_entity_id, args, ctx);
 }
 
 export function registerWebsiteContentTools(server: McpServer, client: ZolaClient): void {

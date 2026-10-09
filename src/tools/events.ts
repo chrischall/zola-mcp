@@ -269,6 +269,7 @@ export async function updateEvent(client: ZolaClient, args: {
         ? { note: body.collect_rsvps ? 'Guests will be asked to RSVP for this event.' : 'Guests can no longer RSVP for this event.' }
         : {}),
     },
+    args,
     confirmToken: args.confirmToken,
   });
   if (gate) return gate;

@@ -370,6 +370,21 @@ describe('confirm-token gates on irreversible Zola writes', () => {
     expect(writes).toHaveLength(0);
   });
 
+  it('a token binds the tool arguments, not only the request: same body, different arguments is refused', async () => {
+    // guest_count: 100 is the current value, so both calls send an identical
+    // PUT body — only the arguments differ, and the token still refuses them.
+    const first = parseToolResult<PhaseOne>(
+      await h.callTool('update_wedding_settings', { slug: 'new-slug' })
+    );
+    const widened = await h.callTool('update_wedding_settings', {
+      slug: 'new-slug',
+      guest_count: 100,
+      confirmToken: first.confirmToken,
+    });
+    expect(widened.isError).toBe(true);
+    expect(writes).toHaveLength(0);
+  });
+
   it('a token binds the target as previewed: an FAQ edited between phases is refused as DRAFT_CHANGED', async () => {
     const first = parseToolResult<PhaseOne>(await h.callTool('remove_faq', { faq_entity_id: 6522901 }));
     live.faqQuestion = 'Is there parking? (Updated: yes, use the north lot)';

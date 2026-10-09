@@ -184,6 +184,7 @@ export async function removeRegistryItem(
           note,
         }
       : { item_id: args.collection_item_id, unreadable, note },
+    args,
     confirmToken: args.confirmToken,
   });
   if (gate) return gate;
