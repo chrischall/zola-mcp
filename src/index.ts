@@ -1,13 +1,12 @@
 import { runMcp } from '@chrischall/mcp-utils';
 import { client } from './client.js';
 import { TOOL_REGISTRARS } from './tools/index.js';
-
-const VERSION = '2.1.9'; // x-release-please-version
+import { SERVER_NAME, VERSION } from './version.js';
 
 await runMcp({
-  name: 'zola-mcp',
+  name: SERVER_NAME,
   version: VERSION,
-  banner: `zola-mcp ${VERSION} ready`,
+  banner: `${SERVER_NAME} ${VERSION} ready`,
   deps: client,
   tools: [...TOOL_REGISTRARS],
 });

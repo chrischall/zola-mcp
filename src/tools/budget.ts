@@ -104,7 +104,7 @@ export async function updateBudgetItem(client: ZolaClient, args: {
 export function registerBudgetTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('get_budget', {
     description: 'Get the wedding budget summary including total budgeted, actual cost, paid, and all budget items',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => getBudget(client));
 
   server.registerTool('update_budget_item', {
@@ -114,6 +114,6 @@ export function registerBudgetTools(server: McpServer, client: ZolaClient): void
       actual_cost_cents: z.number().optional().describe('Actual cost in cents'),
       note: z.string().optional().describe('Note for the budget item'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => updateBudgetItem(client, args));
 }

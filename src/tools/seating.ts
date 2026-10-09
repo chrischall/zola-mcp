@@ -122,28 +122,28 @@ export async function assignSeat(client: ZolaClient, args: {
 export function registerSeatingTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_seating_charts', {
     description: 'List all seating charts with their UUID and event name',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listSeatingCharts(client));
 
   server.registerTool('get_seating_chart', {
     description: 'Get full seating chart with all tables, seats, and current occupants',
     inputSchema: z.object({ uuid: z.string().describe('Seating chart UUID from list_seating_charts') }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => getSeatingChart(client, args));
 
   server.registerTool('list_unseated_guests', {
     description: 'List all guests who have not yet been assigned a seat',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listUnseatedGuests(client));
 
   server.registerTool('assign_seat', {
-    description: 'Assign a guest to a specific seat in a seating chart',
+    description: 'Assign a guest to a specific seat in a seating chart. A guest can be moved to another seat later, but there is no tool to unseat them again.',
     inputSchema: z.object({
       guest_uuid: z.string().describe('Guest UUID from list_unseated_guests'),
       seat_uuid: z.string().describe('Seat UUID from get_seating_chart'),
       table_uuid: z.string().describe('Table UUID from get_seating_chart'),
       seating_chart_uuid: z.string().describe('Seating chart UUID from list_seating_charts'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: true, openWorldHint: true },
   }, (args) => assignSeat(client, args));
 }

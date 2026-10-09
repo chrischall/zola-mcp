@@ -450,7 +450,7 @@ export async function removeTravelItem(
 export function registerWebsiteContentTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_faqs', {
     description: 'List all FAQs on the wedding website',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listFaqs(client));
 
   server.registerTool('add_faq', {
@@ -460,7 +460,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       answer: z.string().describe('The FAQ answer'),
       display_order: z.number().optional().describe('Position in the FAQ list (defaults to 0)'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => addFaq(client, args));
 
   server.registerTool('update_faq', {
@@ -471,7 +471,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       answer: z.string(),
       display_order: z.number(),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => updateFaq(client, args));
 
   server.registerTool('remove_faq', {
@@ -480,12 +480,12 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       faq_entity_id: z.number().describe('FAQ entity ID from list_faqs'),
       confirmToken: confirmTokenParam,
     }),
-    annotations: { destructiveHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   }, (args, ctx) => removeFaq(client, args, ctx));
 
   server.registerTool('list_home_sections', {
     description: 'List the story sections on the website home page',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listHomeSections(client));
 
   server.registerTool('add_home_section', {
@@ -497,7 +497,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       display_order: z.number().optional(),
       hidden: z.boolean().optional(),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => addHomeSection(client, args));
 
   server.registerTool('update_home_section', {
@@ -510,7 +510,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       display_order: z.number(),
       hidden: z.boolean(),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => updateHomeSection(client, args));
 
   server.registerTool('remove_home_section', {
@@ -519,12 +519,12 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       homepage_entity_id: z.number().describe('Home section ID from list_home_sections'),
       confirmToken: confirmTokenParam,
     }),
-    annotations: { destructiveHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   }, (args, ctx) => removeHomeSection(client, args, ctx));
 
   server.registerTool('list_pois', {
     description: 'List points-of-interest on the "Things to Do" page',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listPois(client));
 
   server.registerTool('add_poi', {
@@ -545,7 +545,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       url: z.string().optional(),
       display_order: z.number().optional(),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => addPoi(client, args));
 
   server.registerTool('update_poi', {
@@ -567,7 +567,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       url: z.string().optional(),
       display_order: z.number().optional(),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => updatePoi(client, args));
 
   server.registerTool('remove_poi', {
@@ -576,12 +576,12 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       poi_entity_id: z.number().describe('POI ID from list_pois'),
       confirmToken: confirmTokenParam,
     }),
-    annotations: { destructiveHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   }, (args, ctx) => removePoi(client, args, ctx));
 
   server.registerTool('list_travel_items', {
     description: 'List hotels, flights, and transportation on the website Travel page',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listTravelItems(client));
 
   server.registerTool('add_travel_item', {
@@ -607,7 +607,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       timezone: z.string().optional().describe('e.g. America/New_York'),
       display_order: z.number().optional(),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => addTravelItem(client, args));
 
   server.registerTool('update_travel_item', {
@@ -634,7 +634,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       timezone: z.string().optional(),
       display_order: z.number().optional(),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => updateTravelItem(client, args));
 
   server.registerTool('remove_travel_item', {
@@ -643,6 +643,6 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       travel_entity_id: z.number().describe('Travel entity ID from list_travel_items'),
       confirmToken: confirmTokenParam,
     }),
-    annotations: { destructiveHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   }, (args, ctx) => removeTravelItem(client, args, ctx));
 }

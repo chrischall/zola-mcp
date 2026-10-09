@@ -173,7 +173,7 @@ export async function updateWeddingSettings(client: ZolaClient, args: {
 export function registerWebsiteTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_pages', {
     description: 'List all wedding-website pages with their IDs, types, display order, visibility, and theme info',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listPages(client));
 
   server.registerTool('set_page_hidden', {
@@ -182,7 +182,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       page_id: z.number().describe('Page ID from list_pages'),
       hidden: z.boolean().describe('true to hide the page, false to show it'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => setPageHidden(client, args));
 
   server.registerTool('reorder_pages', {
@@ -190,7 +190,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
     inputSchema: z.object({
       page_ids: z.array(z.number()).describe('Full ordered list of page IDs in desired nav order'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => reorderPages(client, args));
 
   server.registerTool('update_page', {
@@ -205,12 +205,12 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       hidden: z.boolean().optional().describe('Hide the page from the public site'),
       customization: z.unknown().optional().describe('Layout customization object (see list_pages for shape)'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => updatePage(client, args));
 
   server.registerTool('get_wedding_settings', {
     description: 'Get top-level wedding settings: title, URL slug, partner names, date, city, hashtag, guest count, search visibility',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => getWeddingSettings(client));
 
   server.registerTool('update_wedding_settings', {
@@ -231,6 +231,6 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       enable_search_zola: z.boolean().optional().describe('Allow Zola search to find the site'),
       confirmToken: confirmTokenParam,
     }),
-    annotations: { destructiveHint: true, idempotentHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args, ctx) => updateWeddingSettings(client, args, ctx));
 }

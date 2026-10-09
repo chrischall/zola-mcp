@@ -201,7 +201,7 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       offset: z.number().optional().describe('Default 0'),
       limit: z.number().optional().describe('Default 50'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => searchRegistryProducts(client, args));
 
   server.registerTool('add_registry_item', {
@@ -213,7 +213,7 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       most_wanted: z.boolean().optional().describe('Mark as a most-wanted gift. Default false'),
       enable_group_gifting: z.boolean().optional().describe('Allow multiple guests to chip in. Default false'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => addRegistryItem(client, args));
 
   server.registerTool('update_registry_item', {
@@ -227,7 +227,7 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       personal_note: z.string(),
       most_wanted: z.boolean(),
     }),
-    annotations: { destructiveHint: true, idempotentHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updateRegistryItem(client, args));
 
   server.registerTool('remove_registry_item', {
@@ -236,6 +236,6 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       collection_item_id: z.string().describe('Item ID (item_id) from get_registry'),
       confirmToken: confirmTokenParam,
     }),
-    annotations: { destructiveHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   }, (args, ctx) => removeRegistryItem(client, args, ctx));
 }

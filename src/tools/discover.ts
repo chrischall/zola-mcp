@@ -61,7 +61,7 @@ export async function listFavorites(client: ZolaClient): Promise<ToolResult> {
 export function registerDiscoverTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('get_wedding_dashboard', {
     description: 'Get the wedding planning dashboard overview (invites, paper, planning progress)',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => getWeddingDashboard(client));
 
   server.registerTool('search_storefronts', {
@@ -73,17 +73,17 @@ export function registerDiscoverTools(server: McpServer, client: ZolaClient): vo
       limit: z.number().optional().describe('Results per page (default 24)'),
       offset: z.number().optional().describe('Pagination offset (default 0)'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => searchStorefronts(client, args));
 
   server.registerTool('get_storefront', {
     description: 'Get full details for a vendor storefront (pricing, reviews, photos, about, FAQs)',
     inputSchema: z.object({ uuid: z.string().describe('Storefront UUID from search_storefronts or list_favorites') }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => getStorefront(client, args));
 
   server.registerTool('list_favorites', {
     description: 'List all favorited/saved vendors',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listFavorites(client));
 }

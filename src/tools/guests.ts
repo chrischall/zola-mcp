@@ -317,7 +317,7 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
     inputSchema: z.object({
       view: viewParam(GUEST_VIEWS, { note: GUEST_VIEW_NOTE }),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => listGuests(client, args));
 
   server.registerTool('add_guest', {
@@ -331,7 +331,7 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       phone: z.string().optional().describe('Guest phone number'),
       affiliation: z.string().optional().describe('Affiliation (default: PRIMARY_FRIEND)'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => addGuest(client, args));
 
   server.registerTool('update_guest_address', {
@@ -345,7 +345,7 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       postal_code: z.string().optional(),
       country_code: z.string().optional().describe('Default: US'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => updateGuestAddress(client, args));
 
   server.registerTool('remove_guest', {
@@ -356,6 +356,6 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       guest_group_id: z.number().describe('Guest group ID from list_guests'),
       confirmToken: confirmTokenParam,
     }),
-    annotations: { destructiveHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   }, (args, ctx) => removeGuest(client, args, ctx));
 }

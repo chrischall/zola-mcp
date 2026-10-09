@@ -39,7 +39,7 @@
 
 import { bootstrap } from '@fetchproxy/bootstrap';
 import { createAuthResolver, type BootstrapFn } from '@chrischall/mcp-utils';
-import pkg from '../package.json' with { type: 'json' };
+import { SERVER_NAME, VERSION } from './version.js';
 import { createRefreshTokenCache, reportCacheWriteFailure } from './token-cache.js';
 
 /** Result of resolving the Zola refresh token, regardless of path taken. */
@@ -62,8 +62,8 @@ const resolveAuth = createAuthResolver({
   // the cast keeps the heavy bridge dep out of the shared module's types.
   bootstrap: bootstrap as unknown as BootstrapFn,
   bootstrapOptions: {
-    serverName: pkg.name,
-    version: pkg.version,
+    serverName: SERVER_NAME,
+    version: VERSION,
     // Zola serves www.zola.com (web app) and mobile-api.zola.com (API).
     // The `usr` cookie lives on the web app's apex domain; the extension
     // matches on suffix so listing the apex covers any subdomain.

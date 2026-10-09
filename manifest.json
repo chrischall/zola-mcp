@@ -36,7 +36,17 @@
         "${__dirname}/dist/bundle.js"
       ],
       "env": {
-        "ZOLA_REFRESH_TOKEN": "${user_config.refresh_token}"
+        "ZOLA_REFRESH_TOKEN": "${user_config.refresh_token}",
+        "ZOLA_DISABLE_FETCHPROXY": "${user_config.disable_fetchproxy}",
+        "ZOLA_TOKEN_CACHE": "${user_config.token_cache}",
+        "ZOLA_TOKEN_FILE": "${user_config.token_file}",
+        "ZOLA_ACCOUNT_ID": "${user_config.account_id}",
+        "ZOLA_REGISTRY_ID": "${user_config.registry_id}",
+        "ZOLA_WEDDING_ID": "${user_config.wedding_id}",
+        "ZOLA_SESSION_TOKEN": "${user_config.session_token}",
+        "FETCHPROXY_WS_PORT": "${user_config.fetchproxy_ws_port}",
+        "FETCHPROXY_WS_HOST": "${user_config.fetchproxy_ws_host}",
+        "FETCHPROXY_IDENTITY_DIR": "${user_config.fetchproxy_identity_dir}"
       }
     }
   },
@@ -47,6 +57,69 @@
       "description": "Zola refresh token JWT (~1 year lifetime). Leave blank to use the ContextMint Bridge extension fallback — sign into zola.com in the browser and the MCP captures the `usr` cookie automatically. Otherwise, copy the `usr` cookie from DevTools and paste it here.",
       "required": false,
       "sensitive": true
+    },
+    "disable_fetchproxy": {
+      "type": "boolean",
+      "title": "Disable browser bridge (advanced)",
+      "description": "Set to '1' to opt out of the fetchproxy browser fallback (headless / CI). With it set and no ZOLA_REFRESH_TOKEN, auth is a hard error unless a previous bootstrap already cached a token — reading that file is not opening a browser, so the cache stays readable.",
+      "required": false,
+      "default": false
+    },
+    "token_cache": {
+      "type": "boolean",
+      "title": "Cache the refresh token on disk",
+      "description": "Set to 'false' to disable the on-disk refresh-token cache and ask the browser on every start. Defaults to enabled. Inert when ZOLA_REFRESH_TOKEN is set — there is no bootstrap to skip.",
+      "required": false,
+      "default": true
+    },
+    "token_file": {
+      "type": "string",
+      "title": "Refresh-token cache file (advanced)",
+      "description": "Absolute path for the refresh-token cache file. Defaults to $MCP_DATA_DIR/.zola-mcp/refresh-token.json, else the same path under $HOME.",
+      "required": false
+    },
+    "account_id": {
+      "type": "string",
+      "title": "Account ID (advanced)",
+      "description": "Overrides the account id normally read from GET /v3/users/me/context. Set it only to pin a specific account.",
+      "required": false
+    },
+    "registry_id": {
+      "type": "string",
+      "title": "Registry ID (advanced)",
+      "description": "Overrides the registry id normally read from the same context call.",
+      "required": false
+    },
+    "wedding_id": {
+      "type": "string",
+      "title": "Wedding ID (advanced)",
+      "description": "Overrides the wedding id normally read from the same context call.",
+      "required": false
+    },
+    "session_token": {
+      "type": "string",
+      "title": "Seed session token (advanced)",
+      "description": "A seed session token (JWT). The client refreshes it about five minutes before its exp, so this is a starting point rather than a long-lived credential.",
+      "required": false,
+      "sensitive": true
+    },
+    "fetchproxy_ws_port": {
+      "type": "string",
+      "title": "fetchproxy port (advanced)",
+      "description": "Localhost port of the fetchproxy concentrator the ContextMint Bridge extension connects to (default 37149). Every MCP on one machine shares it, so move it for all of them or not at all.",
+      "required": false
+    },
+    "fetchproxy_ws_host": {
+      "type": "string",
+      "title": "fetchproxy bind address (advanced)",
+      "description": "Bind interface for the fetchproxy concentrator, a literal IP only (default 127.0.0.1). Keep on loopback; it exists for hosted deployments that run each MCP in its own network namespace.",
+      "required": false
+    },
+    "fetchproxy_identity_dir": {
+      "type": "string",
+      "title": "fetchproxy identity directory (advanced)",
+      "description": "Absolute path where the fetchproxy long-term identity keypair is stored (default ~/.fetchproxy/identity/).",
+      "required": false
     }
   },
   "tools": [
@@ -112,7 +185,7 @@
     },
     {
       "name": "assign_seat",
-      "description": "Assign a guest to a seat"
+      "description": "Assign a guest to a seat. A guest can be moved later, but there is no tool to unseat them again"
     },
     {
       "name": "list_inquiries",
@@ -124,7 +197,7 @@
     },
     {
       "name": "mark_inquiry_read",
-      "description": "Mark an inquiry as read"
+      "description": "Mark an inquiry as read. There is no tool to mark it unread again"
     },
     {
       "name": "list_events",
@@ -324,7 +397,7 @@
     },
     {
       "name": "create_card_project",
-      "description": "Create a new invitation project from a design suite and a lead variation (specific size/paper)"
+      "description": "Create a new invitation project from a design suite and a lead variation (specific size/paper). There is no tool to delete a project once created"
     },
     {
       "name": "swap_card_project_variation",
