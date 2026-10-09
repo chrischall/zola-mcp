@@ -357,7 +357,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
           .describe('Guest groups to set for this event. Only the listed groups are affected.'),
         confirmToken: confirmTokenParam,
       }),
-      annotations: { destructiveHint: true, idempotentHint: true },
+      annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
     },
     (args, ctx) => setEventGuests(client, args, ctx)
   );
@@ -372,7 +372,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
         guest_group_id: z.number().optional().describe('Guest group ID — invites every guest in the group'),
         guest_id: z.number().optional().describe('Single guest ID — invites just that guest'),
       }),
-      annotations: { destructiveHint: false, idempotentHint: true },
+      annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
     (args) => inviteGuestToEvent(client, args)
   );
@@ -388,7 +388,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
         guest_id: z.number().optional().describe('Single guest ID — removes for just that guest'),
         confirmToken: confirmTokenParam,
       }),
-      annotations: { destructiveHint: true, idempotentHint: true },
+      annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
     },
     (args, ctx) => removeEventInvitation(client, args, ctx)
   );

@@ -22,6 +22,67 @@
           "isRequired": false,
           "format": "string",
           "isSecret": true
+        },
+        {
+          "name": "ZOLA_DISABLE_FETCHPROXY",
+          "description": "Set to '1' to opt out of the fetchproxy browser fallback (headless / CI). With it set and no ZOLA_REFRESH_TOKEN, auth is a hard error unless a previous bootstrap already cached a token — reading that file is not opening a browser, so the cache stays readable.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "ZOLA_TOKEN_CACHE",
+          "description": "Set to 'false' to disable the on-disk refresh-token cache and ask the browser on every start. Defaults to enabled. Inert when ZOLA_REFRESH_TOKEN is set — there is no bootstrap to skip.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "ZOLA_TOKEN_FILE",
+          "description": "Absolute path for the refresh-token cache file. Defaults to $MCP_DATA_DIR/.zola-mcp/refresh-token.json, else the same path under $HOME.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "ZOLA_ACCOUNT_ID",
+          "description": "Overrides the account id normally read from GET /v3/users/me/context. Set it only to pin a specific account.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "ZOLA_REGISTRY_ID",
+          "description": "Overrides the registry id normally read from the same context call.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "ZOLA_WEDDING_ID",
+          "description": "Overrides the wedding id normally read from the same context call.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "ZOLA_SESSION_TOKEN",
+          "description": "A seed session token (JWT). The client refreshes it about five minutes before its exp, so this is a starting point rather than a long-lived credential.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "FETCHPROXY_WS_PORT",
+          "description": "Localhost port of the fetchproxy concentrator the ContextMint Bridge extension connects to (default 37149). Every MCP on one machine shares it, so move it for all of them or not at all.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "FETCHPROXY_WS_HOST",
+          "description": "Bind interface for the fetchproxy concentrator, a literal IP only (default 127.0.0.1). Keep on loopback; it exists for hosted deployments that run each MCP in its own network namespace.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "FETCHPROXY_IDENTITY_DIR",
+          "description": "Absolute path where the fetchproxy long-term identity keypair is stored (default ~/.fetchproxy/identity/).",
+          "isRequired": false,
+          "format": "string"
         }
       ]
     }

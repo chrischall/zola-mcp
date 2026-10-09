@@ -281,17 +281,17 @@ export async function updateEvent(client: ZolaClient, args: {
 export function registerEventTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_events', {
     description: 'List all wedding events (ceremony, reception, rehearsal dinner, etc.) with RSVP counts',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listEvents(client));
 
   server.registerTool('track_rsvps', {
     description: 'Get RSVP tracking summary per event (attending, declined, not responded)',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => trackRsvps(client));
 
   server.registerTool('get_gift_tracker', {
     description: 'View gift tracking: total gifts received, values, thank-you note status',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => getGiftTracker(client));
 
   server.registerTool('get_registry', {
@@ -303,7 +303,7 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
       limit: z.number().optional().describe('Max items to return. Default 100'),
       offset: z.number().optional().describe('Item offset. Default 0'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => getRegistry(client, args));
 
   server.registerTool('update_event', {
@@ -324,6 +324,6 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
       collect_rsvps: z.boolean().optional().describe('Whether to collect RSVPs for this event'),
       confirmToken: confirmTokenParam,
     }),
-    annotations: { destructiveHint: true, idempotentHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args, ctx) => updateEvent(client, args, ctx));
 }

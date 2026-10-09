@@ -250,7 +250,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       include_completed: z.boolean().optional().describe('Include orders that have already been placed. Default: false (drafts only).'),
       limit: z.number().optional().describe('Max projects to return. Default: 30.'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => listCardProjects(client, args));
 
   server.registerTool('get_card_project', {
@@ -258,7 +258,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
     inputSchema: z.object({
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => getCardProject(client, args));
 
   server.registerTool('validate_card_project', {
@@ -266,7 +266,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
     inputSchema: z.object({
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => validateCardProject(client, args));
 
   server.registerTool('get_card_project_guests', {
@@ -274,7 +274,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
     inputSchema: z.object({
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => getCardProjectGuests(client, args));
 
   server.registerTool('get_card_suite', {
@@ -282,7 +282,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
     inputSchema: z.object({
       suite_uuid: z.string().describe('Suite UUID (e.g. from search_card_catalog or list_favorite_card_suites)'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => getCardSuite(client, args));
 
   server.registerTool('search_card_catalog', {
@@ -291,27 +291,27 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       card_type: z.string().optional().describe('Lead card type: INVITATION (default), SAVE_THE_DATE, WEDDING_SHOWER_INVITATION, REHEARSAL_DINNER_INVITATION, THANK_YOU_CARD, etc.'),
       limit: z.number().optional().describe('Max suites to return. Default: 50.'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => searchCardCatalog(client, args));
 
   server.registerTool('list_favorite_card_suites', {
     description: 'List invitation design suites you have favorited (hearted).',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listFavoriteCardSuites(client));
 
   server.registerTool('get_rsvp_page', {
     description: 'Get the RSVP page settings on the wedding website (title, intro copy, visibility, customization).',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => getRsvpPage(client));
 
   server.registerTool('create_card_project', {
-    description: 'Create a new invitation project from a design suite and a lead variation (specific size/paper).',
+    description: 'Create a new invitation project from a design suite and a lead variation (specific size/paper). There is no tool to delete a project once created.',
     inputSchema: z.object({
       suite_uuid: z.string().describe('Suite UUID from search_card_catalog or get_card_suite'),
       lead_variation_uuid: z.string().describe('Lead variation UUID (specific size/paper/color from the suite)'),
       quantity: z.number().optional().describe('Quantity to order. Default: 150.'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: true, openWorldHint: true },
   }, (args) => createCardProject(client, args));
 
   server.registerTool('swap_card_project_variation', {
@@ -320,7 +320,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
       customizations: z.record(z.string(), z.string()).describe('{ customization_uuid: new_variation_uuid }'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => swapCardProjectVariation(client, args));
 
   server.registerTool('set_card_project_guests', {
@@ -334,7 +334,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
         address_font_size_override: z.number().optional().describe('Override font size for the address (pt)'),
       })).describe('Full list of guest groups to record. Omitted groups are not affected by this call.'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => setCardProjectGuests(client, args));
 
   server.registerTool('preview_card_template', {
@@ -347,7 +347,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       partner_last_name: z.string().optional().describe('Substitute for {{partner_last_name}}'),
       wedding_date: z.string().optional().describe('Substitute for {{wedding_date}}, YYYY-MM-DD. Defaults to the wedding date on file.'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => previewCardTemplate(client, args));
 
   server.registerTool('preview_qrcode', {
@@ -358,7 +358,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       url_type: z.string().optional().describe('CUSTOM (default) | WEDDING_WEBSITE | WEDDING_WEBSITE_RSVP'),
       enabled: z.boolean().optional().describe('Whether the QR code is enabled. Default: true.'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => previewQrcode(client, args));
 
   server.registerTool('set_card_project_qrcode', {
@@ -372,6 +372,6 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       color: z.string().optional().describe('Hex color (no #). Default: 000000'),
       enabled: z.boolean().optional().describe('Whether to enable the QR code. Default: true.'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => setCardProjectQrcode(client, args));
 }

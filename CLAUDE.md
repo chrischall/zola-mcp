@@ -20,6 +20,7 @@ src/
   auth.ts                 resolveRefreshToken() — env var / disk cache / fetchproxy fallback
   token-cache.ts          On-disk cache for the bootstrapped ~1-year refresh token
   types.ts                Shared types
+  version.ts              SERVER_NAME + VERSION (release-please bumps it; never import package.json)
   tools/
     index.ts              TOOL_REGISTRARS — the one list of tool modules (manifest-sync test reads it)
     vendors.ts            list/search/add/update/remove booked vendors
@@ -139,7 +140,7 @@ Version appears in SIX files — all must match:
 
 1. `package.json` → `"version"`
 2. `package-lock.json` → top-level + first `packages[""]` entry (`npm version` handles both)
-3. `src/index.ts` → the `VERSION` const tagged `// x-release-please-version` (fed to the `McpServer` constructor)
+3. `src/version.ts` → the `VERSION` const tagged `// x-release-please-version` (fed to the `McpServer` constructor and the fetchproxy bridge identity; `src/auth.ts` imports it rather than `package.json`, which would inline the whole manifest into the bundle)
 4. `manifest.json` → `"version"`
 5. `server.json` → `"version"` and `packages[].version` (two entries)
 6. `.claude-plugin/plugin.json` → `"version"`

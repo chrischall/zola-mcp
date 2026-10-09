@@ -209,7 +209,7 @@ export async function removeVendor(client: ZolaClient, args: { uuid: string }): 
 export function registerVendorTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_vendors', {
     description: 'List all booked vendors with details',
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, () => listVendors(client));
 
   server.registerTool('search_vendors', {
@@ -218,7 +218,7 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       query: z.string().describe('Vendor name to search for'),
       taxonomy_key: z.string().optional().describe('Vendor category key (e.g. wedding-venues, wedding-photographers, wedding-planners, wedding-bands-djs). Default: wedding-venues'),
     }),
-    annotations: { readOnlyHint: true },
+    annotations: { readOnlyHint: true, openWorldHint: true },
   }, (args) => searchVendors(client, args));
 
   server.registerTool('add_vendor', {
@@ -234,7 +234,7 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       event_date: z.string().optional().describe('Event date, ISO 8601 (YYYY-MM-DD) or timestamp; an unparseable value is rejected'),
       reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => addVendor(client, args));
 
   server.registerTool('update_vendor', {
@@ -249,12 +249,12 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       price_cents: z.number().optional(),
       event_date: z.string().optional().describe('ISO 8601 date (YYYY-MM-DD) or timestamp; an unparseable value is rejected'),
     }),
-    annotations: { destructiveHint: false },
+    annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => updateVendor(client, args));
 
   server.registerTool('remove_vendor', {
     description: 'Unbook a vendor',
     inputSchema: z.object({ uuid: z.string().describe('Vendor UUID from list_vendors') }),
-    annotations: { destructiveHint: true },
+    annotations: { destructiveHint: true, openWorldHint: true },
   }, (args) => removeVendor(client, args));
 }

@@ -383,7 +383,7 @@ export function registerReconcileTools(server: McpServer, client: ZolaClient): v
         '(purchased with no order behind it, so giver and value are lost), ' +
         'ORPHAN_ORDER (an order with no matching registry item) and a MATCHED count. ' +
         'Read-only.',
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
     () => reconcileRegistry(client)
   );
