@@ -161,6 +161,7 @@ export async function updateWeddingSettings(client: ZolaClient, args: {
         ? { note: 'Search visibility changes who can find the website.' }
         : {}),
     },
+    args,
     confirmToken: args.confirmToken,
   });
   if (gate) return gate;

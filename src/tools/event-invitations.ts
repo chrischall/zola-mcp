@@ -229,6 +229,7 @@ export async function setEventGuests(client: ZolaClient, args: {
         ...(inviting.length > 0 ? { inviting } : {}),
         also_discarded: 'each uninvited guest’s RSVP and meal choice for this event; re-inviting does not restore them',
       },
+      args,
       confirmToken: args.confirmToken,
     });
     if (gate) return gate;
@@ -301,6 +302,8 @@ async function mutateOne(client: ZolaClient, opts: {
         guests: affectedGuests.map((g) => ({ name: guestName(g), rsvp: rsvpFor(g, opts.event_id) })),
         also_discarded: 'each guest’s RSVP and meal choice for this event; re-inviting does not restore them',
       },
+      // The tool's own arguments: `invited` is mutateOne's mode, not input.
+      args: { event_id: opts.event_id, guest_group_id: opts.guest_group_id, guest_id: opts.guest_id },
       confirmToken: opts.confirmToken,
     });
     if (gate) return gate;
