@@ -660,3 +660,69 @@ describe('ZolaClient', () => {
     });
   });
 });
+
+// fleet-audit #817: no upstream fetch may hang forever. Each one carries a
+// timeout, and the tool-path fetch also honours the MCP call's cancellation.
+describe('ZolaClient timeouts and cancellation', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  /** A fetch that never answers until its signal aborts, like a stalled socket. */
+  function hangUntilAborted(_url: string, init?: RequestInit): Promise<Response> {
+    return new Promise((_resolve, reject) => {
+      const signal = init?.signal;
+      if (!signal) return; // no signal: hangs forever — the bug
+      if (signal.aborted) return reject(signal.reason);
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    });
+  }
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    process.env.ZOLA_REFRESH_TOKEN = makeMockJwt(FUTURE_EXP);
+    delete process.env.ZOLA_SESSION_TOKEN;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('a stalled API request times out as a transport error instead of hanging', async () => {
+    process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+    fetchMock.mockImplementation(hangUntilAborted);
+
+    const client = new ZolaClient({ requestTimeoutMs: 20 });
+    const err = await client.requestMobile('GET', '/v3/test').catch((e) => e);
+
+    expect(err.stage).toBe('transport');
+    expect(err.message).toContain('/v3/test');
+    expect(err.message).toMatch(/timed out after 20ms/);
+  });
+
+  it('a stalled session refresh times out instead of hanging every queued call', async () => {
+    fetchMock.mockImplementation(hangUntilAborted);
+
+    const client = new ZolaClient({ requestTimeoutMs: 20 });
+    const err = await client.requestMobile('GET', '/v3/test').catch((e) => e);
+
+    expect(fetchMock.mock.calls[0][0]).toContain('/v3/sessions/refresh');
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toMatch(/refresh.*timed out after 20ms/i);
+  });
+
+  it("aborts the in-flight API request when the MCP call is cancelled", async () => {
+    process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+    fetchMock.mockImplementation(hangUntilAborted);
+    const { withCallSignal } = await import('@chrischall/mcp-utils');
+
+    const client = new ZolaClient({ requestTimeoutMs: 60_000 });
+    const controller = new AbortController();
+    const pending = withCallSignal(controller.signal, () => client.requestMobile('GET', '/v3/test'));
+    controller.abort(new Error('client cancelled'));
+    const err = await pending.catch((e: unknown) => e);
+
+    expect((err as { stage: string }).stage).toBe('transport');
+    expect((err as Error).message).toContain('client cancelled');
+  });
+});

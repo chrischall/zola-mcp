@@ -476,3 +476,49 @@ describe('the intermittent 403', () => {
     expect(result.total).toBe(75);
   });
 });
+
+// fleet-audit #817: the public registry-page fetch must not hang forever.
+describe('fetchRegistryCollection timeouts and cancellation', () => {
+  function hangUntilAborted(_url: string, init?: RequestInit): Promise<Response> {
+    return new Promise((_resolve, reject) => {
+      const signal = init?.signal;
+      if (!signal) return;
+      if (signal.aborted) return reject(signal.reason);
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    });
+  }
+
+  it('times out a stalled page fetch and reports it after the retries', async () => {
+    const fetchImpl = vi.fn().mockImplementation(hangUntilAborted);
+    const err = await fetchRegistryCollection(stubClient({ key: 'couple-registry', public: true }), {
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      attempts: 2,
+      backoffBaseMs: 0,
+      timeoutMs: 20,
+    }).catch((e) => e);
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(err.step).toBe('fetch:transport');
+    expect(err.detail).toMatch(/timed out after 20ms/);
+  });
+
+  it('stops at once, without retrying, when the MCP call is cancelled', async () => {
+    const { withCallSignal } = await import('@chrischall/mcp-utils');
+    const fetchImpl = vi.fn().mockImplementation(hangUntilAborted);
+    const controller = new AbortController();
+    const pending = withCallSignal(controller.signal, () =>
+      fetchRegistryCollection(stubClient({ key: 'couple-registry', public: true }), {
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        attempts: 3,
+        backoffBaseMs: 0,
+        timeoutMs: 60_000,
+      })
+    );
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
+    controller.abort(new Error('client cancelled'));
+    const err = await pending.catch((e: unknown) => e);
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect((err as Error).message).toContain('client cancelled');
+  });
+});

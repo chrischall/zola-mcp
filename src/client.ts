@@ -8,6 +8,7 @@ import {
   formatApiError,
   truncateErrorMessage,
   createCachedTokenSource,
+  withAmbientCancellation,
 } from '@chrischall/mcp-utils';
 import type { MintedToken } from '@chrischall/mcp-utils';
 import { resolveRefreshToken, clearCachedRefreshToken } from './auth.js';
@@ -73,6 +74,25 @@ try {
 }
 
 const MOBILE_BASE_URL = 'https://mobile-api.zola.com';
+
+/**
+ * Upper bound on any single upstream fetch. Without one, a connection that
+ * CloudFront or the API stalls hangs the tool call until the MCP client gives
+ * up — and a stalled session mint hangs every call queued behind it.
+ */
+export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
+/**
+ * Describe why a fetch rejected. A timeout's reason is a `TimeoutError`
+ * DOMException whose own message ("The operation was aborted due to timeout")
+ * does not say how long we waited, so name the budget instead.
+ */
+export function describeFetchFailure(cause: unknown, timeoutMs: number): string {
+  if (cause instanceof Error && cause.name === 'TimeoutError') {
+    return `timed out after ${timeoutMs}ms`;
+  }
+  return cause instanceof Error ? cause.message : String(cause);
+}
 
 /**
  * A request that failed anywhere between "we called fetch" and "we have parsed
@@ -200,12 +220,17 @@ export class ZolaClient {
   // stale-credential recovery in `refresh()`.
   private readonly clearCachedRefreshToken: (() => void) | undefined;
 
+  // Per-fetch timeout; injectable so tests need not wait 30 s.
+  private readonly requestTimeoutMs: number;
+
   constructor(opts?: {
     resolveRefreshToken?: () => Promise<{ token: string; source: string }>;
     clearCachedRefreshToken?: () => void;
+    requestTimeoutMs?: number;
   }) {
     this.resolveRefreshToken = opts?.resolveRefreshToken;
     this.clearCachedRefreshToken = opts?.clearCachedRefreshToken;
+    this.requestTimeoutMs = opts?.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
   }
 
   /**
@@ -351,18 +376,21 @@ export class ZolaClient {
         method,
         headers,
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        // Bounded by the timeout, and aborted with the MCP call that asked for
+        // it — whichever fires first.
+        signal: withAmbientCancellation(AbortSignal.timeout(this.requestTimeoutMs)),
       });
     } catch (cause) {
-      // DNS failure, TLS error, socket reset, abort. There is no status code to
-      // report here, and saying so explicitly is the point: "transport" tells
-      // the reader not to go looking for one.
+      // DNS failure, TLS error, socket reset, timeout, cancellation. There is
+      // no status code to report here, and saying so explicitly is the point:
+      // "transport" tells the reader not to go looking for one.
       throw new ZolaApiError({
         stage: 'transport',
         method,
         path,
         message:
           `Zola API transport failure for ${method.toUpperCase()} ${path}: ` +
-          truncateErrorMessage(cause instanceof Error ? cause.message : String(cause)),
+          truncateErrorMessage(describeFetchFailure(cause, this.requestTimeoutMs)),
         cause,
       });
     }
@@ -481,17 +509,32 @@ export class ZolaClient {
    * tell a rejected credential from a transient upstream failure.
    */
   private async mintWithRefreshToken(refreshToken: string): Promise<MintedToken> {
-    const response = await fetch(`${MOBILE_BASE_URL}/v3/sessions/refresh`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        accept: 'application/json',
-        'x-zola-platform-type': 'iphone_app',
-        'x-zola-session-id': this.deviceSessionId,
-        'user-agent': 'Zola/42.5.0 (iPad; iOS 26.4; Scale/2.0)',
-      },
-      body: JSON.stringify({ token: refreshToken }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${MOBILE_BASE_URL}/v3/sessions/refresh`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json',
+          'x-zola-platform-type': 'iphone_app',
+          'x-zola-session-id': this.deviceSessionId,
+          'user-agent': 'Zola/42.5.0 (iPad; iOS 26.4; Scale/2.0)',
+        },
+        body: JSON.stringify({ token: refreshToken }),
+        // Timeout only — deliberately NOT the calling tool's cancellation. This
+        // mint is single-flight: every concurrent call awaits the same promise,
+        // so one caller cancelling must not fail the others. The timeout is
+        // what stops a stalled mint from hanging them all.
+        signal: AbortSignal.timeout(this.requestTimeoutMs),
+      });
+    } catch (cause) {
+      // Not a RefreshFailedError: no status, so it says nothing about the
+      // credential and refresh() must not discard a cached token over it.
+      throw new Error(
+        `Zola session refresh failed: ${truncateErrorMessage(describeFetchFailure(cause, this.requestTimeoutMs))}`,
+        { cause }
+      );
+    }
 
     if (!response.ok) {
       const text = await response.text();
