@@ -71,6 +71,10 @@
       "description": "Unbook a vendor"
     },
     {
+      "name": "zola_healthcheck",
+      "description": "Verify the Zola credential and API reachability: resolves the refresh token the way real tools do, makes one authenticated call, and distinguishes \"no credential\" from \"rejected\" from \"Zola is down\"."
+    },
+    {
       "name": "get_budget",
       "description": "Get wedding budget summary with all items"
     },
@@ -131,10 +135,6 @@
       "description": "Get RSVP tracking per event"
     },
     {
-      "name": "update_event",
-      "description": "Update a wedding event"
-    },
-    {
       "name": "get_gift_tracker",
       "description": "View gift tracking and thank-you note status"
     },
@@ -143,8 +143,8 @@
       "description": "View registry items with per-item purchase state (requested vs purchased quantity, marked_fulfilled, availability, inconsistent)"
     },
     {
-      "name": "reconcile_registry",
-      "description": "Reconcile the registry against the gift tracker: items flagged fulfilled but never purchased, purchased items with no order behind them, and orders with no matching registry item"
+      "name": "update_event",
+      "description": "Update a wedding event"
     },
     {
       "name": "get_wedding_dashboard",
@@ -163,8 +163,200 @@
       "description": "List favorited vendors"
     },
     {
-      "name": "zola_healthcheck",
-      "description": "Verify the Zola credential and API reachability: resolves the refresh token the way real tools do, makes one authenticated call, and distinguishes \"no credential\" from \"rejected\" from \"Zola is down\"."
+      "name": "list_pages",
+      "description": "List all wedding-website pages with their IDs, types, display order, visibility, and theme info"
+    },
+    {
+      "name": "set_page_hidden",
+      "description": "Show or hide a page on the wedding website (e.g., hide the RSVP page until invites go out)"
+    },
+    {
+      "name": "reorder_pages",
+      "description": "Reorder pages in the website navigation"
+    },
+    {
+      "name": "update_page",
+      "description": "Update page-level metadata (title, intro copy, nav title, visibility, layout customization)"
+    },
+    {
+      "name": "get_wedding_settings",
+      "description": "Get top-level wedding settings: title, URL slug, partner names, date, city, hashtag, guest count, search visibility"
+    },
+    {
+      "name": "update_wedding_settings",
+      "description": "Update top-level wedding settings"
+    },
+    {
+      "name": "list_faqs",
+      "description": "List all FAQs on the wedding website"
+    },
+    {
+      "name": "add_faq",
+      "description": "Add a new FAQ (question + answer) to the website FAQ page"
+    },
+    {
+      "name": "update_faq",
+      "description": "Update an existing FAQ — all three fields (question, answer, display_order) must be supplied"
+    },
+    {
+      "name": "remove_faq",
+      "description": "Remove an FAQ from the public website"
+    },
+    {
+      "name": "list_home_sections",
+      "description": "List the story sections on the website home page"
+    },
+    {
+      "name": "add_home_section",
+      "description": "Add a story section to the home page (title + subtitle + description block)"
+    },
+    {
+      "name": "update_home_section",
+      "description": "Update a home page story section — all fields must be supplied"
+    },
+    {
+      "name": "remove_home_section",
+      "description": "Remove a story section from the public home page"
+    },
+    {
+      "name": "list_pois",
+      "description": "List points-of-interest on the \"Things to Do\" page"
+    },
+    {
+      "name": "add_poi",
+      "description": "Add a point-of-interest to the Things-to-Do page (restaurant, attraction, etc.)"
+    },
+    {
+      "name": "update_poi",
+      "description": "Update a point-of-interest"
+    },
+    {
+      "name": "remove_poi",
+      "description": "Remove a point-of-interest from the public Things-to-Do page"
+    },
+    {
+      "name": "list_travel_items",
+      "description": "List hotels, flights, and transportation on the website Travel page"
+    },
+    {
+      "name": "add_travel_item",
+      "description": "Add a travel item (hotel, flight, train, car, bus) to the Travel page"
+    },
+    {
+      "name": "update_travel_item",
+      "description": "Update a travel item"
+    },
+    {
+      "name": "remove_travel_item",
+      "description": "Remove a travel item from the public Travel page"
+    },
+    {
+      "name": "get_current_theme",
+      "description": "Get the currently-selected website theme: key, name, swatch color, layout type"
+    },
+    {
+      "name": "get_website_customizations",
+      "description": "Get current website colors, font settings, and available font/color options"
+    },
+    {
+      "name": "search_themes",
+      "description": "Browse the catalog of available wedding-website themes"
+    },
+    {
+      "name": "update_current_theme",
+      "description": "Switch the wedding website to a different theme template"
+    },
+    {
+      "name": "update_website_customization",
+      "description": "Update website colors and fonts"
+    },
+    {
+      "name": "search_registry_products",
+      "description": "Browse Zola products in a category, scoped to your registry"
+    },
+    {
+      "name": "add_registry_item",
+      "description": "Add a product (by SKU) to the registry"
+    },
+    {
+      "name": "update_registry_item",
+      "description": "Update an existing registry item — all fields must be supplied (it's a full replace)"
+    },
+    {
+      "name": "remove_registry_item",
+      "description": "Remove an item from the registry that guests shop from"
+    },
+    {
+      "name": "reconcile_registry",
+      "description": "Reconcile the registry against the gift tracker: items flagged fulfilled but never purchased, purchased items with no order behind them, and orders with no matching registry item"
+    },
+    {
+      "name": "list_card_projects",
+      "description": "List your invitation / save-the-date / shower-invite \"card\" projects (paper or digital)"
+    },
+    {
+      "name": "get_card_project",
+      "description": "Get full details for one invitation project including all customizations (invitation, envelope, RSVP card, details card), paper/color options, and per-customization pages"
+    },
+    {
+      "name": "validate_card_project",
+      "description": "Validate an invitation project — reports any text-fit, image, or guest-addressing errors per customization"
+    },
+    {
+      "name": "get_card_project_guests",
+      "description": "List the guest groups assigned to an invitation project, including per-group font-size overrides for printed addressing"
+    },
+    {
+      "name": "get_card_suite",
+      "description": "Get details for an invitation design \"suite\" (the family of matching invitation + RSVP + details cards), including paper types, sizes, and price range"
+    },
+    {
+      "name": "search_card_catalog",
+      "description": "Search the invitation design catalog"
+    },
+    {
+      "name": "list_favorite_card_suites",
+      "description": "List invitation design suites you have favorited (hearted)"
+    },
+    {
+      "name": "get_rsvp_page",
+      "description": "Get the RSVP page settings on the wedding website (title, intro copy, visibility, customization)"
+    },
+    {
+      "name": "create_card_project",
+      "description": "Create a new invitation project from a design suite and a lead variation (specific size/paper)"
+    },
+    {
+      "name": "swap_card_project_variation",
+      "description": "Swap one or more customizations on a project to different variations (e.g. switch paper type, color, or size)"
+    },
+    {
+      "name": "set_card_project_guests",
+      "description": "Enable / disable guest groups for an invitation project and optionally override font sizes for printed names and addresses"
+    },
+    {
+      "name": "preview_card_template",
+      "description": "Render an invitation template preview with text substituted in"
+    },
+    {
+      "name": "preview_qrcode",
+      "description": "Generate a QR-code PNG for an invitation"
+    },
+    {
+      "name": "set_card_project_qrcode",
+      "description": "Place (or update) a QR code on a specific page of an invitation project"
+    },
+    {
+      "name": "set_event_guests",
+      "description": "Set which guest groups are invited to an event (bulk)"
+    },
+    {
+      "name": "invite_guest_to_event",
+      "description": "Invite a single guest or guest group to an event (additive — does not affect other events)"
+    },
+    {
+      "name": "remove_event_invitation",
+      "description": "Remove an event invitation for a single guest or guest group"
     }
   ],
   "compatibility": {

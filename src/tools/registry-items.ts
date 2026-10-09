@@ -230,7 +230,7 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
   }, (args) => updateRegistryItem(client, args));
 
   server.registerTool('remove_registry_item', {
-    description: `Remove an item from the registry guests shop from. ${CONFIRM_NOTE}`,
+    description: `Remove an item from the registry that guests shop from. ${CONFIRM_NOTE}`,
     inputSchema: z.object({
       collection_item_id: z.string().describe('Item ID (item_id) from get_registry'),
       confirmToken: confirmTokenParam,

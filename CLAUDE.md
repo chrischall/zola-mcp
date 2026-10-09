@@ -15,12 +15,13 @@ npm run dev          # node --env-file=.env dist/index.js (build first)
 
 ```
 src/
-  index.ts                MCP server entry — registers all tool modules, starts stdio transport
+  index.ts                MCP server entry — registers TOOL_REGISTRARS, starts stdio transport
   client.ts               ZolaClient — Bearer JWT auth, session refresh, context resolution
   auth.ts                 resolveRefreshToken() — env var / disk cache / fetchproxy fallback
   token-cache.ts          On-disk cache for the bootstrapped ~1-year refresh token
   types.ts                Shared types
   tools/
+    index.ts              TOOL_REGISTRARS — the one list of tool modules (manifest-sync test reads it)
     vendors.ts            list/search/add/update/remove booked vendors
     budget.ts             get budget, update budget items
     guests.ts             list/add/update/remove guest groups, update address
@@ -38,7 +39,7 @@ src/
 
 All API calls go through `client.requestMobile()`, which hits `mobile-api.zola.com` with Bearer JWT auth and a per-process `x-zola-session-id` header (CloudFront WAF requirement). No web API, no CSRF.
 
-Each tool file exports a `register*Tools(server)` function. `index.ts` imports and calls each one.
+Each tool file exports a `register*Tools(server, client)` function, listed once in `src/tools/index.ts` (`TOOL_REGISTRARS`). `tests/manifest-sync.test.ts` asserts `manifest.json`'s `tools` names exactly the registered set — add a new tool there too or CI fails.
 
 ## Environment
 
@@ -178,6 +179,7 @@ write-verification, transport archetypes, testing traps) live in
 - **WAF header**: every `mobile-api.zola.com` request must carry `x-zola-session-id` (a per-process UUID set in `ZolaClient`). Drop it and CloudFront returns 403.
   The value must be an **UPPERCASE** UUID — the WAF matches the uppercase-hex shape Apple's `NSUUID.uuidString` emits in the iPhone app this API serves. `crypto.randomUUID()` is lowercase, so `ZolaClient` calls `.toUpperCase()`; removing it returns an opaque HTML 403 ("Request blocked") on every call, refresh included, which looks exactly like a revoked token. Guarded by two tests in `tests/client.test.ts`.
 - **Auth retry**: `doRequest` retries once on 401 (refresh + replay) and once on 429 (2 s sleep + replay). Further failures throw.
+- **Timeouts + cancellation**: every upstream fetch carries `AbortSignal.timeout(DEFAULT_REQUEST_TIMEOUT_MS)` (30 s). API requests and the registry-page fetch also abort with the MCP call (`withAmbientCancellation`); the session mint deliberately does not, because it is single-flight and one caller cancelling must not fail the others queued on it.
 - **Context caching**: `client.getContext()` calls `/v3/users/me/context` once per process and caches. Env vars override individual fields; setting all three (`ZOLA_ACCOUNT_ID`, `ZOLA_REGISTRY_ID`, `ZOLA_WEDDING_ID`) skips the call entirely.
 - **stdio transport**: stdout is reserved for JSON-RPC. `dotenv` is loaded with `quiet: true` and wrapped in try/catch so bundled mode (no `dotenv` resolvable) silently falls back to `process.env`.
 - **Plugin distribution files**: `.claude-plugin/`, `skills/`, `manifest.json`, `server.json`, and `.mcp.json` are for Claude Code / MCPB / MCP-Registry distribution — none are part of the runtime.

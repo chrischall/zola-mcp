@@ -1,6 +1,11 @@
-import { extractNextDataText, truncateErrorMessage } from '@chrischall/mcp-utils';
+import {
+  currentCallSignal,
+  extractNextDataText,
+  truncateErrorMessage,
+  withAmbientCancellation,
+} from '@chrischall/mcp-utils';
 import type { ZolaClient } from './client.js';
-import { byteLength, formatBytes } from './client.js';
+import { byteLength, describeFetchFailure, DEFAULT_REQUEST_TIMEOUT_MS, formatBytes } from './client.js';
 import { MobileEnvelope } from './types.js';
 
 /**
@@ -357,11 +362,17 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 async function fetchRegistryPage(
   url: string,
   fetchImpl: typeof fetch,
-  opts: { attempts?: number; backoffBaseMs?: number; onAttempt?: (info: object) => void } = {}
+  opts: {
+    attempts?: number;
+    backoffBaseMs?: number;
+    timeoutMs?: number;
+    onAttempt?: (info: object) => void;
+  } = {}
 ): Promise<string> {
   const {
     attempts = PAGE_ATTEMPTS,
     backoffBaseMs = PAGE_BACKOFF_BASE_MS,
+    timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
     onAttempt = () => {},
   } = opts;
 
@@ -380,8 +391,12 @@ async function fetchRegistryPage(
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
             '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
         },
+        signal: withAmbientCancellation(AbortSignal.timeout(timeoutMs)),
       });
     } catch (cause) {
+      // The caller cancelled: retrying would only run on after they left.
+      const callSignal = currentCallSignal();
+      if (callSignal?.aborted) throw callSignal.reason;
       if (attempt < attempts) {
         await sleep(backoffBaseMs * 2 ** (attempt - 1));
         continue;
@@ -389,7 +404,7 @@ async function fetchRegistryPage(
       throw new RegistryReadError(
         'fetch:transport',
         `Could not reach the registry page ${url} after ${attempts} attempts.`,
-        truncateErrorMessage(cause instanceof Error ? cause.message : String(cause))
+        truncateErrorMessage(describeFetchFailure(cause, timeoutMs))
       );
     }
 
@@ -433,6 +448,7 @@ export async function fetchRegistryCollection(
     fetchImpl?: typeof fetch;
     attempts?: number;
     backoffBaseMs?: number;
+    timeoutMs?: number;
     onAttempt?: (info: object) => void;
   } = {}
 ): Promise<{
