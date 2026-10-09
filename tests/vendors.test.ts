@@ -145,6 +145,102 @@ describe('vendor tools (mobile API)', () => {
     ).rejects.toThrow('Vendor with UUID "nonexistent" not found');
   });
 
+  describe('event_date parsing (fleet-audit #815)', () => {
+    function putBody() {
+      return reqSpy.mock.calls[1][2] as Record<string, unknown>;
+    }
+
+    it('updateVendor: rejects an unparseable event_date instead of sending null and erasing the stored date', async () => {
+      reqSpy.mockResolvedValueOnce(MOCK_LIST_RESPONSE as never);
+      await expect(
+        updateVendor(client, { uuid: 'vendor-uuid-1', event_date: 'Oct 17th' })
+      ).rejects.toThrow(/event_date/);
+      expect(reqSpy).not.toHaveBeenCalledWith('PUT', expect.anything(), expect.anything());
+    });
+
+    it('addVendor: rejects an unparseable event_date', async () => {
+      reqSpy.mockResolvedValueOnce(MOCK_LIST_RESPONSE as never);
+      await expect(
+        addVendor(client, { vendor_type: 'PHOTOGRAPHER', name: 'X', city: 'C', state_province: 'NC', event_date: '17/10/2026' })
+      ).rejects.toThrow(/event_date/);
+      expect(reqSpy).not.toHaveBeenCalledWith('PUT', expect.anything(), expect.anything());
+    });
+
+    it('updateVendor: a date-only value lands on that calendar day in every US timezone (UTC noon, not UTC midnight)', async () => {
+      reqSpy
+        .mockResolvedValueOnce(MOCK_LIST_RESPONSE as never)
+        .mockResolvedValueOnce({ data: {} } as never);
+      await updateVendor(client, { uuid: 'vendor-uuid-1', event_date: '2026-10-17' });
+      const ms = putBody().event_date as number;
+      expect(ms).toBe(Date.UTC(2026, 9, 17, 12));
+      for (const timeZone of ['America/New_York', 'America/Los_Angeles', 'Pacific/Honolulu']) {
+        expect(new Date(ms).toLocaleDateString('en-CA', { timeZone })).toBe('2026-10-17');
+      }
+    });
+
+    it('updateVendor: a full ISO timestamp is passed through as-is', async () => {
+      reqSpy
+        .mockResolvedValueOnce(MOCK_LIST_RESPONSE as never)
+        .mockResolvedValueOnce({ data: {} } as never);
+      await updateVendor(client, { uuid: 'vendor-uuid-1', event_date: '2026-10-17T18:30:00Z' });
+      expect(putBody().event_date).toBe(Date.parse('2026-10-17T18:30:00Z'));
+    });
+
+    it('updateVendor: keeps the stored date when event_date is omitted', async () => {
+      reqSpy
+        .mockResolvedValueOnce(MOCK_LIST_RESPONSE as never)
+        .mockResolvedValueOnce({ data: {} } as never);
+      await updateVendor(client, { uuid: 'vendor-uuid-1', name: 'Renamed' });
+      expect(putBody().event_date).toBe(MOCK_BOOKED_VENDOR.event_date);
+    });
+  });
+
+  describe('updateVendor preserves fields it is not asked to change (fleet-audit #815)', () => {
+    function vendorRequest() {
+      return (reqSpy.mock.calls[1][2] as { reference_vendor_request: Record<string, unknown> })
+        .reference_vendor_request;
+    }
+
+    it('sends a new phone when one is given', async () => {
+      reqSpy
+        .mockResolvedValueOnce(MOCK_LIST_RESPONSE as never)
+        .mockResolvedValueOnce({ data: {} } as never);
+      await updateVendor(client, { uuid: 'vendor-uuid-1', phone: '(704) 555-0100' });
+      expect(vendorRequest().phone).toBe('(704) 555-0100');
+    });
+
+    it('carries the current phone through when the vendor card has one', async () => {
+      const withPhone = {
+        data: {
+          booked_vendors: [
+            { ...MOCK_BOOKED_VENDOR, vendor_card: { ...MOCK_BOOKED_VENDOR.vendor_card, phone: '(704) 555-0199' } },
+          ],
+        },
+      };
+      reqSpy
+        .mockResolvedValueOnce(withPhone as never)
+        .mockResolvedValueOnce({ data: {} } as never);
+      await updateVendor(client, { uuid: 'vendor-uuid-1', price_cents: 1 });
+      expect(vendorRequest().phone).toBe('(704) 555-0199');
+    });
+
+    it('does not send phone: null when no phone is known (never wipes it)', async () => {
+      reqSpy
+        .mockResolvedValueOnce(MOCK_LIST_RESPONSE as never)
+        .mockResolvedValueOnce({ data: {} } as never);
+      await updateVendor(client, { uuid: 'vendor-uuid-1', price_cents: 1 });
+      expect(vendorRequest()).not.toHaveProperty('phone');
+    });
+
+    it('keeps the current booked flag instead of forcing booked: true', async () => {
+      reqSpy
+        .mockResolvedValueOnce(MOCK_LIST_RESPONSE as never)
+        .mockResolvedValueOnce({ data: {} } as never);
+      await updateVendor(client, { uuid: 'slot-uuid-1', price_cents: 1 });
+      expect((reqSpy.mock.calls[1][2] as { booked: boolean }).booked).toBe(false);
+    });
+  });
+
   it('removeVendor: POSTs unbook with uuid', async () => {
     reqSpy.mockResolvedValueOnce({ data: {} } as never);
 

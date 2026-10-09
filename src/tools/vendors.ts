@@ -12,6 +12,8 @@ interface VendorCard {
   city: string | null;
   state_province: string | null;
   email: string | null;
+  /** Not seen in captured payloads; carried through on update when present. */
+  phone?: string | null;
   starting_price_cents: number | null;
 }
 
@@ -37,6 +39,29 @@ interface TypeaheadResult {
   phone: string | null;
   email: string | null;
   address: { city: string | null; state_province_region: string | null } | null;
+}
+
+/**
+ * Turn the `event_date` argument into the epoch-ms value Zola stores.
+ *
+ * - An unparseable string throws: `new Date('Oct 17th').getTime()` is NaN,
+ *   which JSON-serialises to `null` and would silently erase the stored date.
+ * - A date-only `YYYY-MM-DD` maps to 12:00 UTC, not midnight UTC. Midnight
+ *   UTC is the previous evening across the Americas, so the vendor's date
+ *   would display a day early; noon UTC is the same calendar day from
+ *   UTC-11 to UTC+11.
+ */
+export function parseEventDate(value: string): number {
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  const ms = dateOnly
+    ? Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]), 12)
+    : Date.parse(value);
+  if (Number.isNaN(ms) || (dateOnly && new Date(ms).getUTCDate() !== Number(dateOnly[3]))) {
+    throw new Error(
+      `Invalid event_date "${value}": use an ISO 8601 date (YYYY-MM-DD) or timestamp`
+    );
+  }
+  return ms;
 }
 
 export async function listVendors(client: ZolaClient): Promise<ToolResult> {
@@ -74,6 +99,7 @@ export async function addVendor(client: ZolaClient, args: {
   event_date?: string;
   reference_vendor_id?: number;
 }): Promise<ToolResult> {
+  const eventDate = args.event_date ? parseEventDate(args.event_date) : null;
   const listResponse = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
     '/v3/account-vendors/booked-list',
@@ -93,7 +119,7 @@ export async function addVendor(client: ZolaClient, args: {
     booked: true,
     booking_source: 'BOOKED_VENDORS',
     price_cents: args.price_cents ?? 0,
-    event_date: args.event_date ? new Date(args.event_date).getTime() : null,
+    event_date: eventDate,
     sync_with_budget_tool_enabled: true,
     facet_keys: [],
     reference_vendor_request: {
@@ -122,9 +148,11 @@ export async function updateVendor(client: ZolaClient, args: {
   city?: string;
   state_province?: string;
   email?: string;
+  phone?: string;
   price_cents?: number;
   event_date?: string;
 }): Promise<ToolResult> {
+  const eventDate = args.event_date ? parseEventDate(args.event_date) : undefined;
   const listResponse = await client.requestMobile<MobileEnvelope<BookedListResponse>>(
     'POST',
     '/v3/account-vendors/booked-list',
@@ -135,22 +163,25 @@ export async function updateVendor(client: ZolaClient, args: {
     throw new Error(`Vendor with UUID "${args.uuid}" not found`);
   }
 
+  // Only send phone when we know it: the vendor card the list returns has not
+  // been seen to carry one, and sending `phone: null` would risk wiping it.
+  const phone = args.phone ?? current.vendor_card?.phone ?? undefined;
+
   const body = {
     uuid: args.uuid,
     id: current.id,
     vendor_type: current.vendor_type,
-    booked: true,
+    booked: current.booked,
     booking_source: 'BOOKED_VENDORS',
     price_cents: args.price_cents ?? current.price_cents ?? 0,
-    event_date: args.event_date
-      ? new Date(args.event_date).getTime()
-      : current.event_date,
+    event_date: eventDate ?? current.event_date,
     sync_with_budget_tool_enabled: true,
     facet_keys: [],
     reference_vendor_request: {
       id: current.vendor_card?.id ?? null,
       name: args.name ?? current.vendor_name,
       email: args.email ?? current.vendor_card?.email ?? null,
+      ...(phone ? { phone } : {}),
       address: {
         city: args.city ?? current.vendor_card?.city ?? null,
         state_province_region: args.state_province ?? current.vendor_card?.state_province ?? null,
@@ -200,7 +231,7 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       email: z.string().optional().describe('Vendor email'),
       phone: z.string().optional().describe('Vendor phone'),
       price_cents: z.number().optional().describe('Total price in cents'),
-      event_date: z.string().optional().describe('Event date ISO 8601'),
+      event_date: z.string().optional().describe('Event date, ISO 8601 (YYYY-MM-DD) or timestamp; an unparseable value is rejected'),
       reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
     }),
     annotations: { destructiveHint: false },
@@ -214,8 +245,9 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       city: z.string().optional(),
       state_province: z.string().optional(),
       email: z.string().optional(),
+      phone: z.string().optional().describe('Vendor phone'),
       price_cents: z.number().optional(),
-      event_date: z.string().optional().describe('ISO 8601 date'),
+      event_date: z.string().optional().describe('ISO 8601 date (YYYY-MM-DD) or timestamp; an unparseable value is rejected'),
     }),
     annotations: { destructiveHint: false },
   }, (args) => updateVendor(client, args));
