@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.10](https://github.com/chrischall/zola-mcp/compare/v2.1.9...v2.1.10) (2026-10-09)
+
+
+### Bug Fixes
+
+* annotate tools truthfully and sync manifests with the served tools ([#280](https://github.com/chrischall/zola-mcp/issues/280)) ([ac086a4](https://github.com/chrischall/zola-mcp/commit/ac086a4d5afe465ca6b14211251ce2bf3ea448af))
+* declare the plugin MCP config under the mcpServers key Claude Code reads ([#281](https://github.com/chrischall/zola-mcp/issues/281)) ([80bf7ff](https://github.com/chrischall/zola-mcp/commit/80bf7ff243cdeaf64d47d093e7c6d064d1a4cefd))
+* **deps:** bump source-map-js from 1.2.1 to 1.2.2 in the security group across 1 directory ([#278](https://github.com/chrischall/zola-mcp/issues/278)) ([379dc3e](https://github.com/chrischall/zola-mcp/commit/379dc3e55b1ae8c86bd63d01510c87e8a5bc82d9))
+* **deps:** drop unused @fetchproxy/server dependency ([#277](https://github.com/chrischall/zola-mcp/issues/277)) ([65f3d32](https://github.com/chrischall/zola-mcp/commit/65f3d32d16b1fe355288f8aa3623a8b46a58b8d9))
+* **deps:** update @chrischall/mcp-utils to 3.0.0 ([#279](https://github.com/chrischall/zola-mcp/issues/279)) ([2204e89](https://github.com/chrischall/zola-mcp/commit/2204e8992060d8cee4ec91088c4f0d8f458facf6))
+* resolve low-severity audit findings ([#275](https://github.com/chrischall/zola-mcp/issues/275)) ([79e6c17](https://github.com/chrischall/zola-mcp/commit/79e6c176a5e4deaaa7a154e5496dd3201c154f9e))
+
 ## [2.1.9](https://github.com/chrischall/zola-mcp/compare/v2.1.8...v2.1.9) (2026-10-07)
 
 
