@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.11](https://github.com/chrischall/zola-mcp/compare/v2.1.10...v2.1.11) (2026-10-10)
+
+
+### Documentation
+
+* make AGENTS.md a symlink to CLAUDE.md ([#282](https://github.com/chrischall/zola-mcp/issues/282)) ([5b47604](https://github.com/chrischall/zola-mcp/commit/5b4760496f7698472e491a27571cd12c89d161fc))
+
 ## [2.1.10](https://github.com/chrischall/zola-mcp/compare/v2.1.9...v2.1.10) (2026-10-09)
 
 
