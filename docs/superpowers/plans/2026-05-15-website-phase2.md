@@ -85,7 +85,7 @@ describe('website-content: travel items', () => {
       state_province: 'NC',
       postal_code: '28211',
       country_code: 'US',
-      contact_number: '(704) 364-2400',
+      contact_number: '(704) 555-0164',
       url: 'https://hilton.com/x',
       timezone: 'America/New_York',
       source: 'GOOGLE_PLACES',
@@ -352,7 +352,7 @@ import {
 
 const MOCK_CTX = {
   weddingAccountId: 1000001,
-  weddingId: 7585869,
+  weddingId: 7000001,
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',
@@ -617,7 +617,7 @@ import {
 
 const MOCK_CTX = {
   weddingAccountId: 1000001,
-  weddingId: 7585869,
+  weddingId: 7000001,
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',

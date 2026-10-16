@@ -343,12 +343,12 @@ describe('ZolaClient', () => {
       data: {
         user: { id: 'user-1' },
         wedding_account: { wedding_account_id: 1000001 },
-        wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'alexjordan2026' },
+        wedding: { wedding_id: 7000001, wedding_date: '2026-10-17', slug: 'alexjordan2026' },
         registry: { id: 'registry-1' },
       },
     } as never);
     const ctx = await freshClient.getContext();
-    expect(ctx.weddingId).toBe(7585869);
+    expect(ctx.weddingId).toBe(7000001);
   });
 
   it('sends body as JSON with content-type header', async () => {
@@ -449,7 +449,7 @@ describe('ZolaClient', () => {
       data: {
         user: { id: 'user-1' },
         wedding_account: { wedding_account_id: 1000001 },
-        wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'alexjordan2026' },
+        wedding: { wedding_id: 7000001, wedding_date: '2026-10-17', slug: 'alexjordan2026' },
         registry: { id: 'registry-1' },
       },
     };
@@ -474,7 +474,7 @@ describe('ZolaClient', () => {
   it('getContext short-circuits when all three env vars are present', async () => {
     process.env.ZOLA_ACCOUNT_ID = '1000001';
     process.env.ZOLA_REGISTRY_ID = 'registry-env';
-    process.env.ZOLA_WEDDING_ID = '7585869';
+    process.env.ZOLA_WEDDING_ID = '7000001';
 
     const freshClient = new ZolaClient();
     const ctx = await freshClient.getContext();
@@ -482,7 +482,7 @@ describe('ZolaClient', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(ctx.weddingAccountId).toBe(1000001);
     expect(ctx.registryId).toBe('registry-env');
-    expect(ctx.weddingId).toBe(7585869);
+    expect(ctx.weddingId).toBe(7000001);
     expect(ctx.userId).toBe('');
 
     delete process.env.ZOLA_ACCOUNT_ID;
@@ -698,6 +698,51 @@ describe('ZolaClient timeouts and cancellation', () => {
     expect(err.stage).toBe('transport');
     expect(err.message).toContain('/v3/test');
     expect(err.message).toMatch(/timed out after 20ms/);
+  });
+
+  it('a write that times out reports the outcome as unknown, not a plain transport failure', async () => {
+    process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+    fetchMock.mockImplementation(hangUntilAborted);
+    const { WriteOutcomeUnknownError } = await import('@chrischall/mcp-utils');
+
+    const client = new ZolaClient({ requestTimeoutMs: 20 });
+    const err = await client.requestMobile('POST', '/v3/guests', { a: 1 }).catch((e) => e);
+
+    expect(err).toBeInstanceOf(WriteOutcomeUnknownError);
+    expect(err.outcomeUnknown).toBe(true);
+    expect(err.retrySafe).toBe(false);
+    expect(err.timedOut).toBe(true);
+    expect(err.message).toContain('/v3/guests');
+    expect(err.message).toMatch(/timed out after 20ms/);
+    expect(err.message).toMatch(/may already have been applied/);
+    expect(err.hint).toMatch(/list_guests|re-read/i);
+    // Still answers the ZolaApiError questions a caller branches on.
+    expect(err.stage).toBe('transport');
+    expect(err.path).toBe('/v3/guests');
+  });
+
+  it('a write whose connection drops reports the outcome as unknown', async () => {
+    process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+    const { WriteOutcomeUnknownError } = await import('@chrischall/mcp-utils');
+
+    const client = new ZolaClient();
+    for (const method of ['PUT', 'DELETE', 'PATCH']) {
+      const err = await client.requestMobile(method, '/v3/x', {}).catch((e) => e);
+      expect(err).toBeInstanceOf(WriteOutcomeUnknownError);
+      expect(err.timedOut).toBe(false);
+      expect(err.message).toContain('fetch failed');
+    }
+  });
+
+  it('a read that drops stays a plain transport failure (safe to retry)', async () => {
+    process.env.ZOLA_SESSION_TOKEN = makeMockJwt(FUTURE_EXP);
+    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+    const { WriteOutcomeUnknownError } = await import('@chrischall/mcp-utils');
+
+    const err = await new ZolaClient().requestMobile('GET', '/v3/x').catch((e) => e);
+    expect(err).not.toBeInstanceOf(WriteOutcomeUnknownError);
+    expect(err.stage).toBe('transport');
   });
 
   it('a stalled session refresh times out instead of hanging every queued call', async () => {

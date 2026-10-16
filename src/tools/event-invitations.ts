@@ -167,6 +167,19 @@ export async function setEventGuests(client: ZolaClient, args: {
   guest_groups: Array<{ guest_group_id: number; invited: boolean }>;
   confirmToken?: string;
 }, ctx: ServerContext): Promise<GatedResult> {
+  // Two entries for one household would put two conflicting copies of it in
+  // the one bulk PUT (the server keeps whichever it applies last) while the
+  // summary and preview report both. Refuse before reading or writing.
+  const seen = new Set<number>();
+  for (const req of args.guest_groups) {
+    if (seen.has(req.guest_group_id)) {
+      throw new Error(
+        `guest_group_id ${req.guest_group_id} is listed more than once; list each guest group once with the invited value you want.`
+      );
+    }
+    seen.add(req.guest_group_id);
+  }
+
   const { weddingAccountId: acct } = await client.getContext();
   const event = await requireEvent(client, acct, args.event_id);
 
@@ -354,7 +367,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
               invited: z.boolean().describe('true = invite the whole group; false = uninvite'),
             })
           )
-          .describe('Guest groups to set for this event. Only the listed groups are affected.'),
+          .describe('Guest groups to set for this event. Only the listed groups are affected; list each guest_group_id once.'),
         confirmToken: confirmTokenParam,
       }),
       annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },

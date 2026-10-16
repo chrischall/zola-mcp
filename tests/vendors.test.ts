@@ -6,7 +6,7 @@ import { setupClientMocks } from './_fixtures.js';
 const MOCK_BOOKED_VENDOR = {
   id: 26135549,
   uuid: 'vendor-uuid-1',
-  account_id: 7585875,
+  account_id: 7000002,
   vendor_type: 'VENUE',
   vendor_name: 'Doubletree by Hilton',
   booked: true,
@@ -28,7 +28,7 @@ const MOCK_BOOKED_VENDOR = {
 const MOCK_UNBOOKED_VENDOR = {
   id: 0,
   uuid: 'slot-uuid-1',
-  account_id: 7585875,
+  account_id: 7000002,
   vendor_type: 'PHOTOGRAPHER',
   vendor_name: '',
   booked: false,
@@ -69,7 +69,7 @@ describe('vendor tools (mobile API)', () => {
   it('searchVendors: POSTs typeahead search with query and taxonomy', async () => {
     const mockResults = {
       data: [
-        { id: 513236, name: 'Zoom Wedding Studio', phone: '(305) 915-8857', email: 'zoom@example.com', address: { city: 'Charlotte', state_province_region: 'NC' } },
+        { id: 513236, name: 'Zoom Wedding Studio', phone: '(305) 555-0187', email: 'zoom@example.com', address: { city: 'Charlotte', state_province_region: 'NC' } },
       ],
     };
     reqSpy.mockResolvedValueOnce(mockResults as never);

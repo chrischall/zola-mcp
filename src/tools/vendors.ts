@@ -249,7 +249,7 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       price_cents: z.number().optional(),
       event_date: z.string().optional().describe('ISO 8601 date (YYYY-MM-DD) or timestamp; an unparseable value is rejected'),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updateVendor(client, args));
 
   server.registerTool('remove_vendor', {

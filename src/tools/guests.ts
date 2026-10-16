@@ -345,7 +345,7 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       postal_code: z.string().optional(),
       country_code: z.string().optional().describe('Default: US'),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updateGuestAddress(client, args));
 
   server.registerTool('remove_guest', {

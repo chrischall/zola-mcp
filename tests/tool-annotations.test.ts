@@ -15,6 +15,7 @@ import { TOOL_REGISTRARS } from '../src/tools/index.js';
 
 interface Ann {
   readOnlyHint?: unknown;
+  idempotentHint?: unknown;
   destructiveHint?: unknown;
   openWorldHint?: unknown;
 }
@@ -74,6 +75,20 @@ describe('tool annotations', () => {
     expect(tools[name]?.destructiveHint).toBe(true);
   });
 
+  // Every update_* tool overwrites the stored value in place (FAQ answer,
+  // hotel booking code, vendor booking, guest address, theme). The MCP spec
+  // reserves destructiveHint:false for ADDITIVE updates, so a client that
+  // auto-approves "non-destructive" tools must not treat these as such. They
+  // are idempotent: the same call twice leaves the same state.
+  it('marks every in-place update_* overwrite destructive and idempotent', () => {
+    const updates = Object.keys(tools).filter((n) => n.startsWith('update_'));
+    expect(updates.length).toBeGreaterThanOrEqual(13);
+    const wrong = updates.filter(
+      (n) => tools[n]?.destructiveHint !== true || tools[n]?.idempotentHint !== true
+    );
+    expect(wrong).toEqual([]);
+  });
+
   it('holds the destructive write set at its measured size', () => {
     // A tripwire: growing this set should be a decision, not a side effect.
     const destructive = Object.entries(tools)
@@ -93,8 +108,18 @@ describe('tool annotations', () => {
       'remove_travel_item',
       'remove_vendor',
       'set_event_guests',
+      'update_budget_item',
+      'update_current_theme',
       'update_event',
+      'update_faq',
+      'update_guest_address',
+      'update_home_section',
+      'update_page',
+      'update_poi',
       'update_registry_item',
+      'update_travel_item',
+      'update_vendor',
+      'update_website_customization',
       'update_wedding_settings',
     ]);
   });

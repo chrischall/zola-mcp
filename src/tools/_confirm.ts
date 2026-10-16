@@ -1,9 +1,9 @@
 import type { CallToolResult, InputRequiredResult, ServerContext } from '@modelcontextprotocol/server';
 import {
-  confirmationFromEnv,
+  CONFIRM_FLOW_SENTENCE,
   confirmTokenParam,
+  confirmWrite as confirmWriteKit,
   hashConfirmPayload,
-  requireConfirmationWithFallback,
 } from '@chrischall/mcp-utils';
 
 export { confirmTokenParam };
@@ -16,9 +16,7 @@ export type { ServerContext };
 export type GatedResult = CallToolResult | InputRequiredResult;
 
 /** Appended to every gated tool's description. */
-export const CONFIRM_NOTE =
-  'Asks the user to confirm first: a confirmation prompt where the client supports one; otherwise the first call ' +
-  'returns a preview and a confirmToken, and only a repeat call with that token proceeds (see MCP_CONFIRM_MODE).';
+export const CONFIRM_NOTE = CONFIRM_FLOW_SENTENCE;
 
 export interface ConfirmWriteOptions {
   /** The tool name the token is bound to. */
@@ -61,13 +59,23 @@ export interface ConfirmWriteOptions {
 }
 
 /**
- * Confirm-gate for a mutating tool. A client that can show a confirmation
- * prompt is asked; one that cannot gets the two-phase token flow (governed by
- * `MCP_CONFIRM_MODE`): phase 1 makes no write and returns a preview of exactly
- * what would change plus a `confirmToken`, and only a repeat call with that
- * token proceeds. The token is bound to the tool, the target, the target's
- * current state and the body, so a changed argument — or a concurrent edit of
- * the target — is refused as DRAFT_CHANGED with a fresh preview.
+ * Shown as `willSend` when the body is withheld (`showBody: false`): the
+ * guest-directory round-trips carry every guest's address, email and phone.
+ */
+export const BODY_WITHHELD =
+  'the full guest-directory record for each household named above (withheld here: it carries every guest\'s contact details)';
+
+/**
+ * Confirm-gate for a mutating tool — a thin adapter over mcp-utils'
+ * `confirmWrite` kit that keeps this server's option names. A client that can
+ * show a confirmation prompt is asked; one that cannot gets the two-phase
+ * token flow (governed by `MCP_CONFIRM_MODE`): phase 1 makes no write and
+ * returns a preview of exactly what would change plus a `confirmToken`, and
+ * only a repeat call with that token proceeds. Both rails are bound to the
+ * tool, the target, the target's current state (as a revision hash), the
+ * request, the arguments and the preview the user was shown, so a changed
+ * argument — or a concurrent edit of the target — is refused as DRAFT_CHANGED
+ * with a fresh preview.
  *
  * Returns `undefined` to proceed with the write, otherwise the result to return
  * unchanged.
@@ -77,34 +85,22 @@ export function confirmWrite(
   opts: ConfirmWriteOptions
 ): Promise<InputRequiredResult | CallToolResult | undefined> {
   const showBody = opts.showBody ?? true;
-  const preview: Record<string, unknown> = {
-    action: opts.label,
-    ...(opts.about ?? {}),
-    method: opts.method,
-    path: opts.path,
-    ...(showBody && opts.body !== undefined ? { willSend: opts.body } : {}),
-  };
-  const payload = { method: opts.method, path: opts.path, body: opts.body };
-  return requireConfirmationWithFallback(
-    ctx,
-    confirmationFromEnv({
-      action: opts.action,
-      message: 'Review and confirm this Zola change:',
-      details: preview,
-      tool: opts.tool,
-      // Single-account server: one Zola sign-in per process, so there is no
-      // principal to bind beyond the process itself.
-      account: undefined,
-      args: opts.args,
-      confirmToken: opts.confirmToken,
-      subject: () => ({
-        target: opts.target,
-        ...(opts.current !== undefined ? { revision: hashConfirmPayload(opts.current) } : {}),
-        payload,
-        preview,
-      }),
-    })
-  );
+  return confirmWriteKit(ctx, {
+    tool: opts.tool,
+    action: opts.action,
+    summary: opts.label,
+    message: 'Review and confirm this Zola change:',
+    // Single-account server: one Zola sign-in per process, so there is no
+    // principal to bind beyond the process itself.
+    account: undefined,
+    target: opts.target,
+    revision: opts.current !== undefined ? hashConfirmPayload(opts.current) : undefined,
+    request: { method: opts.method, path: opts.path, body: opts.body },
+    ...(!showBody && opts.body !== undefined ? { willSend: BODY_WITHHELD } : {}),
+    preview: opts.about ?? {},
+    args: opts.args,
+    confirmToken: opts.confirmToken,
+  });
 }
 
 /**

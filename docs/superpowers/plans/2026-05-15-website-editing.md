@@ -36,12 +36,12 @@ it('getContext: returns weddingId from context response', async () => {
     data: {
       user: { id: 'user-1' },
       wedding_account: { wedding_account_id: 1000001 },
-      wedding: { wedding_id: 7585869, wedding_date: '2026-10-17', slug: 'alexjordan2026' },
+      wedding: { wedding_id: 7000001, wedding_date: '2026-10-17', slug: 'alexjordan2026' },
       registry: { id: 'registry-1' },
     },
   } as never);
   const ctx = await freshClient.getContext();
-  expect(ctx.weddingId).toBe(7585869);
+  expect(ctx.weddingId).toBe(7000001);
 });
 ```
 
@@ -125,12 +125,12 @@ weddingId: Number(envWeddingId) || response.data.wedding.wedding_id,
 Run: `grep -rn "getContext.*mockResolvedValue\|weddingAccountId:" tests/`
 Expected: list of test files that mock `getContext` — each needs `weddingId` added.
 
-For each match, add `weddingId: 7585869,` to the mocked context object. Example:
+For each match, add `weddingId: 7000001,` to the mocked context object. Example:
 
 ```ts
 vi.spyOn(client, 'getContext').mockResolvedValue({
   weddingAccountId: 1000001,
-  weddingId: 7585869,
+  weddingId: 7000001,
   registryId: 'registry-id-1',
   userId: 'user-id-1',
   weddingDate: '2026-10-17',
@@ -175,7 +175,7 @@ import { listPages } from '../src/tools/website.js';
 
 const MOCK_CTX = {
   weddingAccountId: 1000001,
-  weddingId: 7585869,
+  weddingId: 7000001,
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',
@@ -528,8 +528,8 @@ Append to `tests/website.test.ts`:
       user: { id: 'user-1' },
       wedding_account: { wedding_account_id: 1000001 },
       wedding: {
-        wedding_id: 7585869,
-        account_id: 7585875,
+        wedding_id: 7000001,
+        account_id: 7000002,
         slug: 'alexjordan2026',
         owner_first_name: 'Alex',
         owner_last_name: 'Rivera',
@@ -555,7 +555,7 @@ Append to `tests/website.test.ts`:
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.title).toBe('Alex & Jordan');
     expect(parsed.slug).toBe('alexjordan2026');
-    expect(parsed.wedding_id).toBe(7585869);
+    expect(parsed.wedding_id).toBe(7000001);
   });
 
   it('updateWeddingSettings: GETs current wedding, merges args, PUTs to /v3/weddings/{id}', async () => {
@@ -571,10 +571,10 @@ Append to `tests/website.test.ts`:
     expect(reqSpy).toHaveBeenNthCalledWith(
       2,
       'PUT',
-      '/v3/weddings/7585869',
+      '/v3/weddings/7000001',
       expect.objectContaining({
-        wedding_id: 7585869,
-        account_id: 7585875,
+        wedding_id: 7000001,
+        account_id: 7000002,
         title: 'New Title',
         hashtag: '#alexjordan2026',
         slug: 'alexjordan2026',
@@ -796,7 +796,7 @@ import {
 
 const MOCK_CTX = {
   weddingAccountId: 1000001,
-  weddingId: 7585869,
+  weddingId: 7000001,
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',

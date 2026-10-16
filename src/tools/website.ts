@@ -205,7 +205,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       hidden: z.boolean().optional().describe('Hide the page from the public site'),
       customization: z.unknown().optional().describe('Layout customization object (see list_pages for shape)'),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updatePage(client, args));
 
   server.registerTool('get_wedding_settings', {
