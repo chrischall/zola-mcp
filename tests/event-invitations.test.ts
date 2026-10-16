@@ -264,6 +264,24 @@ describe('event-invitation tools (mobile API)', () => {
     ).rejects.toThrow(/99999/);
   });
 
+  it('setEventGuests: rejects a guest_group_id listed twice, before any write', async () => {
+    wire(reqSpy, () => [group(3000001, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
+    await expect(
+      setEventGuests(
+        client,
+        {
+          event_id: CEREMONY,
+          guest_groups: [
+            { guest_group_id: 3000001, invited: true },
+            { guest_group_id: 3000001, invited: false },
+          ],
+        },
+        NO_ELICIT_CTX
+      )
+    ).rejects.toThrow(/3000001.*more than once/);
+    expect(reqSpy.mock.calls.some((c) => c[0] === 'PUT')).toBe(false);
+  });
+
   it('setEventGuests: rejects an unknown guest_group_id', async () => {
     wire(reqSpy, () => [group(3000001, 'X', [guest(1, 'A', 'PRIMARY', [])])]);
     await expect(
