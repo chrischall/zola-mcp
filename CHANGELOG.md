@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.11](https://github.com/chrischall/zola-mcp/compare/v2.1.10...v2.1.11) (2026-10-16)
+
+
+### Bug Fixes
+
+* **deps:** bump the production-dependencies group with 2 updates ([#285](https://github.com/chrischall/zola-mcp/issues/285)) ([e0e8ac3](https://github.com/chrischall/zola-mcp/commit/e0e8ac3606d97047f95f2e07410b5799a509bbc4))
+* flag unknown write outcomes, mark in-place updates destructive, refuse duplicate guest groups ([#286](https://github.com/chrischall/zola-mcp/issues/286)) ([afd8a22](https://github.com/chrischall/zola-mcp/commit/afd8a228a7c1178bd8a14b6ea77e631b01163297))
+* **plugin:** launch the published package so marketplace installs start ([#287](https://github.com/chrischall/zola-mcp/issues/287)) ([f076aed](https://github.com/chrischall/zola-mcp/commit/f076aed5db0ce818642f6e46e231d20ac1bced6f))
+
+
+### Documentation
+
+* make AGENTS.md a symlink to CLAUDE.md ([#282](https://github.com/chrischall/zola-mcp/issues/282)) ([5b47604](https://github.com/chrischall/zola-mcp/commit/5b4760496f7698472e491a27571cd12c89d161fc))
+
 ## [2.1.10](https://github.com/chrischall/zola-mcp/compare/v2.1.9...v2.1.10) (2026-10-09)
 
 
