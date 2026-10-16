@@ -25,4 +25,19 @@ describe('plugin manifest', () => {
     expect(typeof manifest.mcpServers).toBe('string');
     expect(existsSync(join(ROOT, manifest.mcpServers as string))).toBe(true);
   });
+
+  it('launches the published npm package, not a dist/ file a git-source install never has', () => {
+    // A marketplace (git-source) plugin install does not build the repo, and
+    // dist/ is gitignored, so `node ${CLAUDE_PLUGIN_ROOT}/dist/...` failed to
+    // connect (fleet-audit #1195).
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { name: string };
+    const config = JSON.parse(readFileSync(join(ROOT, '.mcp.json'), 'utf8')) as {
+      mcpServers: Record<string, { command: string; args: string[]; env?: Record<string, string> }>;
+    };
+    const zola = config.mcpServers.zola;
+    expect(zola.command).toBe('npx');
+    expect(zola.args).toEqual(['-y', pkg.name]);
+    expect(JSON.stringify(zola.args)).not.toContain('dist/');
+    expect(zola.env).toEqual({ ZOLA_REFRESH_TOKEN: '${ZOLA_REFRESH_TOKEN}' });
+  });
 });
