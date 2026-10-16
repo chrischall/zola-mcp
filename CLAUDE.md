@@ -117,7 +117,7 @@ Confirm-gated writes (`src/tools/_confirm.ts`) are exercised end-to-end in `test
   marketplace.json  Marketplace catalog entry
 skills/             Claude Code skill directory referenced by plugin.json (skills/<name>/SKILL.md, plugin-auto-discovered)
 manifest.json       mcpb bundle manifest (built into .mcpb by Release workflow)
-.mcp.json           MCP server entry for Claude Code (uses ${CLAUDE_PLUGIN_ROOT})
+.mcp.json           MCP server entry for the Claude Code plugin (`npx -y zola-mcp` — a git-source install has no dist/)
 server.json         MCP Registry submission
 mint.yaml           mcp-host hosting manifest (env / egress / state for registration)
 ```

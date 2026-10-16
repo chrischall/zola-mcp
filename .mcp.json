@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "zola": {
-      "command": "node",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/bundle.js"],
+      "command": "npx",
+      "args": ["-y", "zola-mcp"],
       "env": {
         "ZOLA_REFRESH_TOKEN": "${ZOLA_REFRESH_TOKEN}"
       }
