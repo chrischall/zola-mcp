@@ -114,6 +114,6 @@ export function registerBudgetTools(server: McpServer, client: ZolaClient): void
       actual_cost_cents: z.number().optional().describe('Actual cost in cents'),
       note: z.string().optional().describe('Note for the budget item'),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updateBudgetItem(client, args));
 }

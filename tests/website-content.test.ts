@@ -463,7 +463,7 @@ describe('website-content: travel items', () => {
       state_province: 'NC',
       postal_code: '28211',
       country_code: 'US',
-      contact_number: '(704) 364-2400',
+      contact_number: '(704) 555-0164',
       url: 'https://hilton.com/x',
       timezone: 'America/New_York',
       source: 'GOOGLE_PLACES',

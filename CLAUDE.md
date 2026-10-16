@@ -87,7 +87,7 @@ This is the canonical "browser-bootstrap + Node-direct" shape shared with ofw-mc
 
 ## Response shape — minified, and a `view` parameter only where privacy needs one
 
-`jsonResult` (`src/types.ts`) is `minifiedResult` from `@chrischall/mcp-utils`: every one of the 76 tool results is a single line of JSON with no indentation. Indentation is tokens the caller pays for and never reads; whitespace *inside* a value is untouched.
+`jsonResult` (`src/types.ts`) is `minifiedResult` from `@chrischall/mcp-utils`: every one of the 77 tool results is a single line of JSON with no indentation. Indentation is tokens the caller pays for and never reads; whitespace *inside* a value is untouched.
 
 There is **no blanket `view: compact | full` parameter for size, and it was measured before being declined.** A `src/view.ts` was added by a fleet rollout, wired to nothing, and removed. Three findings, all from the captured fixtures in `tests/fixtures/`, and none of them matching the story that rollout told:
 
@@ -103,7 +103,7 @@ If response size is worth attacking here, the lever is already in the repo and i
 
 Tests in `tests/`. Run with `npm test`. No real network — `client.requestMobile` is stubbed via `vi.spyOn`, and `client.getContext` is mocked the same way. Shared fixtures live in `tests/_fixtures.ts`. `vitest.config.ts` enables v8 coverage but does not currently enforce a threshold.
 
-`tests/fixtures.leak.test.ts` guards this public repo against live-account data. Its email and phone checks are committed; the list of real identifiers (names, the wedding slug and hashtag) is **not**, in any form — a salted digest of a name is dictionary-recoverable. Keep that list in the gitignored `tests/leak-denylist.local.txt` (one entry per line, `=` prefix for a case-sensitive match) or `ZOLA_LEAK_DENYLIST`.
+`tests/fixtures.leak.test.ts` guards this public repo against live-account data. All its checks scan every tracked text file (`git ls-files`, lockfile excepted). Its email and phone checks are committed — phone numbers must use a `555` placeholder (`555-01xx`); the list of real identifiers (names, the wedding slug and hashtag, the live wedding/account ids) is **not**, in any form — a salted digest of a name is dictionary-recoverable. Keep that list in the gitignored `tests/leak-denylist.local.txt` (one entry per line, `=` prefix for a case-sensitive match) or `ZOLA_LEAK_DENYLIST`. Ids in tests and docs are synthetic: `wedding_account_id` 1000001, events 2000001/2000002, guest groups 3000001…, `wedding_id` 7000001, `account_id` 7000002.
 
 Confirm-gated writes (`src/tools/_confirm.ts`) are exercised end-to-end in `tests/confirm-gates.test.ts`; unit tests drive a gated function through both phases with `confirmed()` from `tests/_confirm-helpers.ts`.
 

@@ -153,7 +153,7 @@ describe('invitation (card-project) tools', () => {
 
   describe('Tier 2 — writes', () => {
     it('createCardProject POSTs with quantity, suite, and lead variation', async () => {
-      reqSpy.mockResolvedValueOnce({ data: { uuid: PROJECT_UUID, account_id: 7585875 } } as never);
+      reqSpy.mockResolvedValueOnce({ data: { uuid: PROJECT_UUID, account_id: 7000002 } } as never);
 
       await createCardProject(client, {
         suite_uuid: SUITE_UUID,

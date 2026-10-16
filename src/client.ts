@@ -1,6 +1,7 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import {
+  WriteOutcomeUnknownError,
   readEnvVar,
   loadDotenvSafely,
   decodeJwtExp,
@@ -133,6 +134,35 @@ export class ZolaApiError extends Error {
     this.path = init.path;
     this.bytes = init.bytes ?? null;
     this.bodyPreview = init.bodyPreview ?? null;
+  }
+}
+
+/** RFC 9110 safe methods: a request with one of these never writes. */
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
+
+/** Hint on a write whose outcome is unknown: re-read before retrying. */
+export const ZOLA_WRITE_OUTCOME_HINT =
+  'The change may already have been applied. Re-read with the matching list/get tool ' +
+  '(list_guests, list_faqs, list_vendors, list_card_projects, get_registry, …) before retrying; do not resend blindly.';
+
+/**
+ * A Zola write that was sent but got no response (timeout, dropped
+ * connection, cancellation). mcp-utils' {@link WriteOutcomeUnknownError} —
+ * `outcomeUnknown: true`, `retrySafe: false`, a "check before retrying" hint —
+ * that also carries the {@link ZolaApiError} fields callers branch on.
+ */
+export class ZolaWriteOutcomeUnknownError extends WriteOutcomeUnknownError {
+  readonly stage = 'transport' as const;
+  readonly path: string;
+
+  constructor(method: string, path: string, cause: unknown, timeoutMs: number) {
+    const timedOut = cause instanceof Error && cause.name === 'TimeoutError';
+    super(`Zola API ${path}`, method, {
+      cause,
+      hint: ZOLA_WRITE_OUTCOME_HINT,
+      ...(timedOut ? { timeoutMs } : {}),
+    });
+    this.path = path;
   }
 }
 
@@ -381,6 +411,13 @@ export class ZolaClient {
         signal: withAmbientCancellation(AbortSignal.timeout(this.requestTimeoutMs)),
       });
     } catch (cause) {
+      // A write (POST/PUT/PATCH/DELETE) that was sent but got no response may
+      // already have landed — a plain "transport failure" reads as "safe to
+      // retry", and a retried add_guest / add_faq / create_card_project makes a
+      // duplicate. Say the outcome is unknown and name the re-read.
+      if (!SAFE_METHODS.has(method.toUpperCase())) {
+        throw new ZolaWriteOutcomeUnknownError(method, path, cause, this.requestTimeoutMs);
+      }
       // DNS failure, TLS error, socket reset, timeout, cancellation. There is
       // no status code to report here, and saying so explicitly is the point:
       // "transport" tells the reader not to go looking for one.

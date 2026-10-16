@@ -107,8 +107,8 @@ const EVENTS = {
 };
 
 const WEDDING = {
-  wedding_id: 7585869,
-  account_id: 7585875,
+  wedding_id: 7000001,
+  account_id: 7000002,
   slug: 'alexjordan2026',
   owner_first_name: 'Alex',
   owner_last_name: 'Rivera',
@@ -236,7 +236,7 @@ const GATED: Array<{
     tool: 'update_wedding_settings',
     args: { slug: 'new-slug' },
     method: 'PUT',
-    path: '/v3/weddings/7585869',
+    path: '/v3/weddings/7000001',
     names: ['Alex & Jordan', 'alexjordan2026', 'new-slug'],
   },
   {

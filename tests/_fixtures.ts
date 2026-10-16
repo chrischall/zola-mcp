@@ -4,7 +4,7 @@ import type { UserContext } from '../src/client.js';
 
 export const MOCK_CTX: UserContext = {
   weddingAccountId: 1000001,
-  weddingId: 7585869,
+  weddingId: 7000001,
   registryId: 'registry-1',
   userId: 'user-1',
   weddingDate: '2026-10-17',

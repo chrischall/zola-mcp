@@ -186,7 +186,7 @@ export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient)
       theme_key: z.string().describe('Theme key from search_themes (e.g., "galata", "blake-cranberry")'),
       theme_layout_type: z.enum(['MULTI_PAGE', 'SINGLE_PAGE']).optional().describe('Default MULTI_PAGE'),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updateCurrentTheme(client, args));
 
   server.registerTool('update_website_customization', {
@@ -206,6 +206,6 @@ export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient)
       header_color: z.string().optional().describe('Writable only via Zola\'s web-api (cookie+CSRF), not the mobile-api this MCP uses. Passing this throws.'),
       nav_font_color: z.string().optional().describe('Writable only via Zola\'s web-api (cookie+CSRF), not the mobile-api this MCP uses. Passing this throws.'),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updateWebsiteCustomization(client, args));
 }

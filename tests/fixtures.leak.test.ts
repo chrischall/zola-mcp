@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, existsSync } from 'fs';
+import { execFileSync } from 'child_process';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -20,8 +21,9 @@ import { fileURLToPath } from 'url';
  * per line, `#` comments). What IS committed are the shape checks — emails and
  * phone numbers — which need no secret to run.
  *
- * It scans every fixture AND every test source, doc and source file, so a new
- * capture or a copy-pasted real value is covered without anyone opting in.
+ * All three checks — denylist, email and phone — scan every tracked text file
+ * (fixtures, tests, docs, source, skills, manifests), so a new capture or a
+ * copy-pasted real value is covered without anyone opting in.
  */
 
 const TESTS = dirname(fileURLToPath(import.meta.url));
@@ -30,8 +32,24 @@ const FIXTURES = join(TESTS, 'fixtures');
 
 const files = readdirSync(FIXTURES).filter((f) => /\.(json|html)$/.test(f));
 
-/** Every tracked text file the guard scans, relative to the repo root. */
+/** Text file extensions the guard reads; everything else (images, lockfile) is skipped. */
+const TEXT_FILE = /\.(ts|js|mjs|cjs|md|json|html|ya?ml|txt|example|toml)$|(^|\/)\.[a-z]+rc$|(^|\/)\.env\.example$/;
+
+/**
+ * Every tracked text file the guard scans, relative to the repo root — from
+ * `git ls-files`, so a capture pasted anywhere in the repo is covered. The
+ * lockfile is skipped (third-party package metadata, megabytes of it). Falls
+ * back to walking the known source directories when git is unavailable.
+ */
 function scannedFiles(): string[] {
+  try {
+    const listed = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' })
+      .split('\0')
+      .filter((f) => f !== '' && f !== 'package-lock.json' && TEXT_FILE.test(f) && existsSync(join(ROOT, f)));
+    if (listed.length > 0) return listed;
+  } catch {
+    // not a git checkout — fall through to the directory walk
+  }
   const out: string[] = [];
   for (const dir of ['tests', 'docs', 'src', 'skills']) {
     const abs = join(ROOT, dir);
@@ -93,6 +111,17 @@ export function realEmails(text: string): string[] {
 /** A US phone number, with or without area code / punctuation. */
 const PHONE = /(?:\(?\b\d{3}\)?[\s.-]?)?\b\d{3}-\d{4}\b/g;
 
+/**
+ * A number with a 555 exchange or area code (555-0100…0199 is the range
+ * reserved for fiction; `555-123-4567` is the conventional placeholder) is not
+ * a capture. Anything else looks like a real listing.
+ */
+const FICTIONAL_PHONE = /(?<!\d)555(?!\d)/;
+
+export function realPhones(text: string): string[] {
+  return [...(text.match(PHONE) ?? [])].filter((n) => !FICTIONAL_PHONE.test(n));
+}
+
 describe('the leak guard itself', () => {
   it('commits no identifier list in any form — no plaintext, no digests', () => {
     const self = readFileSync(fileURLToPath(import.meta.url), 'utf8');
@@ -111,6 +140,21 @@ describe('the leak guard itself', () => {
   it('matches an "="-prefixed entry case-sensitively (a lowercase brand word is not a capitalised name)', () => {
     expect(findLeaks('zelda brand', ['=Zelda'])).toEqual([]);
     expect(findLeaks('Love, Zelda', ['=Zelda'])).toEqual(['Zelda']);
+  });
+
+  it('flags a captured phone number and allows 555 placeholders', () => {
+    // Assembled at runtime so this file does not itself trip the scan below.
+    const real = `(212) ${['736', '3100'].join('-')}`;
+    expect(realPhones(`call ${real}`)).toEqual([real]);
+    expect(realPhones('call (704) 555-0142, 555-0100 or 555-123-4567')).toEqual([]);
+  });
+
+  it('scans every tracked file, not just tests/fixtures', () => {
+    const scanned = scannedFiles();
+    for (const f of ['README.md', 'manifest.json', 'src/client.ts', 'tests/vendors.test.ts']) {
+      expect(scanned).toContain(f);
+    }
+    expect(scanned).not.toContain('package-lock.json');
   });
 
   it('flags a real email address and allows placeholders and the maintainer contact', () => {
@@ -139,9 +183,8 @@ describe('the repo carries no live identifiers', () => {
     expect(realEmails(readFileSync(join(ROOT, file), 'utf8'))).toEqual([]);
   });
 
-  it.each(files)('fixture %s contains no phone number', (file) => {
-    const text = readFileSync(join(FIXTURES, file), 'utf8');
-    expect(text.match(PHONE) ?? []).toEqual([]);
+  it.each(scanned)('%s contains no real phone number', (file) => {
+    expect(realPhones(readFileSync(join(ROOT, file), 'utf8'))).toEqual([]);
   });
 });
 

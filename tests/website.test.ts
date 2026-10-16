@@ -101,8 +101,8 @@ describe('website tools', () => {
       user: { id: 'user-1' },
       wedding_account: { wedding_account_id: 1000001 },
       wedding: {
-        wedding_id: 7585869,
-        account_id: 7585875,
+        wedding_id: 7000001,
+        account_id: 7000002,
         slug: 'alexjordan2026',
         owner_first_name: 'Alex',
         owner_last_name: 'Rivera',
@@ -128,7 +128,7 @@ describe('website tools', () => {
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.title).toBe('Alex & Jordan');
     expect(parsed.slug).toBe('alexjordan2026');
-    expect(parsed.wedding_id).toBe(7585869);
+    expect(parsed.wedding_id).toBe(7000001);
   });
 
   it('updateWeddingSettings: GETs current wedding, merges args, PUTs to /v3/weddings/{id}', async () => {
@@ -149,10 +149,10 @@ describe('website tools', () => {
     expect(reqSpy).toHaveBeenNthCalledWith(
       3,
       'PUT',
-      '/v3/weddings/7585869',
+      '/v3/weddings/7000001',
       expect.objectContaining({
-        wedding_id: 7585869,
-        account_id: 7585875,
+        wedding_id: 7000001,
+        account_id: 7000002,
         title: 'New Title',
         hashtag: '#alexjordan2026',
         slug: 'alexjordan2026',

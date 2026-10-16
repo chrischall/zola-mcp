@@ -471,7 +471,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       answer: z.string(),
       display_order: z.number(),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updateFaq(client, args));
 
   server.registerTool('remove_faq', {
@@ -510,7 +510,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       display_order: z.number(),
       hidden: z.boolean(),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updateHomeSection(client, args));
 
   server.registerTool('remove_home_section', {
@@ -567,7 +567,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       url: z.string().optional(),
       display_order: z.number().optional(),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updatePoi(client, args));
 
   server.registerTool('remove_poi', {
@@ -634,7 +634,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       timezone: z.string().optional(),
       display_order: z.number().optional(),
     }),
-    annotations: { destructiveHint: false, openWorldHint: true },
+    annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (args) => updateTravelItem(client, args));
 
   server.registerTool('remove_travel_item', {
