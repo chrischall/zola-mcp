@@ -86,3 +86,9 @@ egress:
     # NOT `zola.com` (apex): it is only the bootstrap cookie domain and the
     # sign-in hint; the process never dials it, and the apex 301s TO www,
     # never the reverse. Neither host redirects on the paths used.
+examples:
+  - prompt: How many guests have RSVP'd yes, no, or not at all for each of our wedding events?
+    note: Reads the per-event RSVP summary.
+  - prompt: Summarize our wedding budget — what we've budgeted, spent, and paid so far, by item.
+  - prompt: Which guests still don't have a seat assigned on our seating chart?
+    note: Read-only; lists unseated guests.
