@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.12](https://github.com/chrischall/zola-mcp/compare/v2.1.11...v2.1.12) (2026-10-19)
+
+
+### Bug Fixes
+
+* **deps:** bump dotenv from 18.0.6 to 18.0.8 in the production-dependencies group ([#291](https://github.com/chrischall/zola-mcp/issues/291)) ([a961f15](https://github.com/chrischall/zola-mcp/commit/a961f159598b994843e3a0ecb2d54a51322283aa))
+
+
+### Documentation
+
+* **mint:** add sample prompts for the public catalog ([#294](https://github.com/chrischall/zola-mcp/issues/294)) ([6796cd8](https://github.com/chrischall/zola-mcp/commit/6796cd862f30212e8d3ea4f6aae66c13c9e699de))
+
 ## [2.1.11](https://github.com/chrischall/zola-mcp/compare/v2.1.10...v2.1.11) (2026-10-16)
 
 
