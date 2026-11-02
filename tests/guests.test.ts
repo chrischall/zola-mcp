@@ -281,6 +281,20 @@ describe('guest tools (mobile API)', () => {
     expect(body.guest_group_tier).toBe('A');
   });
 
+  it('addGuest: normalises affiliation case and passes unlisted values through', async () => {
+    reqSpy
+      .mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never)
+      .mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never);
+
+    await addGuest(client, { first_name: 'Pat', last_name: 'Morgan', affiliation: ' partner_family_friend ' });
+    await addGuest(client, { first_name: 'Pat', last_name: 'Morgan', affiliation: 'SOME_NEW_VALUE' });
+
+    const first = reqSpy.mock.calls[0][2] as AddBody;
+    expect(first.guest_group_affiliation).toBe('PARTNER_FAMILY_FRIEND');
+    expect(first.guests[0].affiliation).toBe('PARTNER_FAMILY_FRIEND');
+    expect((reqSpy.mock.calls[1][2] as AddBody).guest_group_affiliation).toBe('SOME_NEW_VALUE');
+  });
+
   it('addGuest: returns the created group', async () => {
     reqSpy.mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never);
 
