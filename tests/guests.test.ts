@@ -144,43 +144,162 @@ describe('guest tools (mobile API)', () => {
     expect(reqSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('addGuest: POSTs to groups with correct body', async () => {
-    reqSpy.mockResolvedValueOnce({ data: { guest_group_id: 999 } } as never);
+  // The create response as the live API returned it (Nov 2026), anonymised to
+  // the repo's synthetic ids/names. A group created through add_guest reads back
+  // in exactly this shape.
+  const CREATED_GROUP = {
+    status: 'success',
+    data: {
+      guest_group_id: 3000099,
+      guest_group_uuid: '00000000-0000-4000-8000-000000000099',
+      wedding_account_id: 1000001,
+      invitation_sent: false,
+      invited: true,
+      save_the_date_sent: false,
+      envelope_recipient: 'Pat and Sam Morgan',
+      addressing_style: 'SEMI_FORMAL',
+      guest_group_affiliation: 'PARTNER_FAMILY_FRIEND',
+      guest_group_tier: 'A',
+      guests: [
+        {
+          guest_id: 4000099, relationship_type: 'PRIMARY', prefix: null, first_name: 'Pat', middle_name: null,
+          family_name: 'Morgan', suffix: null, address1: '3839 N Alta Vista Terrace', address2: null,
+          city: 'Chicago', state_province: 'IL', postal_code: '60613', country_code: 'US',
+          affiliation: 'PARTNER_FAMILY_FRIEND', tier: 'A', source: 'IOS', rsvp: 'NO_RESPONSE',
+          event_invitations: [{ id: 5000001, event_id: 2000001, meal_option_id: null, rsvp_type: 'NO_RESPONSE', rsvp_at: null }],
+          tags: [],
+        },
+        {
+          guest_id: 4000100, relationship_type: 'PARTNER', prefix: null, first_name: 'Sam', middle_name: null,
+          family_name: 'Morgan', suffix: null, address1: '3839 N Alta Vista Terrace', address2: null,
+          city: 'Chicago', state_province: 'IL', postal_code: '60613', country_code: 'US',
+          affiliation: 'PARTNER_FAMILY_FRIEND', tier: 'A', source: 'IOS', rsvp: 'NO_RESPONSE',
+          event_invitations: [{ id: 5000002, event_id: 2000001, meal_option_id: null, rsvp_type: 'NO_RESPONSE', rsvp_at: null }],
+          tags: [],
+        },
+      ],
+    },
+  };
 
-    await addGuest(client, { first_name: 'Test', last_name: 'Guest', affiliation: 'PRIMARY_FRIEND' });
+  const FULL_ARGS = {
+    first_name: 'Pat',
+    last_name: 'Morgan',
+    plus_one_first_name: 'Sam',
+    affiliation: 'PARTNER_FAMILY_FRIEND',
+    event_ids: [2000001],
+    address1: '3839 N Alta Vista Terrace',
+    city: 'Chicago',
+    state_province: 'IL',
+    postal_code: '60613',
+  };
 
-    expect(reqSpy).toHaveBeenCalledWith(
-      'POST',
-      '/v3/guestlists/groups',
-      expect.objectContaining({
-        wedding_account_id: 1000001,
-        invited: true,
-        guests: [expect.objectContaining({
-          first_name: 'Test',
-          family_name: 'Guest',
-          relationship_type: 'PRIMARY',
-        })],
-      })
-    );
+  type AddBody = { guests: Record<string, unknown>[]; [k: string]: unknown };
+
+  it('addGuest: sends the body shape the live API accepts (regression: every call 400d)', async () => {
+    reqSpy.mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never);
+
+    await addGuest(client, FULL_ARGS);
+
+    expect(reqSpy).toHaveBeenCalledWith('POST', '/v3/guestlists/groups', expect.anything());
+    const body = reqSpy.mock.calls[0][2] as AddBody;
+    expect(body).toEqual({
+      wedding_account_id: 1000001,
+      guest_group_affiliation: 'PARTNER_FAMILY_FRIEND',
+      guest_group_tier: 'A',
+      invited: true,
+      invitation_sent: false,
+      save_the_date_sent: false,
+      guests: [
+        expect.objectContaining({ first_name: 'Pat', family_name: 'Morgan', relationship_type: 'PRIMARY' }),
+        expect.objectContaining({ first_name: 'Sam', family_name: 'Morgan', relationship_type: 'PARTNER' }),
+      ],
+    });
   });
 
-  it('addGuest: includes plus-one with PARTNER relationship', async () => {
-    reqSpy.mockResolvedValueOnce({ data: {} } as never);
+  it('addGuest: never sends empty-string prefix/middle_name/suffix (the cause of the 400)', async () => {
+    reqSpy.mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never);
 
-    await addGuest(client, {
-      first_name: 'Pat',
-      last_name: 'Morgan',
-      plus_one_first_name: 'Sam',
-      plus_one_last_name: 'Morgan',
-    });
+    await addGuest(client, { first_name: 'Pat', last_name: 'Morgan' });
 
-    const body = reqSpy.mock.calls[0][2] as { guests: Record<string, unknown>[] };
-    expect(body.guests).toHaveLength(2);
-    expect(body.guests[1]).toEqual(expect.objectContaining({
-      first_name: 'Sam',
-      family_name: 'Morgan',
-      relationship_type: 'PARTNER',
-    }));
+    const [guest] = (reqSpy.mock.calls[0][2] as AddBody).guests;
+    for (const value of Object.values(guest)) expect(value).not.toBe('');
+    expect(guest).not.toHaveProperty('prefix');
+    expect(guest).not.toHaveProperty('middle_name');
+    expect(guest).not.toHaveProperty('suffix');
+  });
+
+  it('addGuest: applies event_ids and the address to every guest', async () => {
+    reqSpy.mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never);
+
+    await addGuest(client, FULL_ARGS);
+
+    const { guests } = reqSpy.mock.calls[0][2] as AddBody;
+    for (const guest of guests) {
+      expect(guest).toEqual(expect.objectContaining({
+        address1: '3839 N Alta Vista Terrace',
+        city: 'Chicago',
+        state_province: 'IL',
+        postal_code: '60613',
+        country_code: 'US',
+        affiliation: 'PARTNER_FAMILY_FRIEND',
+        tier: 'A',
+        event_invitations: [{ id: null, event_id: 2000001, rsvp_type: 'NO_RESPONSE' }],
+      }));
+    }
+  });
+
+  it('addGuest: no event_ids → no invitations, no address keys', async () => {
+    reqSpy.mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never);
+
+    await addGuest(client, { first_name: 'Pat', last_name: 'Morgan' });
+
+    const [guest] = (reqSpy.mock.calls[0][2] as AddBody).guests;
+    expect(guest.event_invitations).toEqual([]);
+    expect(guest).not.toHaveProperty('address1');
+    expect(guest).not.toHaveProperty('country_code');
+  });
+
+  it('addGuest: plus-one takes the primary surname unless given one', async () => {
+    reqSpy
+      .mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never)
+      .mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never);
+
+    await addGuest(client, { first_name: 'Pat', last_name: 'Morgan', plus_one_first_name: 'Sam' });
+    await addGuest(client, { first_name: 'Pat', last_name: 'Morgan', plus_one_first_name: 'Sam', plus_one_last_name: 'Lee' });
+
+    expect((reqSpy.mock.calls[0][2] as AddBody).guests[1].family_name).toBe('Morgan');
+    expect((reqSpy.mock.calls[1][2] as AddBody).guests[1].family_name).toBe('Lee');
+  });
+
+  it('addGuest: defaults affiliation to PRIMARY_FRIEND and tier to A', async () => {
+    reqSpy.mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never);
+
+    await addGuest(client, { first_name: 'Pat', last_name: 'Morgan' });
+
+    const body = reqSpy.mock.calls[0][2] as AddBody;
+    expect(body.guest_group_affiliation).toBe('PRIMARY_FRIEND');
+    expect(body.guest_group_tier).toBe('A');
+  });
+
+  it('addGuest: returns the created group', async () => {
+    reqSpy.mockResolvedValueOnce(structuredClone(CREATED_GROUP) as never);
+
+    const result = await addGuest(client, FULL_ARGS);
+
+    expect(JSON.parse(result.content[0].text)).toEqual(CREATED_GROUP.data);
+  });
+
+  it('addGuest: a 2xx without a created guest_group_id fails loudly with the body', async () => {
+    const errorEnvelope = { code: 500, status: 'error', message: 'Internal Server Error', id: 'ABC123' };
+    reqSpy.mockResolvedValueOnce(errorEnvelope as never);
+
+    await expect(addGuest(client, FULL_ARGS)).rejects.toThrow(/did not create.*Internal Server Error.*ABC123/s);
+  });
+
+  it('addGuest: an empty 2xx body fails loudly', async () => {
+    reqSpy.mockResolvedValueOnce(null as never);
+
+    await expect(addGuest(client, FULL_ARGS)).rejects.toThrow(/did not create/);
   });
 
   it('updateGuestAddress: loads directory, merges fields, PUTs bulk/directory', async () => {
