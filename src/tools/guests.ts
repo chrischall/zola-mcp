@@ -116,7 +116,22 @@ export async function listGuests(client: ZolaClient, args: { view?: string } = {
   return jsonResult({ stats, guest_groups: rung === 'full' ? guest_groups : guest_groups.map(compactGroup) });
 }
 
-export async function addGuest(client: ZolaClient, args: {
+/**
+ * Guest-group affiliations. They are relative to the account: `PRIMARY_*` is
+ * the side of whoever owns the Zola account, `PARTNER_*` the other partner's.
+ */
+export const AFFILIATIONS = [
+  'PRIMARY_FRIEND',
+  'PRIMARY_FAMILY',
+  'PRIMARY_FAMILY_FRIEND',
+  'PARTNER_FRIEND',
+  'PARTNER_FAMILY',
+  'PARTNER_FAMILY_FRIEND',
+  'BOTH',
+  'UNKNOWN',
+] as const;
+
+export interface AddGuestArgs {
   first_name: string;
   last_name: string;
   plus_one_first_name?: string;
@@ -124,75 +139,103 @@ export async function addGuest(client: ZolaClient, args: {
   email?: string;
   phone?: string;
   affiliation?: string;
-}): Promise<ToolResult> {
+  tier?: string;
+  event_ids?: number[];
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state_province?: string;
+  postal_code?: string;
+  country_code?: string;
+}
+
+/** Drop unset and blank values: the API rejects some of them as `""`. */
+function present(fields: Record<string, string | undefined>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    const trimmed = value?.trim();
+    if (trimmed) out[key] = trimmed;
+  }
+  return out;
+}
+
+/**
+ * Create a guest group via `POST /v3/guestlists/groups`.
+ *
+ * Every optional field is OMITTED when unset rather than sent as `""`. The
+ * previous body sent `prefix: ""`, `middle_name: ""`, `suffix: ""` on every
+ * guest and the API answered every call with a bare 400 "Bad Request"
+ * (bisected live, Nov 2026 — dropping those three keys alone made the same body
+ * succeed). Empty `email_address` / `mobile_phone` / `home_phone` are accepted,
+ * but omitting them is just as valid, so nothing is sent that is not set.
+ */
+export async function addGuest(client: ZolaClient, args: AddGuestArgs): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
+  const affiliation = args.affiliation ?? 'PRIMARY_FRIEND';
+  const tier = args.tier ?? 'A';
+
+  const address = present({
+    address1: args.address1,
+    address2: args.address2,
+    city: args.city,
+    state_province: args.state_province,
+    postal_code: args.postal_code,
+  });
+  if (Object.keys(address).length > 0) address.country_code = args.country_code?.trim() || 'US';
+
+  const shared = {
+    source: 'IOS',
+    affiliation,
+    tier,
+    ...address,
+    event_invitations: [] as unknown[],
+    tags: [] as unknown[],
+  };
+  const invitations = () =>
+    (args.event_ids ?? []).map((event_id) => ({ id: null, event_id, rsvp_type: 'NO_RESPONSE' }));
+
   const guests: Record<string, unknown>[] = [
     {
-      first_name: args.first_name,
-      family_name: args.last_name,
+      first_name: args.first_name.trim(),
+      family_name: args.last_name.trim(),
       relationship_type: 'PRIMARY',
-      source: 'IOS',
-      email_address: args.email ?? '',
-      mobile_phone: args.phone ?? '',
-      affiliation: args.affiliation ?? 'PRIMARY_FRIEND',
-      tier: 'A',
-      country_code: 'US',
-      prefix: '',
-      middle_name: '',
-      suffix: '',
-      home_phone: '',
-      address1: '',
-      address2: '',
-      city: '',
-      state_province: '',
-      postal_code: '',
-      event_invitations: [],
-      tags: [],
+      ...present({ email_address: args.email, mobile_phone: args.phone }),
+      ...shared,
+      event_invitations: invitations(),
     },
   ];
-  if (args.plus_one_first_name && args.plus_one_last_name) {
+  if (args.plus_one_first_name?.trim()) {
     guests.push({
-      first_name: args.plus_one_first_name,
-      family_name: args.plus_one_last_name,
+      first_name: args.plus_one_first_name.trim(),
+      family_name: args.plus_one_last_name?.trim() || args.last_name.trim(),
       relationship_type: 'PARTNER',
-      source: 'IOS',
-      email_address: '',
-      mobile_phone: '',
-      affiliation: args.affiliation ?? 'PRIMARY_FRIEND',
-      tier: 'A',
-      country_code: 'US',
-      prefix: '',
-      middle_name: '',
-      suffix: '',
-      home_phone: '',
-      address1: '',
-      address2: '',
-      city: '',
-      state_province: '',
-      postal_code: '',
-      event_invitations: [],
-      tags: [],
+      ...shared,
+      event_invitations: invitations(),
     });
   }
+
   const body = {
     wedding_account_id: weddingAccountId,
-    guests,
-    guest_group_affiliation: args.affiliation ?? 'PRIMARY_FRIEND',
-    guest_group_tier: 'A',
-    guest_group_uuid: '',
-    envelope_recipient: '',
+    guest_group_affiliation: affiliation,
+    guest_group_tier: tier,
     invited: true,
     invitation_sent: false,
     save_the_date_sent: false,
-    rsvp_question_answers: [],
-    gift_count: 0,
+    guests,
   };
-  const result = await client.requestMobile<MobileEnvelope<unknown>>(
-    'POST',
-    '/v3/guestlists/groups',
-    body
-  );
-  return jsonResult(result.data);
+  const result = await client.requestMobile<MobileEnvelope<GuestGroup> | null>('POST', '/v3/guestlists/groups', body);
+
+  // A 2xx is not proof of creation: the endpoint has answered 200 with an error
+  // envelope (`{"code":500,"status":"error",…}`) and created nothing. Only a
+  // returned guest_group_id counts.
+  const created = result?.data;
+  if (!created || typeof created.guest_group_id !== 'number') {
+    throw new Error(
+      `Zola did not create the guest group (POST /v3/guestlists/groups returned no guest_group_id): ` +
+        (result === null ? '<empty body>' : JSON.stringify(result).slice(0, 500))
+    );
+  }
+  return jsonResult(created);
 }
 
 export async function updateGuestAddress(client: ZolaClient, args: {
@@ -321,15 +364,33 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
   }, (args) => listGuests(client, args));
 
   server.registerTool('add_guest', {
-    description: 'Add a new guest group (household) to the guest list',
+    description:
+      'Add a new guest group (household) to the guest list, optionally with a partner/plus-one, mailing address and ' +
+      'event invitations, so one call creates a fully set-up household. Affiliation is relative to the Zola account ' +
+      'owner: PRIMARY_* is the account owner\'s side, PARTNER_* is the other partner\'s side (the web UI labels ' +
+      'PARTNER_* with the partner\'s name, e.g. "<partner>\'s Family Friend"). Check list_guests for duplicates first. ' +
+      'Guests are invited only to the events in event_ids — none when omitted. Adds to the list only: no invitation, ' +
+      'save-the-date or email is sent.',
     inputSchema: z.object({
-      first_name: z.string().describe('Primary guest first name'),
-      last_name: z.string().describe('Primary guest last name'),
-      plus_one_first_name: z.string().optional().describe('Plus-one first name'),
-      plus_one_last_name: z.string().optional().describe('Plus-one last name'),
-      email: z.string().optional().describe('Guest email address'),
-      phone: z.string().optional().describe('Guest phone number'),
-      affiliation: z.string().optional().describe('Affiliation (default: PRIMARY_FRIEND)'),
+      first_name: z.string().min(1).describe('Primary guest first name'),
+      last_name: z.string().min(1).describe('Primary guest last (family) name'),
+      plus_one_first_name: z.string().optional().describe('Partner / plus-one first name'),
+      plus_one_last_name: z.string().optional().describe('Partner / plus-one last name (default: the primary guest\'s last name)'),
+      email: z.string().optional().describe('Primary guest email address'),
+      phone: z.string().optional().describe('Primary guest mobile phone'),
+      affiliation: z.enum(AFFILIATIONS).optional().describe(
+        'Relationship to the couple (default PRIMARY_FRIEND). PRIMARY_* = the account owner\'s side; PARTNER_* = the other partner\'s side.'
+      ),
+      tier: z.string().optional().describe('Guest-list tier (default: A)'),
+      event_ids: z.array(z.number()).optional().describe(
+        'Event ids from list_events to invite every guest in the household to. Omit to invite to none.'
+      ),
+      address1: z.string().optional().describe('Street address (applied to every guest in the household)'),
+      address2: z.string().optional(),
+      city: z.string().optional(),
+      state_province: z.string().optional().describe('State / province code, e.g. FL'),
+      postal_code: z.string().optional(),
+      country_code: z.string().optional().describe('Default: US (only sent with an address)'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
   }, (args) => addGuest(client, args));

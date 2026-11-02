@@ -22,7 +22,7 @@ MCP server for Zola — 77 tools for managing your entire wedding via the Zola m
 
 ### Guests
 - `list_guests` — List all guest groups with stats — names, tier and RSVP state by default; `view: "full"` adds addresses, emails and phones
-- `add_guest` — Add a guest group
+- `add_guest` — Add a guest group (household) with optional partner, address and event invitations
 - `update_guest_address` — Update mailing address
 - `remove_guest` — Remove a guest group (with its RSVPs and seats)
 

@@ -203,9 +203,23 @@ guest's whole `event_invitations` array, any guest-group write that sends
 `event-invitations.ts` and `update_guest_address` (`src/tools/guests.ts`) defend
 against this by re-fetching the directory and preserving each guest's existing
 `event_invitations` (read-modify-write) before writing back through
-`bulk/directory`. `add_guest` legitimately sends `event_invitations: []` because
-it *creates* brand-new guests (nothing to preserve). Note the directory read
+`bulk/directory`. `add_guest` sets `event_invitations` outright (from its
+`event_ids`, `[]` when none) because it *creates* brand-new guests (nothing to
+preserve). Note the directory read
 returns the **flat** guest shape above — not a `{ guest: {...} }` wrapper.
+
+---
+
+## 6. Creating a guest group rejects empty-string name parts (mobile-api)
+
+`POST /v3/guestlists/groups` answers a bare `400 {"message":"Bad Request"}` —
+no field named — when a guest carries `prefix: ""`, `middle_name: ""` or
+`suffix: ""`. Bisected live (Nov 2026): the identical body minus those three
+keys succeeds. Empty `email_address` / `mobile_phone` / `home_phone` are fine.
+`add_guest` omits every unset optional field. The endpoint has also answered a
+**200** carrying `{"code":500,"status":"error",…}` and created nothing (a body
+with no `source` / `event_invitations` / `tags`), so `add_guest` treats any
+response without `data.guest_group_id` as a failure.
 
 ---
 

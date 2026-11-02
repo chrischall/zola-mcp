@@ -116,23 +116,27 @@ curl -sS "${HJ[@]}" -X POST "$BASE/v3/guestlists/directory/wedding-accounts/$ACC
   | jq '.data.guest_groups[] | {guest_group_id, guests: [.guests[] | {guest_id, first_name, family_name, rsvp}]}'
 ```
 
-**Add a guest group** — `POST /v3/guestlists/groups`:
+**Add a guest group** — `POST /v3/guestlists/groups`. **Omit** optional
+fields instead of sending `""`: empty-string `prefix` / `middle_name` / `suffix`
+make the endpoint answer a bare 400 "Bad Request" (verified live, Nov 2026).
+Invitations go per guest; the address is per guest too. A 2xx is only a success
+if `data.guest_group_id` comes back — it has answered 200 with an error envelope
+and created nothing.
 
 ```sh
 curl -sS "${HJ[@]}" -X POST "$BASE/v3/guestlists/groups" -d '{
   "wedding_account_id": '"$ACCT"',
+  "guest_group_affiliation": "PRIMARY_FRIEND", "guest_group_tier": "A",
+  "invited": true, "invitation_sent": false, "save_the_date_sent": false,
   "guests": [{
     "first_name": "Mike", "family_name": "Smith", "relationship_type": "PRIMARY",
-    "source": "IOS", "email_address": "", "mobile_phone": "", "affiliation": "PRIMARY_FRIEND",
-    "tier": "A", "country_code": "US", "prefix": "", "middle_name": "", "suffix": "",
-    "home_phone": "", "address1": "", "address2": "", "city": "", "state_province": "",
-    "postal_code": "", "event_invitations": [], "tags": []
-  }],
-  "guest_group_affiliation": "PRIMARY_FRIEND", "guest_group_tier": "A",
-  "guest_group_uuid": "", "envelope_recipient": "", "invited": true,
-  "invitation_sent": false, "save_the_date_sent": false,
-  "rsvp_question_answers": [], "gift_count": 0
-}' | jq '.data'
+    "source": "IOS", "affiliation": "PRIMARY_FRIEND", "tier": "A",
+    "address1": "123 Main St", "city": "Chicago", "state_province": "IL",
+    "postal_code": "60613", "country_code": "US",
+    "event_invitations": [{"id": null, "event_id": <event_id>, "rsvp_type": "NO_RESPONSE"}],
+    "tags": []
+  }]
+}' | jq '.data.guest_group_id'
 ```
 
 **Update a guest group's address** — read-modify-write via
