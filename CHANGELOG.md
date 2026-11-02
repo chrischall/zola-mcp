@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.1.12](https://github.com/chrischall/zola-mcp/compare/v2.1.11...v2.1.12) (2026-11-02)
+
+
+### Bug Fixes
+
+* **deps:** bump dotenv from 18.0.6 to 18.0.8 in the production-dependencies group ([#291](https://github.com/chrischall/zola-mcp/issues/291)) ([a961f15](https://github.com/chrischall/zola-mcp/commit/a961f159598b994843e3a0ecb2d54a51322283aa))
+* **deps:** bump the production-dependencies group across 1 directory with 2 updates ([#297](https://github.com/chrischall/zola-mcp/issues/297)) ([abee564](https://github.com/chrischall/zola-mcp/commit/abee564a5fcfade2634cd4c559b6f6cbce91e956))
+* **deps:** bump the production-dependencies group with 3 updates ([#295](https://github.com/chrischall/zola-mcp/issues/295)) ([1a9eaf3](https://github.com/chrischall/zola-mcp/commit/1a9eaf30a4c3868730398901b50cf230e7e2784f))
+* **guests:** accept any add_guest affiliation, case-insensitive ([#300](https://github.com/chrischall/zola-mcp/issues/300)) ([69d8135](https://github.com/chrischall/zola-mcp/commit/69d813535c1006f2b635bfcad42f85ce8fb6ba71))
+* **guests:** add_guest 400 — omit empty name fields; add event_ids + address ([#298](https://github.com/chrischall/zola-mcp/issues/298)) ([aa63bf6](https://github.com/chrischall/zola-mcp/commit/aa63bf6ddcd701847a6c9533a00e8bae55af40ff))
+
+
+### Documentation
+
+* **mint:** add sample prompts for the public catalog ([#294](https://github.com/chrischall/zola-mcp/issues/294)) ([6796cd8](https://github.com/chrischall/zola-mcp/commit/6796cd862f30212e8d3ea4f6aae66c13c9e699de))
+
 ## [2.1.11](https://github.com/chrischall/zola-mcp/compare/v2.1.10...v2.1.11) (2026-10-16)
 
 
