@@ -117,10 +117,13 @@ export async function listGuests(client: ZolaClient, args: { view?: string } = {
 }
 
 /**
- * Guest-group affiliations. They are relative to the account: `PRIMARY_*` is
- * the side of whoever owns the Zola account, `PARTNER_*` the other partner's.
+ * Guest-group affiliations seen in the live directory's RELATIONSHIP facet
+ * (Nov 2026). Relative to the account: `PRIMARY_*` is the side of whoever owns
+ * the Zola account, `PARTNER_*` the other partner's. Advisory only — observed
+ * on one account, not a published list — so the tool input stays a free string
+ * and these are named in its description rather than enforced.
  */
-export const AFFILIATIONS = [
+export const KNOWN_AFFILIATIONS = [
   'PRIMARY_FRIEND',
   'PRIMARY_FAMILY',
   'PRIMARY_FAMILY_FRIEND',
@@ -171,7 +174,7 @@ function present(fields: Record<string, string | undefined>): Record<string, str
  */
 export async function addGuest(client: ZolaClient, args: AddGuestArgs): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
-  const affiliation = args.affiliation ?? 'PRIMARY_FRIEND';
+  const affiliation = args.affiliation?.trim().toUpperCase() || 'PRIMARY_FRIEND';
   const tier = args.tier ?? 'A';
 
   const address = present({
@@ -378,8 +381,9 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       plus_one_last_name: z.string().optional().describe('Partner / plus-one last name (default: the primary guest\'s last name)'),
       email: z.string().optional().describe('Primary guest email address'),
       phone: z.string().optional().describe('Primary guest mobile phone'),
-      affiliation: z.enum(AFFILIATIONS).optional().describe(
-        'Relationship to the couple (default PRIMARY_FRIEND). PRIMARY_* = the account owner\'s side; PARTNER_* = the other partner\'s side.'
+      affiliation: z.string().optional().describe(
+        'Relationship to the couple (default PRIMARY_FRIEND). PRIMARY_* = the account owner\'s side; PARTNER_* = the other partner\'s side. ' +
+          `Known values: ${KNOWN_AFFILIATIONS.join(', ')}. Case-insensitive.`
       ),
       tier: z.string().optional().describe('Guest-list tier (default: A)'),
       event_ids: z.array(z.number()).optional().describe(
