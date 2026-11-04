@@ -17,7 +17,7 @@ MCP server for Zola — 77 tools for managing your entire wedding via the Zola m
 - `remove_vendor` — Unbook a vendor
 
 ### Budget
-- `get_budget` — Budget summary with all items
+- `get_budget` — Budget summary with all items; `view: "brief"` gives one line per scheduled vendor payment (due date, paid/due)
 - `update_budget_item` — Update cost or note
 
 ### Guests
@@ -33,12 +33,12 @@ MCP server for Zola — 77 tools for managing your entire wedding via the Zola m
 - `assign_seat` — Assign guest to a seat
 
 ### Inquiries
-- `list_inquiries` — All vendor inquiries with status
+- `list_inquiries` — All vendor inquiries with status; `view: "brief"` gives one line per vendor (last update, read/unread)
 - `get_inquiry_conversation` — Full conversation messages
 - `mark_inquiry_read` — Mark as read
 
 ### Events & RSVPs
-- `list_events` — All events with RSVP counts
+- `list_events` — All events with RSVP counts; `view: "brief"` gives one line per event (start time, RSVP counts)
 - `track_rsvps` — RSVP tracking per event
 - `get_gift_tracker` — Gifts received, thank-you status
 - `get_registry` — Registry items with per-item purchase state (`requested_qty`, `purchased_qty`, `marked_fulfilled`, `availability`, `inconsistent`); paged via `limit`/`offset`
@@ -109,3 +109,13 @@ MCP server for Zola — 77 tools for managing your entire wedding via the Zola m
 - `search_storefronts` — Search marketplace by category/location
 - `get_storefront` — Full vendor storefront details
 - `list_favorites` — Favorited vendors
+
+## In context groups
+
+Every tool except `zola_healthcheck` carries a `_meta.mint` hint in the **family** group, so a host that groups connectors (mcp-host context groups) can answer a family ask from Zola alongside the other family sources. The canonical reads, each answering with `view: "brief"`:
+
+- **what's on** — `list_events`: the wedding's events (ceremony, reception, rehearsal dinner) with start time and RSVP counts.
+- **what's new** — `list_inquiries`: vendor inquiries, newest activity and whether each is unread.
+- **what's due** — `get_budget`: scheduled vendor payments, each with its due date and whether it is paid.
+
+None takes a subject: an account holds one wedding, so there is nothing to choose between, and none takes a date range. A compound ask looks like "what's on this weekend, and is anything due for the wedding?" — the group asks `list_events` and `get_budget` together. Zola is reached through a cached refresh token; the browser (ContextMint Bridge) is needed only to bootstrap or renew that token, so when neither a token nor a signed-in zola.com tab is available the group answers that Zola needs your browser open.

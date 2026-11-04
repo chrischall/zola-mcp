@@ -70,14 +70,24 @@ interface GiftTracker {
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 import { fetchRegistryCollection } from '../registry-collection.js';
 import { CONFIRM_NOTE, confirmTokenParam, confirmWrite, diffFields, type GatedResult, type ServerContext } from './_confirm.js';
+import { BRIEF_VIEW_NOTE, briefLine, briefResult, familyMeta } from './hints.js';
 
-export async function listEvents(client: ZolaClient): Promise<ToolResult> {
+/** One brief line per event: `name — start — RSVP counts`. */
+export function eventBriefLine(e: Partial<WeddingEvent>): string {
+  const status = e.collect_rsvps
+    ? `${e.num_guests_attending ?? 0} attending, ${e.num_guests_declined ?? 0} declined, ${e.num_guests_not_responded ?? 0} no reply`
+    : 'not collecting rsvps';
+  return briefLine(e.name ?? '', e.start_at, status);
+}
+
+export async function listEvents(client: ZolaClient, args: { view?: 'full' | 'brief' } = {}): Promise<ToolResult> {
   const { weddingAccountId } = await client.getContext();
   const response = await client.requestMobile<MobileEnvelope<EventGroup[]>>(
     'GET',
     `/v3/websites/events/wedding-accounts/${weddingAccountId}/groups`
   );
   const events = response.data.flatMap((group) => group.events);
+  if (args.view === 'brief') return briefResult(events.map(eventBriefLine));
   return jsonResult(events);
 }
 
@@ -281,17 +291,23 @@ export async function updateEvent(client: ZolaClient, args: {
 export function registerEventTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_events', {
     description: 'List all wedding events (ceremony, reception, rehearsal dinner, etc.) with RSVP counts',
+    inputSchema: z.object({
+      view: z.enum(['full', 'brief']).optional().describe(`${BRIEF_VIEW_NOTE} Status is the RSVP counts.`),
+    }),
     annotations: { readOnlyHint: true, openWorldHint: true },
-  }, () => listEvents(client));
+    _meta: familyMeta('whats-on', { canonical: true, aliases: ['wedding', 'wedding events', 'ceremony', 'reception', 'rehearsal dinner', 'wedding schedule'] }),
+  }, (args) => listEvents(client, args));
 
   server.registerTool('track_rsvps', {
     description: 'Get RSVP tracking summary per event (attending, declined, not responded)',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['rsvps', 'who is coming', 'headcount'] }),
   }, () => trackRsvps(client));
 
   server.registerTool('get_gift_tracker', {
     description: 'View gift tracking: total gifts received, values, thank-you note status',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['gifts', 'thank-you notes', 'wedding gifts'] }),
   }, () => getGiftTracker(client));
 
   server.registerTool('get_registry', {
@@ -304,6 +320,7 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
       offset: z.number().optional().describe('Item offset. Default 0'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['registry', 'wedding registry'] }),
   }, (args) => getRegistry(client, args));
 
   server.registerTool('update_event', {
@@ -325,5 +342,6 @@ export function registerEventTools(server: McpServer, client: ZolaClient): void 
       confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args, ctx) => updateEvent(client, args, ctx));
 }

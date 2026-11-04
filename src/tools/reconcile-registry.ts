@@ -3,6 +3,7 @@ import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 import { fetchRegistryCollection, type RegistryItem } from '../registry-collection.js';
 import { isSameProduct, normalizeProductName, similarity } from '../name-match.js';
+import { familyMeta } from './hints.js';
 
 /**
  * Joining Zola's two independent views of the same gift.
@@ -384,6 +385,7 @@ export function registerReconcileTools(server: McpServer, client: ZolaClient): v
         'ORPHAN_ORDER (an order with no matching registry item) and a MATCHED count. ' +
         'Read-only.',
       annotations: { readOnlyHint: true, openWorldHint: true },
+      _meta: familyMeta('lookup'),
     },
     () => reconcileRegistry(client)
   );

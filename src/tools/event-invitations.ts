@@ -11,6 +11,7 @@ import {
   type GatedResult,
   type ServerContext,
 } from './_confirm.js';
+import { familyMeta } from './hints.js';
 
 // ─── Shapes (FLAT guest shape, as returned by the mobile-api directory) ────────
 //
@@ -371,6 +372,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
         confirmToken: confirmTokenParam,
       }),
       annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+      _meta: familyMeta('change'),
     },
     (args, ctx) => setEventGuests(client, args, ctx)
   );
@@ -386,6 +388,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
         guest_id: z.number().optional().describe('Single guest ID — invites just that guest'),
       }),
       annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+      _meta: familyMeta('change'),
     },
     (args) => inviteGuestToEvent(client, args)
   );
@@ -402,6 +405,7 @@ export function registerEventInvitationTools(server: McpServer, client: ZolaClie
         confirmToken: confirmTokenParam,
       }),
       annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+      _meta: familyMeta('change'),
     },
     (args, ctx) => removeEventInvitation(client, args, ctx)
   );

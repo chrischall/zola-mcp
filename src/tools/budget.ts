@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
+import { BRIEF_VIEW_NOTE, briefLine, briefResult, familyMeta, isoFromMillis } from './hints.js';
 
 interface BudgetPayment {
   uuid: string;
@@ -48,9 +49,33 @@ function itemTypeKey(item_type: string | { key: string }): string {
   return typeof item_type === 'string' ? item_type : item_type.key;
 }
 
-export async function getBudget(client: ZolaClient): Promise<ToolResult> {
+function dollars(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+/**
+ * The brief view: one line per scheduled payment — `item payment $amount —
+ * due date — paid|due` — because a payment, not a budget line, is what falls
+ * due. Items with no payments scheduled have nothing due and are left out.
+ */
+export function budgetBriefLines(budget: Budget): string[] {
+  return budget.taxonomy_nodes.flatMap((node) =>
+    node.items.flatMap((item) =>
+      (item.payments ?? []).map((p) =>
+        briefLine(
+          `${item.title} ${String(p.payment_type ?? 'payment').toLowerCase()} ${dollars(p.amount_cents ?? 0)}`,
+          isoFromMillis(p.due_at, true),
+          p.paid_at != null ? 'paid' : 'due',
+        ),
+      ),
+    ),
+  );
+}
+
+export async function getBudget(client: ZolaClient, args: { view?: 'full' | 'brief' } = {}): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<Budget>>('GET', '/v3/budgets');
   const budget = response.data;
+  if (args.view === 'brief') return briefResult(budgetBriefLines(budget));
   const items = budget.taxonomy_nodes.flatMap((node) =>
     node.items.map((item) => ({
       uuid: item.uuid,
@@ -104,8 +129,12 @@ export async function updateBudgetItem(client: ZolaClient, args: {
 export function registerBudgetTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('get_budget', {
     description: 'Get the wedding budget summary including total budgeted, actual cost, paid, and all budget items',
+    inputSchema: z.object({
+      view: z.enum(['full', 'brief']).optional().describe(`${BRIEF_VIEW_NOTE} One line per scheduled vendor payment; the date is when it is due, status is paid or due.`),
+    }),
     annotations: { readOnlyHint: true, openWorldHint: true },
-  }, () => getBudget(client));
+    _meta: familyMeta('whats-due', { canonical: true, aliases: ['wedding budget', 'payments', 'deposit', 'vendor payments', 'balance due', 'what do we owe'] }),
+  }, (args) => getBudget(client, args));
 
   server.registerTool('update_budget_item', {
     description: "Update a budget item's actual cost and/or note by UUID",
@@ -115,5 +144,6 @@ export function registerBudgetTools(server: McpServer, client: ZolaClient): void
       note: z.string().optional().describe('Note for the budget item'),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updateBudgetItem(client, args));
 }

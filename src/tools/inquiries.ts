@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { pathSegment } from '../path.js';
 import { ToolResult, jsonResult } from '../types.js';
+import { BRIEF_VIEW_NOTE, briefLine, briefResult, familyMeta, isoFromMillis } from './hints.js';
 
 interface VendorCard {
   storefront_id: number;
@@ -72,7 +73,7 @@ interface ConversationResponse {
   };
 }
 
-export async function listInquiries(client: ZolaClient): Promise<ToolResult> {
+export async function listInquiries(client: ZolaClient, args: { view?: 'full' | 'brief' } = {}): Promise<ToolResult> {
   const response = await client.requestMobile<UnifiedResponse>(
     'POST',
     '/v3/inquiries/unified-inquiries',
@@ -93,6 +94,17 @@ export async function listInquiries(client: ZolaClient): Promise<ToolResult> {
       updated_at: inq.updated_at,
     }))
   );
+  if (args.view === 'brief') {
+    return briefResult(
+      inquiries.map((i) =>
+        briefLine(
+          i.vendor_type ? `${i.vendor_name} (${i.vendor_type})` : i.vendor_name,
+          isoFromMillis(i.updated_at),
+          `${i.unread ? 'unread' : 'read'}${i.booked ? ', booked' : ''}`,
+        ),
+      ),
+    );
+  }
   return jsonResult(inquiries);
 }
 
@@ -114,18 +126,24 @@ export async function markInquiryRead(client: ZolaClient, args: { uuid: string }
 export function registerInquiryTools(server: McpServer, client: ZolaClient): void {
   server.registerTool('list_inquiries', {
     description: 'List all vendor inquiries with status, vendor name, and unread flag',
+    inputSchema: z.object({
+      view: z.enum(['full', 'brief']).optional().describe(`${BRIEF_VIEW_NOTE} The date is the last update; status is read/unread (and booked).`),
+    }),
     annotations: { readOnlyHint: true, openWorldHint: true },
-  }, () => listInquiries(client));
+    _meta: familyMeta('whats-new', { canonical: true, aliases: ['vendor messages', 'inquiries', 'vendor replies', 'wedding messages'] }),
+  }, (args) => listInquiries(client, args));
 
   server.registerTool('get_inquiry_conversation', {
     description: 'Get full conversation for a vendor inquiry including messages and inquiry details',
     inputSchema: z.object({ uuid: z.string().describe('Inquiry UUID from list_inquiries') }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => getInquiryConversation(client, args));
 
   server.registerTool('mark_inquiry_read', {
     description: 'Mark a vendor inquiry conversation as read. There is no tool to mark it unread again.',
     inputSchema: z.object({ uuid: z.string().describe('Inquiry UUID from list_inquiries') }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => markInquiryRead(client, args));
 }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { pathSegment } from '../path.js';
 import { MobileEnvelope, ToolResult, jsonResult, imageResult } from '../types.js';
+import { familyMeta } from './hints.js';
 
 // ─── Tier 1: read-only ───────────────────────────────────────────────────────
 
@@ -251,6 +252,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       limit: z.number().optional().describe('Max projects to return. Default: 30.'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['invitations', 'save the dates'] }),
   }, (args) => listCardProjects(client, args));
 
   server.registerTool('get_card_project', {
@@ -259,6 +261,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => getCardProject(client, args));
 
   server.registerTool('validate_card_project', {
@@ -267,6 +270,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => validateCardProject(client, args));
 
   server.registerTool('get_card_project_guests', {
@@ -275,6 +279,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       project_uuid: z.string().describe('Project UUID from list_card_projects'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => getCardProjectGuests(client, args));
 
   server.registerTool('get_card_suite', {
@@ -283,6 +288,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       suite_uuid: z.string().describe('Suite UUID (e.g. from search_card_catalog or list_favorite_card_suites)'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => getCardSuite(client, args));
 
   server.registerTool('search_card_catalog', {
@@ -292,16 +298,19 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       limit: z.number().optional().describe('Max suites to return. Default: 50.'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => searchCardCatalog(client, args));
 
   server.registerTool('list_favorite_card_suites', {
     description: 'List invitation design suites you have favorited (hearted).',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, () => listFavoriteCardSuites(client));
 
   server.registerTool('get_rsvp_page', {
     description: 'Get the RSVP page settings on the wedding website (title, intro copy, visibility, customization).',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, () => getRsvpPage(client));
 
   server.registerTool('create_card_project', {
@@ -312,6 +321,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       quantity: z.number().optional().describe('Quantity to order. Default: 150.'),
     }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => createCardProject(client, args));
 
   server.registerTool('swap_card_project_variation', {
@@ -321,6 +331,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       customizations: z.record(z.string(), z.string()).describe('{ customization_uuid: new_variation_uuid }'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => swapCardProjectVariation(client, args));
 
   server.registerTool('set_card_project_guests', {
@@ -335,6 +346,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       })).describe('Full list of guest groups to record. Omitted groups are not affected by this call.'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => setCardProjectGuests(client, args));
 
   server.registerTool('preview_card_template', {
@@ -348,6 +360,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       wedding_date: z.string().optional().describe('Substitute for {{wedding_date}}, YYYY-MM-DD. Defaults to the wedding date on file.'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('other'),
   }, (args) => previewCardTemplate(client, args));
 
   server.registerTool('preview_qrcode', {
@@ -359,6 +372,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       enabled: z.boolean().optional().describe('Whether the QR code is enabled. Default: true.'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('other'),
   }, (args) => previewQrcode(client, args));
 
   server.registerTool('set_card_project_qrcode', {
@@ -373,5 +387,6 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
       enabled: z.boolean().optional().describe('Whether to enable the QR code. Default: true.'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => setCardProjectQrcode(client, args));
 }

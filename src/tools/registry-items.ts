@@ -5,6 +5,7 @@ import { pathSegment } from '../path.js';
 import { fetchRegistryCollection, RegistryReadError, type RegistryItem } from '../registry-collection.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 import { CONFIRM_NOTE, confirmTokenParam, confirmWrite, type GatedResult, type ServerContext } from './_confirm.js';
+import { familyMeta } from './hints.js';
 
 const collectionIdCache = new Map<string, string>();
 
@@ -202,6 +203,7 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       limit: z.number().optional().describe('Default 50'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => searchRegistryProducts(client, args));
 
   server.registerTool('add_registry_item', {
@@ -214,6 +216,7 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       enable_group_gifting: z.boolean().optional().describe('Allow multiple guests to chip in. Default false'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => addRegistryItem(client, args));
 
   server.registerTool('update_registry_item', {
@@ -228,6 +231,7 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       most_wanted: z.boolean(),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updateRegistryItem(client, args));
 
   server.registerTool('remove_registry_item', {
@@ -237,5 +241,6 @@ export function registerRegistryItemTools(server: McpServer, client: ZolaClient)
       confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args, ctx) => removeRegistryItem(client, args, ctx));
 }

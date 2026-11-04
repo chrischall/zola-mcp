@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
+import { familyMeta } from './hints.js';
 
 type ThemeLayoutType = 'MULTI_PAGE' | 'SINGLE_PAGE';
 
@@ -163,11 +164,13 @@ export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient)
   server.registerTool('get_current_theme', {
     description: 'Get the currently-selected website theme: key, name, swatch color, layout type',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, () => getCurrentTheme(client));
 
   server.registerTool('get_website_customizations', {
     description: 'Get current website colors, font settings, and available font/color options',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, () => getWebsiteCustomizations(client));
 
   server.registerTool('search_themes', {
@@ -178,6 +181,7 @@ export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient)
       theme_layout_types: z.array(z.enum(['MULTI_PAGE', 'SINGLE_PAGE'])).optional().describe('Default ["MULTI_PAGE"]'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => searchThemes(client, args));
 
   server.registerTool('update_current_theme', {
@@ -187,6 +191,7 @@ export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient)
       theme_layout_type: z.enum(['MULTI_PAGE', 'SINGLE_PAGE']).optional().describe('Default MULTI_PAGE'),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updateCurrentTheme(client, args));
 
   server.registerTool('update_website_customization', {
@@ -207,5 +212,6 @@ export function registerWebsiteThemeTools(server: McpServer, client: ZolaClient)
       nav_font_color: z.string().optional().describe('Writable only via Zola\'s web-api (cookie+CSRF), not the mobile-api this MCP uses. Passing this throws.'),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updateWebsiteCustomization(client, args));
 }

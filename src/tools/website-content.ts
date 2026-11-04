@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
 import { CONFIRM_NOTE, confirmTokenParam, confirmWrite, type GatedResult, type ServerContext } from './_confirm.js';
+import { familyMeta } from './hints.js';
 
 type PageType = 'HOME' | 'FAQ' | 'POI' | 'TRAVEL';
 
@@ -451,6 +452,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
   server.registerTool('list_faqs', {
     description: 'List all FAQs on the wedding website',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, () => listFaqs(client));
 
   server.registerTool('add_faq', {
@@ -461,6 +463,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       display_order: z.number().optional().describe('Position in the FAQ list (defaults to 0)'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => addFaq(client, args));
 
   server.registerTool('update_faq', {
@@ -472,6 +475,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       display_order: z.number(),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updateFaq(client, args));
 
   server.registerTool('remove_faq', {
@@ -481,11 +485,13 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args, ctx) => removeFaq(client, args, ctx));
 
   server.registerTool('list_home_sections', {
     description: 'List the story sections on the website home page',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, () => listHomeSections(client));
 
   server.registerTool('add_home_section', {
@@ -498,6 +504,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       hidden: z.boolean().optional(),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => addHomeSection(client, args));
 
   server.registerTool('update_home_section', {
@@ -511,6 +518,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       hidden: z.boolean(),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updateHomeSection(client, args));
 
   server.registerTool('remove_home_section', {
@@ -520,11 +528,13 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args, ctx) => removeHomeSection(client, args, ctx));
 
   server.registerTool('list_pois', {
     description: 'List points-of-interest on the "Things to Do" page',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['things to do'] }),
   }, () => listPois(client));
 
   server.registerTool('add_poi', {
@@ -546,6 +556,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       display_order: z.number().optional(),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => addPoi(client, args));
 
   server.registerTool('update_poi', {
@@ -568,6 +579,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       display_order: z.number().optional(),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updatePoi(client, args));
 
   server.registerTool('remove_poi', {
@@ -577,11 +589,13 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args, ctx) => removePoi(client, args, ctx));
 
   server.registerTool('list_travel_items', {
     description: 'List hotels, flights, and transportation on the website Travel page',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['hotel block', 'wedding travel'] }),
   }, () => listTravelItems(client));
 
   server.registerTool('add_travel_item', {
@@ -608,6 +622,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       display_order: z.number().optional(),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => addTravelItem(client, args));
 
   server.registerTool('update_travel_item', {
@@ -635,6 +650,7 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       display_order: z.number().optional(),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updateTravelItem(client, args));
 
   server.registerTool('remove_travel_item', {
@@ -644,5 +660,6 @@ export function registerWebsiteContentTools(server: McpServer, client: ZolaClien
       confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args, ctx) => removeTravelItem(client, args, ctx));
 }
