@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/chrischall/zola-mcp/compare/v2.1.12...v2.2.0) (2026-11-04)
+
+
+### Features
+
+* context-group hints, a brief view on events, inquiries and budget ([#301](https://github.com/chrischall/zola-mcp/issues/301)) ([c1d8015](https://github.com/chrischall/zola-mcp/commit/c1d80155eb25103833396f8e9844593c6d03ed5a))
+
+
+### Documentation
+
+* **claude:** document the brief view on list_events, list_inquiries and get_budget ([#304](https://github.com/chrischall/zola-mcp/issues/304)) ([bcb7959](https://github.com/chrischall/zola-mcp/commit/bcb79591979d2b7bcddb2ed6fb14fee1079db975))
+
 ## [2.1.12](https://github.com/chrischall/zola-mcp/compare/v2.1.11...v2.1.12) (2026-11-02)
 
 
