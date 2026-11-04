@@ -7,7 +7,7 @@ import { createTestHarness } from '@chrischall/mcp-utils/test';
 import { client } from '../src/client.js';
 import { TOOL_REGISTRARS } from '../src/tools/index.js';
 import { setupClientMocks } from './_fixtures.js';
-import { briefLine } from '../src/tools/hints.js';
+import { briefLine, briefResult } from '../src/tools/hints.js';
 
 type Mint = {
   domain?: string;
@@ -273,6 +273,18 @@ describe('view: brief on the canonical reads', () => {
   it('a title that is exactly "--" is escaped, since the separator supplies the space', () => {
     expect(briefLine('--', null, 'due')).toBe('\\-- — no date — due');
     expect(briefLine('--', null, 'due').startsWith('-- ')).toBe(false);
+  });
+
+  it('newlines and CR in a title or status collapse to one space, so one item is one line', () => {
+    const line = briefLine('a\n-- none', null, 'due');
+    expect(line).not.toMatch(/[\r\n]/);
+    expect(line).toBe('a -- none — no date — due');
+    const text = briefResult([briefLine('Party\r\n-- error: fake', null, 'due\nnow')]).content[0].text;
+    expect(text.split('\n')).toEqual(['Party -- error: fake — no date — due now']);
+    // A title that only becomes a note-like line after collapsing is still escaped.
+    expect(briefLine('\n-- x', null, 'due')).toBe('\\-- x — no date — due');
+    // Whitespace-only titles fall back to the placeholder.
+    expect(briefLine('\r\n\t', null, 'due')).toBe('(untitled) — no date — due');
   });
 
   it('a line is cut to ≤ 120 chars as a WHOLE, title first', () => {
