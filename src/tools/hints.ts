@@ -47,13 +47,15 @@ const cut = (s: string, n: number): string => (s.length > n ? `${s.slice(0, Math
  * as a WHOLE, title first: the title shortens until the line fits, and if the
  * status alone would still overflow once the title is at its floor, the
  * status is cut as well (the consolidated brief-view contract). A title that
- * starts with `-- ` or `\` is escaped with one leading `\`, so an item can
+ * is `--` or starts with `-- ` or `\` is escaped with one leading `\`, so an item can
  * never read as a note line — the host strips that one backslash after its
  * note check.
  */
 export function briefLine(title: string, date: string | null | undefined, status: string): string {
   const name = title.trim() || '(untitled)';
-  const escaped = name.startsWith('-- ') || name.startsWith('\\') ? `\\${name}` : name;
+  // The rule is about the LINE: a bare `--` title becomes `-- — …` once the
+  // separator supplies the space, so it is escaped too.
+  const escaped = name === '--' || name.startsWith('-- ') || name.startsWith('\\') ? `\\${name}` : name;
   const sep = ` — ${date || 'no date'} — `;
   const room = BRIEF_MAX - sep.length;
   if (escaped.length + status.length <= room) return `${escaped}${sep}${status}`;

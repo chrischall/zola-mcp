@@ -57,6 +57,11 @@ function dollars(cents: number): string {
  * The brief view: one line per scheduled payment — `item payment $amount —
  * due date — paid|due` — because a payment, not a budget line, is what falls
  * due. Items with no payments scheduled have nothing due and are left out.
+ *
+ * Trust assumption: these lines go out as plain text, with no untrusted-data
+ * envelope, because the couple writes every budget item title. Items carry
+ * account_vendor_uuid, so if Zola ever fills a title from a vendor's
+ * storefront name, these lines need untrustedBriefResult like list_inquiries.
  */
 export function budgetBriefLines(budget: Budget): string[] {
   return budget.taxonomy_nodes.flatMap((node) =>

@@ -259,13 +259,20 @@ describe('view: brief on the canonical reads', () => {
         { name: '-- none', start_at: null, collect_rsvps: false },
         { name: '\\back', start_at: null, collect_rsvps: false },
         { name: '--fine', start_at: null, collect_rsvps: false },
+        { name: '  --  ', start_at: null, collect_rsvps: false },
       ] }],
     } as never);
     expect(await brief('list_events')).toEqual([
       '\\-- none — no date — not collecting rsvps',
       '\\\\back — no date — not collecting rsvps',
       '--fine — no date — not collecting rsvps',
+      '\\-- — no date — not collecting rsvps',
     ]);
+  });
+
+  it('a title that is exactly "--" is escaped, since the separator supplies the space', () => {
+    expect(briefLine('--', null, 'due')).toBe('\\-- — no date — due');
+    expect(briefLine('--', null, 'due').startsWith('-- ')).toBe(false);
   });
 
   it('a line is cut to ≤ 120 chars as a WHOLE, title first', () => {
