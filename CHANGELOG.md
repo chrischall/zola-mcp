@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/chrischall/zola-mcp/compare/v2.2.0...v2.2.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **brief:** align the brief view with the fleet contract ([#305](https://github.com/chrischall/zola-mcp/issues/305)) ([8c5d994](https://github.com/chrischall/zola-mcp/commit/8c5d9949e066e01fb424c68c06f4ae02550a4184))
+
 ## [2.2.0](https://github.com/chrischall/zola-mcp/compare/v2.1.12...v2.2.0) (2026-11-04)
 
 
