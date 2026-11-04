@@ -9,6 +9,8 @@
  * (no children, properties or systems) and no tool declares `subject`. None of
  * the canonical reads takes a date range, so none declares `when` either.
  */
+import { UNTRUSTED_CONTENT_RULE, untrustedEnvelope } from '@chrischall/mcp-utils';
+
 export type MintIntent =
   | 'whats-new' | 'whats-due' | 'whats-on' | 'lookup' | 'turn-on-off' | 'send' | 'change' | 'other';
 
@@ -35,17 +37,37 @@ export const BRIEF_VIEW_NOTE =
   '"full" (default) returns the usual JSON; "brief" returns one line per item: title — <ISO date or "no date"> — <status>.';
 
 const BRIEF_MAX = 120;
+/** The shortest a title is cut to before the status gives way too. */
+const TITLE_FLOOR = 24;
+
+const cut = (s: string, n: number): string => (s.length > n ? `${s.slice(0, Math.max(n - 1, 0))}…` : s);
 
 /**
- * One brief line, `title — <date | no date> — <status>`, at most 120 chars.
- * The title is what gets shortened, so the date and status always survive.
+ * One brief line, `title — <date | no date> — <status>`, cut to ≤ 120 chars
+ * as a WHOLE, title first: the title shortens until the line fits, and if the
+ * status alone would still overflow once the title is at its floor, the
+ * status is cut as well (the consolidated brief-view contract). A title that
+ * starts with `-- ` or `\` is escaped with one leading `\`, so an item can
+ * never read as a note line — the host strips that one backslash after its
+ * note check.
  */
 export function briefLine(title: string, date: string | null | undefined, status: string): string {
-  const tail = ` — ${date || 'no date'} — ${status}`;
-  const room = BRIEF_MAX - tail.length;
   const name = title.trim() || '(untitled)';
-  const shown = name.length > room ? `${name.slice(0, Math.max(room - 1, 0))}…` : name;
-  return `${shown}${tail}`;
+  const escaped = name.startsWith('-- ') || name.startsWith('\\') ? `\\${name}` : name;
+  const sep = ` — ${date || 'no date'} — `;
+  const room = BRIEF_MAX - sep.length;
+  if (escaped.length + status.length <= room) return `${escaped}${sep}${status}`;
+  const titleRoom = Math.max(room - status.length, Math.min(escaped.length, TITLE_FLOOR));
+  const shown = cut(escaped, titleRoom);
+  return `${shown}${sep}${cut(status, room - shown.length)}`;
+}
+
+/** The note line a brief view answers when there is nothing to list. */
+export const BRIEF_NONE = '-- none';
+
+/** The lines, or the single `-- none` note when there are none. */
+function orNone(lines: string[]): string[] {
+  return lines.length === 0 ? [BRIEF_NONE] : lines;
 }
 
 /** An epoch-milliseconds timestamp as ISO 8601, or null when absent/invalid. */
@@ -55,7 +77,18 @@ export function isoFromMillis(ms: number | null | undefined, dateOnly = false): 
   return dateOnly ? iso.slice(0, 10) : iso;
 }
 
-/** The brief view's text result. */
+/** The brief view's text result, for lines whose every field is the account's own or a date/status. */
 export function briefResult(lines: string[]): { content: [{ type: 'text'; text: string }] } {
-  return { content: [{ type: 'text', text: lines.join('\n') }] };
+  return { content: [{ type: 'text', text: orNone(lines).join('\n') }] };
+}
+
+/**
+ * The brief view for lines carrying text other people wrote (vendor names):
+ * the fleet's untrusted-data envelope, `{ untrusted_content, note, data:
+ * string[] }`, minified, note first — mcp-host's intent tools unwrap it and
+ * take `data` as the lines.
+ */
+export function untrustedBriefResult(lines: string[], whoWrote: string): { content: [{ type: 'text'; text: string }] } {
+  const payload = untrustedEnvelope(orNone(lines), { note: `${whoWrote} ${UNTRUSTED_CONTENT_RULE}` });
+  return { content: [{ type: 'text', text: JSON.stringify(payload) }] };
 }
