@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
+import { familyMeta } from './hints.js';
 
 interface VendorCard {
   id: number | null;
@@ -210,6 +211,7 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
   server.registerTool('list_vendors', {
     description: 'List all booked vendors with details',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['wedding vendors', 'vendors', 'booked vendors'] }),
   }, () => listVendors(client));
 
   server.registerTool('search_vendors', {
@@ -219,6 +221,7 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       taxonomy_key: z.string().optional().describe('Vendor category key (e.g. wedding-venues, wedding-photographers, wedding-planners, wedding-bands-djs). Default: wedding-venues'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => searchVendors(client, args));
 
   server.registerTool('add_vendor', {
@@ -235,6 +238,7 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       reference_vendor_id: z.number().optional().describe('Reference vendor ID from search_vendors'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change', { aliases: ['book a vendor'] }),
   }, (args) => addVendor(client, args));
 
   server.registerTool('update_vendor', {
@@ -250,11 +254,13 @@ export function registerVendorTools(server: McpServer, client: ZolaClient): void
       event_date: z.string().optional().describe('ISO 8601 date (YYYY-MM-DD) or timestamp; an unparseable value is rejected'),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updateVendor(client, args));
 
   server.registerTool('remove_vendor', {
     description: 'Unbook a vendor',
     inputSchema: z.object({ uuid: z.string().describe('Vendor UUID from list_vendors') }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => removeVendor(client, args));
 }

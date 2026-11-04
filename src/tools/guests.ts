@@ -13,6 +13,7 @@ import {
   type GatedResult,
   type ServerContext,
 } from './_confirm.js';
+import { familyMeta } from './hints.js';
 
 // The live /v3/guestlists/directory response returns a FLAT guest shape:
 // fields sit directly on each guest object (no `{ guest: {...} }` wrapper).
@@ -364,6 +365,7 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       view: viewParam(GUEST_VIEWS, { note: GUEST_VIEW_NOTE }),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['guest list', 'guests', 'households'] }),
   }, (args) => listGuests(client, args));
 
   server.registerTool('add_guest', {
@@ -397,6 +399,7 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       country_code: z.string().optional().describe('Default: US (only sent with an address)'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change', { aliases: ['add a guest'] }),
   }, (args) => addGuest(client, args));
 
   server.registerTool('update_guest_address', {
@@ -411,6 +414,7 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       country_code: z.string().optional().describe('Default: US'),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updateGuestAddress(client, args));
 
   server.registerTool('remove_guest', {
@@ -422,5 +426,6 @@ export function registerGuestTools(server: McpServer, client: ZolaClient): void 
       confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args, ctx) => removeGuest(client, args, ctx));
 }

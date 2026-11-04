@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { pathSegment } from '../path.js';
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
+import { familyMeta } from './hints.js';
 
 interface SeatOccupant {
   display_name: string;
@@ -123,17 +124,20 @@ export function registerSeatingTools(server: McpServer, client: ZolaClient): voi
   server.registerTool('list_seating_charts', {
     description: 'List all seating charts with their UUID and event name',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, () => listSeatingCharts(client));
 
   server.registerTool('get_seating_chart', {
     description: 'Get full seating chart with all tables, seats, and current occupants',
     inputSchema: z.object({ uuid: z.string().describe('Seating chart UUID from list_seating_charts') }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['seating chart', 'tables', 'seating'] }),
   }, (args) => getSeatingChart(client, args));
 
   server.registerTool('list_unseated_guests', {
     description: 'List all guests who have not yet been assigned a seat',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['unseated guests'] }),
   }, () => listUnseatedGuests(client));
 
   server.registerTool('assign_seat', {
@@ -145,5 +149,6 @@ export function registerSeatingTools(server: McpServer, client: ZolaClient): voi
       seating_chart_uuid: z.string().describe('Seating chart UUID from list_seating_charts'),
     }),
     annotations: { destructiveHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => assignSeat(client, args));
 }

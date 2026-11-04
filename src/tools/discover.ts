@@ -4,6 +4,7 @@ import type { ZolaClient } from '../client.js';
 import { pathSegment } from '../path.js';
 
 import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
+import { familyMeta } from './hints.js';
 
 export async function getWeddingDashboard(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
@@ -62,6 +63,7 @@ export function registerDiscoverTools(server: McpServer, client: ZolaClient): vo
   server.registerTool('get_wedding_dashboard', {
     description: 'Get the wedding planning dashboard overview (invites, paper, planning progress)',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['wedding planning', 'wedding checklist'] }),
   }, () => getWeddingDashboard(client));
 
   server.registerTool('search_storefronts', {
@@ -74,16 +76,19 @@ export function registerDiscoverTools(server: McpServer, client: ZolaClient): vo
       offset: z.number().optional().describe('Pagination offset (default 0)'),
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => searchStorefronts(client, args));
 
   server.registerTool('get_storefront', {
     description: 'Get full details for a vendor storefront (pricing, reviews, photos, about, FAQs)',
     inputSchema: z.object({ uuid: z.string().describe('Storefront UUID from search_storefronts or list_favorites') }),
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, (args) => getStorefront(client, args));
 
   server.registerTool('list_favorites', {
     description: 'List all favorited/saved vendors',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['saved vendors'] }),
   }, () => listFavorites(client));
 }

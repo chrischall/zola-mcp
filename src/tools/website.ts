@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { MobileEnvelope, ToolResult, jsonResult, pickDefined } from '../types.js';
 import { CONFIRM_NOTE, confirmTokenParam, confirmWrite, diffFields, type GatedResult, type ServerContext } from './_confirm.js';
+import { familyMeta } from './hints.js';
 
 export async function listPages(client: ZolaClient): Promise<ToolResult> {
   const response = await client.requestMobile<MobileEnvelope<unknown>>(
@@ -174,6 +175,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
   server.registerTool('list_pages', {
     description: 'List all wedding-website pages with their IDs, types, display order, visibility, and theme info',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup'),
   }, () => listPages(client));
 
   server.registerTool('set_page_hidden', {
@@ -183,6 +185,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       hidden: z.boolean().describe('true to hide the page, false to show it'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('turn-on-off'),
   }, (args) => setPageHidden(client, args));
 
   server.registerTool('reorder_pages', {
@@ -191,6 +194,7 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       page_ids: z.array(z.number()).describe('Full ordered list of page IDs in desired nav order'),
     }),
     annotations: { destructiveHint: false, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => reorderPages(client, args));
 
   server.registerTool('update_page', {
@@ -206,11 +210,13 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       customization: z.unknown().optional().describe('Layout customization object (see list_pages for shape)'),
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args) => updatePage(client, args));
 
   server.registerTool('get_wedding_settings', {
     description: 'Get top-level wedding settings: title, URL slug, partner names, date, city, hashtag, guest count, search visibility',
     annotations: { readOnlyHint: true, openWorldHint: true },
+    _meta: familyMeta('lookup', { aliases: ['wedding date', 'wedding website'] }),
   }, () => getWeddingSettings(client));
 
   server.registerTool('update_wedding_settings', {
@@ -232,5 +238,6 @@ export function registerWebsiteTools(server: McpServer, client: ZolaClient): voi
       confirmToken: confirmTokenParam,
     }),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
+    _meta: familyMeta('change'),
   }, (args, ctx) => updateWeddingSettings(client, args, ctx));
 }
