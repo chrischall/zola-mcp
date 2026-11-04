@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { pathSegment } from '../path.js';
 import { ToolResult, jsonResult } from '../types.js';
-import { BRIEF_VIEW_NOTE, briefLine, briefResult, familyMeta, isoFromMillis } from './hints.js';
+import { BRIEF_VIEW_NOTE, briefLine, familyMeta, isoFromMillis, untrustedBriefResult } from './hints.js';
 
 interface VendorCard {
   storefront_id: number;
@@ -95,7 +95,7 @@ export async function listInquiries(client: ZolaClient, args: { view?: 'full' | 
     }))
   );
   if (args.view === 'brief') {
-    return briefResult(
+    return untrustedBriefResult(
       inquiries.map((i) =>
         briefLine(
           i.vendor_type ? `${i.vendor_name} (${i.vendor_type})` : i.vendor_name,
@@ -103,6 +103,7 @@ export async function listInquiries(client: ZolaClient, args: { view?: 'full' | 
           `${i.unread ? 'unread' : 'read'}${i.booked ? ', booked' : ''}`,
         ),
       ),
+      'Vendor names are written by the vendors.',
     );
   }
   return jsonResult(inquiries);

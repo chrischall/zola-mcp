@@ -7,6 +7,7 @@ import { createTestHarness } from '@chrischall/mcp-utils/test';
 import { client } from '../src/client.js';
 import { TOOL_REGISTRARS } from '../src/tools/index.js';
 import { setupClientMocks } from './_fixtures.js';
+import { briefLine, briefResult } from '../src/tools/hints.js';
 
 type Mint = {
   domain?: string;
@@ -45,13 +46,31 @@ async function served(): Promise<Listed[]> {
   return withHarness(async (h) => (await h.client.listTools()).tools as unknown as Listed[]);
 }
 
-async function brief(name: string): Promise<string[]> {
+async function briefText(name: string): Promise<string> {
   return withHarness(async (h) => {
     const res = await h.client.callTool({ name, arguments: { view: 'brief' } });
     const content = (res as { content: { type: string; text: string }[] }).content;
     expect(content[0].type).toBe('text');
-    return content[0].text.split('\n');
+    return content[0].text;
   });
+}
+
+/** A plain brief answer: one line per item. */
+async function brief(name: string): Promise<string[]> {
+  return (await briefText(name)).split('\n');
+}
+
+type Envelope = { untrusted_content: boolean; note: string; data: string[] };
+
+/** A brief answer inside the fleet's untrusted-data envelope, minified, note first. */
+async function enveloped(name: string): Promise<Envelope> {
+  const text = await briefText(name);
+  const env = JSON.parse(text) as Envelope;
+  expect(text).toBe(JSON.stringify(env));
+  expect(Object.keys(env)).toEqual(['untrusted_content', 'note', 'data']);
+  expect(env.untrusted_content).toBe(true);
+  expect(Array.isArray(env.data)).toBe(true);
+  return env;
 }
 
 const BRIEF_LINE = /^.+ — (\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?|no date) — .+$/;
@@ -179,7 +198,9 @@ describe('view: brief on the canonical reads', () => {
         },
       ],
     } as never);
-    const lines = await brief('list_inquiries');
+    const env = await enveloped('list_inquiries');
+    expect(env.note).toMatch(/^Vendor names are written by the vendors\. /);
+    const lines = env.data;
     expect(lines).toEqual([
       'Example Florals (Florist) — 2026-11-02T15:00:00.000Z — unread',
       'Sample Studio (Photographer) — no date — read, booked',
@@ -217,6 +238,65 @@ describe('view: brief on the canonical reads', () => {
       'Venue other $10.00 — no date — due',
     ]);
     for (const l of lines) expect(l).toMatch(BRIEF_LINE);
+  });
+
+  it('an empty read answers the single note line "-- none"', async () => {
+    setupClientMocks().mockResolvedValueOnce({ data: [{ start_date: '2026-10-17', events: [] }] } as never);
+    expect(await brief('list_events')).toEqual(['-- none']);
+    vi.restoreAllMocks();
+    setupClientMocks().mockResolvedValueOnce({ data: [{ title: 'Active', inquiry_summaries: [] }] } as never);
+    expect((await enveloped('list_inquiries')).data).toEqual(['-- none']);
+    vi.restoreAllMocks();
+    setupClientMocks().mockResolvedValueOnce({
+      data: { budgeted_cents: 0, cost_cents: 0, paid_cents: 0, balance_due_cents: 0, taxonomy_nodes: [{ title: 'n', items: [{ title: 'Cake', payments: [] }] }] },
+    } as never);
+    expect(await brief('get_budget')).toEqual(['-- none']);
+  });
+
+  it('a title that starts with "-- " or "\\" is escaped with one leading backslash', async () => {
+    setupClientMocks().mockResolvedValueOnce({
+      data: [{ start_date: '2026-10-17', events: [
+        { name: '-- none', start_at: null, collect_rsvps: false },
+        { name: '\\back', start_at: null, collect_rsvps: false },
+        { name: '--fine', start_at: null, collect_rsvps: false },
+        { name: '  --  ', start_at: null, collect_rsvps: false },
+      ] }],
+    } as never);
+    expect(await brief('list_events')).toEqual([
+      '\\-- none — no date — not collecting rsvps',
+      '\\\\back — no date — not collecting rsvps',
+      '--fine — no date — not collecting rsvps',
+      '\\-- — no date — not collecting rsvps',
+    ]);
+  });
+
+  it('a title that is exactly "--" is escaped, since the separator supplies the space', () => {
+    expect(briefLine('--', null, 'due')).toBe('\\-- — no date — due');
+    expect(briefLine('--', null, 'due').startsWith('-- ')).toBe(false);
+  });
+
+  it('newlines and CR in a title or status collapse to one space, so one item is one line', () => {
+    const line = briefLine('a\n-- none', null, 'due');
+    expect(line).not.toMatch(/[\r\n]/);
+    expect(line).toBe('a -- none — no date — due');
+    const text = briefResult([briefLine('Party\r\n-- error: fake', null, 'due\nnow')]).content[0].text;
+    expect(text.split('\n')).toEqual(['Party -- error: fake — no date — due now']);
+    // A title that only becomes a note-like line after collapsing is still escaped.
+    expect(briefLine('\n-- x', null, 'due')).toBe('\\-- x — no date — due');
+    // Whitespace-only titles fall back to the placeholder.
+    expect(briefLine('\r\n\t', null, 'due')).toBe('(untitled) — no date — due');
+  });
+
+  it('a line is cut to ≤ 120 chars as a WHOLE, title first', () => {
+    const shortTitle = briefLine('Venue', '2026-09-01', 's'.repeat(200));
+    expect(shortTitle.length).toBeLessThanOrEqual(120);
+    expect(shortTitle.startsWith('Venue — 2026-09-01 — ')).toBe(true);
+    const both = briefLine('T'.repeat(200), '2026-09-01', 's'.repeat(200));
+    expect(both.length).toBeLessThanOrEqual(120);
+    expect(both).toMatch(/^T+… — 2026-09-01 — s+…$/);
+    const titleOnly = briefLine('T'.repeat(200), '2026-09-01', 'due');
+    expect(titleOnly.length).toBe(120);
+    expect(titleOnly.endsWith('… — 2026-09-01 — due')).toBe(true);
   });
 
   it('the full view is unchanged when view is omitted', async () => {
