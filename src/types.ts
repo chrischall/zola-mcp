@@ -1,4 +1,4 @@
-import { buildOptionalBody, imageResult as imageResultBase64, minifiedResult } from '@chrischall/mcp-utils';
+import { buildOptionalBody, minifiedResult } from '@chrischall/mcp-utils';
 import type { CallToolResult } from '@modelcontextprotocol/server';
 
 /**
@@ -21,15 +21,6 @@ export type ToolResult = CallToolResult;
  * historical `jsonResult` name so tool modules keep a single local import hub.
  */
 export const jsonResult = minifiedResult;
-
-/**
- * Wrap raw image bytes as an MCP image-content tool result.
- * Thin adapter over the shared `imageResult` (which takes a base64 string)
- * so call sites can keep passing raw bytes from the binary fetch path.
- */
-export function imageResult(bytes: Uint8Array, mimeType: string): ToolResult {
-  return imageResultBase64(Buffer.from(bytes).toString('base64'), mimeType);
-}
 
 /**
  * Build a partial-update body containing only keys from `args` that are not undefined.
