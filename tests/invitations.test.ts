@@ -25,6 +25,13 @@ const SUITE_UUID = '546412ac-2077-4c01-af8a-1ca07090afae';
 const LEAD_VARIATION_UUID = '10d9a009-5559-4e99-9a82-fbaf54891223';
 const NEW_VARIATION_UUID = 'd25b5ec0-5748-4a0a-b021-8fed84b25fa1';
 
+/** A PNG one byte over deliverFile's 10 MiB inline cap. */
+function overCapPng(): Uint8Array {
+  const bytes = new Uint8Array(10 * 1024 * 1024 + 1);
+  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  return bytes;
+}
+
 describe('invitation (card-project) tools', () => {
   let reqSpy: ReturnType<typeof vi.spyOn<typeof client, 'requestMobile'>>;
 
@@ -294,14 +301,91 @@ describe('invitation (card-project) tools', () => {
       }
     });
 
-    it('previewQrcode falls back to server content-type when bytes don\'t match a known magic', async () => {
+    it('previewQrcode strips a ;charset parameter from the server type when the bytes are not sniffable', async () => {
+      // A host's image renderer rejects a parameterised type such as image/png;charset=UTF-8.
       vi.spyOn(client, 'requestMobileBinary').mockResolvedValueOnce({
         bytes: new Uint8Array([0x00, 0x01, 0x02, 0x03]),
-        contentType: 'image/svg+xml',
+        contentType: 'image/png;charset=UTF-8',
+      });
+      const r = await previewQrcode(client, { url: 'https://x' });
+      expect(r.content).toHaveLength(1);
+      const block = r.content[0]!;
+      expect(block.type).toBe('image');
+      if (block.type === 'image') expect(block.mimeType).toBe('image/png');
+    });
+
+    it('previewQrcode returns a non-renderable type as an embedded resource, not an image block (local)', async () => {
+      vi.spyOn(client, 'requestMobileBinary').mockResolvedValueOnce({
+        bytes: new Uint8Array([0x00, 0x01, 0x02, 0x03]),
+        contentType: 'image/svg+xml; charset=UTF-8',
       });
       const r = await previewQrcode(client, { url: 'https://x' });
       const block = r.content[0]!;
-      if (block.type === 'image') expect(block.mimeType).toBe('image/svg+xml');
+      expect(block.type).toBe('resource');
+      if (block.type === 'resource') expect(block.resource.mimeType).toBe('image/svg+xml');
+    });
+
+    it('previewQrcode refuses an over-cap image with a clear too_large error when there is no blob store', async () => {
+      vi.spyOn(client, 'requestMobileBinary').mockResolvedValueOnce({
+        bytes: overCapPng(),
+        contentType: 'image/png',
+      });
+      await expect(previewQrcode(client, { url: 'https://x' })).rejects.toMatchObject({ kind: 'too_large' });
+    });
+
+    describe('hosted (blob store configured)', () => {
+      const BASE = 'https://host.example/b/reg_0123456789abcdef01234567';
+      let puts: Array<{ url: string; type: string | null }>;
+
+      beforeEach(() => {
+        puts = [];
+        vi.stubEnv('MCP_BLOB_BASE_URL', BASE);
+        vi.stubEnv('MCP_BLOB_SIGNING_KEY', 'a2V5');
+        vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+          puts.push({ url, type: new Headers(init!.headers).get('content-type') });
+          return new Response(null, { status: 201 });
+        }));
+      });
+
+      afterEach(() => {
+        vi.unstubAllEnvs();
+        vi.unstubAllGlobals();
+      });
+
+      it('still returns a small PNG inline as an image (hosted clients render images)', async () => {
+        const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xde]);
+        vi.spyOn(client, 'requestMobileBinary').mockResolvedValueOnce({ bytes: png, contentType: 'image/jpeg' });
+        const r = await previewQrcode(client, { url: 'https://x' });
+        expect(r.content[0]).toMatchObject({ type: 'image', mimeType: 'image/png' });
+        expect(puts).toHaveLength(0);
+      });
+
+      it('hands an over-cap image over as a signed link instead of inlining it', async () => {
+        vi.spyOn(client, 'requestMobileBinary').mockResolvedValueOnce({ bytes: overCapPng(), contentType: 'image/png' });
+        const r = await previewQrcode(client, { url: 'https://x' });
+        expect(puts).toHaveLength(1);
+        expect(puts[0]!.url).toMatch(new RegExp(`^${BASE}/qrcode/[0-9a-f-]{36}/qrcode\\.png`));
+        expect(puts[0]!.type).toBe('image/png');
+        expect(r.content).toHaveLength(1);
+        const block = r.content[0]!;
+        expect(block.type).toBe('text');
+        const body = JSON.parse((block as { text: string }).text);
+        expect(body).toMatchObject({ via: 'link', fileName: 'qrcode.png', mimeType: 'image/png' });
+        expect(body.url).toMatch(/[?&]sig=/);
+        expect(typeof body.expiresAt).toBe('string');
+        expect(body.note).toMatch(/too large to return inline/);
+      });
+
+      it('hands a non-image type over as a link, since hosted clients reject other embedded resources', async () => {
+        vi.spyOn(client, 'requestMobileBinary').mockResolvedValueOnce({
+          bytes: new Uint8Array([0x00, 0x01]),
+          contentType: 'image/svg+xml',
+        });
+        const r = await previewQrcode(client, { url: 'https://x' });
+        expect(puts).toHaveLength(1);
+        const body = JSON.parse((r.content[0] as { text: string }).text);
+        expect(body).toMatchObject({ via: 'link', mimeType: 'image/svg+xml' });
+      });
     });
 
     it('previewQrcode accepts dimension and url_type overrides', async () => {

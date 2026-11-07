@@ -308,6 +308,16 @@ The server-gated writes are `remove_guest`, `update_event`, `update_wedding_sett
 | `get_storefront` | Full vendor storefront details | Auto |
 | `list_favorites` | Favorited vendors | Auto |
 
+## Upgrading
+
+### next release
+
+`preview_qrcode` now hands the image back through the shared delivery ladder. A normal QR preview is unchanged: one `image` content block, PNG. What changed are the edge cases:
+
+- An image type is always a bare media type (`image/png`, never `image/png;charset=UTF-8`), which a host's image renderer would reject.
+- A non-image type that Zola might return comes back as an embedded `resource` block locally (it was mislabelled as an `image` block), and as a download link on a hosted install.
+- An image over 10 MiB is never inlined. On a hosted install it comes back as one text block of JSON, `{ via: "link", fileName, mimeType, sizeBytes, url, expiresAt, note }`, where `url` is a signed link that expires at `expiresAt`. With no blob store the tool fails with a `too_large` error.
+
 ## Troubleshooting
 
 **"Zola auth: set ZOLA_REFRESH_TOKEN, or install the ContextMint Bridge extension…"** — either set `ZOLA_REFRESH_TOKEN` in your config or install the ContextMint Bridge extension and sign into zola.com.

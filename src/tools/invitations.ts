@@ -2,7 +2,8 @@ import { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import type { ZolaClient } from '../client.js';
 import { pathSegment } from '../path.js';
-import { MobileEnvelope, ToolResult, jsonResult, imageResult } from '../types.js';
+import { deliverFile } from '@chrischall/mcp-utils/export';
+import { MobileEnvelope, ToolResult, jsonResult } from '../types.js';
 import { familyMeta } from './hints.js';
 
 // ─── Tier 1: read-only ───────────────────────────────────────────────────────
@@ -204,19 +205,32 @@ export async function previewQrcode(client: ZolaClient, args: {
       url: args.url,
     }
   );
-  // Zola's qrcode/preview returns PNG bytes with `Content-Type: image/jpeg`. Sniff magic bytes.
-  return imageResult(bytes, sniffImageType(bytes) ?? contentType);
-}
-
-function sniffImageType(bytes: Uint8Array): string | null {
-  if (bytes.length >= 8 &&
-      bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
-    return 'image/png';
+  // Handed back through deliverFile (mcp-utils): it sniffs the bytes (Zola's
+  // qrcode/preview returns PNG bytes labelled `image/jpeg`), strips any
+  // `;charset=…` parameter a host's image renderer would reject, and caps
+  // inline at 10 MiB. Past the cap (or for a non-image type on a hosted
+  // install, which claude.ai would reject as an embedded resource) it PUTs the
+  // bytes to the blob store and returns a signed link; with no store it
+  // refuses with a `too_large` error rather than tripping the host's result
+  // ceiling. There is no disk route: the QR is a preview, not a download.
+  const delivered = await deliverFile({
+    bytes,
+    fileName: 'qrcode.png',
+    mimeType: contentType,
+    keyPrefix: 'qrcode',
+  });
+  if (delivered.via === 'link') {
+    return jsonResult({
+      via: delivered.via,
+      fileName: delivered.fileName,
+      mimeType: delivered.mimeType,
+      sizeBytes: delivered.sizeBytes,
+      url: delivered.url,
+      expiresAt: delivered.expiresAt,
+      note: delivered.note,
+    });
   }
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return 'image/jpeg';
-  }
-  return null;
+  return { content: delivered.content };
 }
 
 export async function setCardProjectQrcode(client: ZolaClient, args: {
@@ -364,7 +378,7 @@ export function registerInvitationTools(server: McpServer, client: ZolaClient): 
   }, (args) => previewCardTemplate(client, args));
 
   server.registerTool('preview_qrcode', {
-    description: 'Generate a QR-code PNG for an invitation. Returns the image so it can be inspected. Use set_card_project_qrcode to actually place it on a card.',
+    description: 'Generate a QR-code PNG for an invitation. Returns the image so it can be inspected (or, if it is ever over 10 MiB on a hosted install, a signed, expiring download link). Use set_card_project_qrcode to actually place it on a card.',
     inputSchema: z.object({
       url: z.string().describe('URL the QR code will resolve to'),
       dimension: z.string().optional().describe('SMALL | MEDIUM (default) | LARGE'),
