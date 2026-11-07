@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.2](https://github.com/chrischall/zola-mcp/compare/v2.2.1...v2.2.2) (2026-11-07)
+
+
+### Bug Fixes
+
+* **deps:** upgrade @chrischall/mcp-utils to 3.7.2 so uploads carry only the file's bytes ([#310](https://github.com/chrischall/zola-mcp/issues/310)) ([74f967c](https://github.com/chrischall/zola-mcp/commit/74f967c660cff4fb1ccc17e053966b5d17bf5cc1))
+* **invitations:** deliver preview_qrcode with a bare image type and a size cap ([#308](https://github.com/chrischall/zola-mcp/issues/308)) ([c92560e](https://github.com/chrischall/zola-mcp/commit/c92560e5b25e8bb5d0d448d06d825c5eed32c226))
+
 ## [2.2.1](https://github.com/chrischall/zola-mcp/compare/v2.2.0...v2.2.1) (2026-11-04)
 
 
