@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.3](https://github.com/chrischall/zola-mcp/compare/v2.2.2...v2.2.3) (2026-11-15)
+
+
+### Bug Fixes
+
+* **deps:** bump the production-dependencies group with 3 updates ([#312](https://github.com/chrischall/zola-mcp/issues/312)) ([536beb6](https://github.com/chrischall/zola-mcp/commit/536beb66e7a853192f5c4bcc8ca77f64b888d3d0))
+
 ## [2.2.2](https://github.com/chrischall/zola-mcp/compare/v2.2.1...v2.2.2) (2026-11-07)
 
 
