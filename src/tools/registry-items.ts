@@ -68,7 +68,7 @@ export async function searchRegistryProducts(client: ZolaClient, args: {
   offset?: number;
   limit?: number;
 }): Promise<ToolResult> {
-  const { registryId } = await client.getContext();
+  const registryId = await client.getRegistryId();
   const body = {
     offset: args.offset ?? 0,
     limit: args.limit ?? 50,
@@ -89,7 +89,7 @@ export async function addRegistryItem(client: ZolaClient, args: {
   most_wanted?: boolean;
   enable_group_gifting?: boolean;
 }): Promise<ToolResult> {
-  const { registryId } = await client.getContext();
+  const registryId = await client.getRegistryId();
   const collectionId = args.collection_id ?? (await getDefaultCollectionId(client, registryId));
   const body = {
     sku_id: args.sku_id,
@@ -114,7 +114,7 @@ export async function updateRegistryItem(client: ZolaClient, args: {
   personal_note: string;
   most_wanted: boolean;
 }): Promise<ToolResult> {
-  const { registryId } = await client.getContext();
+  const registryId = await client.getRegistryId();
   const body = {
     quantity: args.quantity,
     group_gift: args.group_gift,
@@ -136,7 +136,7 @@ export async function removeRegistryItem(
   args: { collection_item_id: string; confirmToken?: string },
   ctx: ServerContext
 ): Promise<GatedResult> {
-  const { registryId } = await client.getContext();
+  const registryId = await client.getRegistryId();
   // Name the item before deleting it, when we can. The collection is only
   // readable from the PUBLIC registry page's default collection (see
   // src/registry-collection.ts; the mobile API has no GET for it), while the

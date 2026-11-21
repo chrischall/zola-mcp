@@ -186,7 +186,7 @@ export function formatBytes(bytes: number): string {
 export interface UserContext {
   weddingAccountId: number;
   weddingId: number;
-  registryId: string;
+  registryId: string | null;
   userId: string;
   weddingDate: string | null;
   weddingSlug: string | null;
@@ -309,6 +309,11 @@ export class ZolaClient {
    * Get user context (wedding account ID, registry ID, etc.).
    * Uses env vars as overrides; falls back to GET /v3/users/me/context.
    * Cached for the lifetime of the client instance.
+   *
+   * `registryId` is null when Zola returns `registry: null`. That is a real
+   * account — one that has not created a registry — and must not fail this
+   * call. Tools that do not need a registry (events, guests, …) keep working;
+   * tools that do call {@link getRegistryId}.
    */
   async getContext(): Promise<UserContext> {
     if (this.cachedContext) return this.cachedContext;
@@ -335,19 +340,34 @@ export class ZolaClient {
         user: { id: string };
         wedding_account: { wedding_account_id: number };
         wedding: { wedding_id: number; wedding_date: string | null; slug: string | null };
-        registry: { id: string };
+        registry: { id: string } | null;
       };
     }>('GET', '/v3/users/me/context');
 
     this.cachedContext = {
       weddingAccountId: Number(envAccountId) || response.data.wedding_account.wedding_account_id,
       weddingId: Number(envWeddingId) || response.data.wedding.wedding_id,
-      registryId: envRegistryId || response.data.registry.id,
+      registryId: envRegistryId || response.data.registry?.id || null,
       userId: response.data.user.id,
       weddingDate: response.data.wedding.wedding_date,
       weddingSlug: response.data.wedding.slug,
     };
     return this.cachedContext;
+  }
+
+  /**
+   * Registry id for a tool that cannot do its job without one.
+   *
+   * Throws before any registry request when the account has none, so the
+   * failure is this sentence rather than `Cannot read properties of null
+   * (reading 'id')` or a call to `/v3/registries/null`.
+   */
+  async getRegistryId(): Promise<string> {
+    const { registryId } = await this.getContext();
+    if (!registryId) {
+      throw new Error('No registry is associated with this Zola account');
+    }
+    return registryId;
   }
 
   private async doRequest<T>(method: string, path: string, body: unknown): Promise<T> {

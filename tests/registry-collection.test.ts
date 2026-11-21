@@ -20,10 +20,10 @@ const RAW_ITEMS = JSON.parse(readFixture('registry-items.raw.json')) as RawRegis
 const PAGE_HTML = readFixture('registry-page.html');
 const SHOP_PAYLOAD = JSON.parse(readFixture('shop-registry.sample.json'));
 
-/** A client stub: only `getContext` and `requestMobile` are consulted. */
+/** A client stub: only `getRegistryId` and `requestMobile` are consulted. */
 function stubClient(meta: { key: string | null; public: boolean | null }) {
   return {
-    getContext: vi.fn().mockResolvedValue({ registryId: 'registry-1' }),
+    getRegistryId: vi.fn().mockResolvedValue('registry-1'),
     requestMobile: vi.fn().mockResolvedValue({ data: meta }),
   } as never;
 }

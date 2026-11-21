@@ -20,7 +20,7 @@ const { fetchRegistryCollection } = await import('../src/registry-collection.js'
 const { reconcileRegistry } = await import('../src/tools/reconcile-registry.js');
 
 const client = {
-  getContext: vi.fn().mockResolvedValue({ registryId: 'r1' }),
+  getRegistryId: vi.fn().mockResolvedValue('r1'),
   requestMobile: vi.fn(async (_m: string, path: string) =>
     path.startsWith('/v3/gift_tracker') ? { data: { order_groups: [] } } : { data: {} }
   ),

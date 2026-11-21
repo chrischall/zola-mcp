@@ -460,7 +460,7 @@ export async function fetchRegistryCollection(
   source: string;
 }> {
   const { limit = 100, offset = 0, fetchImpl = fetch } = opts;
-  const { registryId } = await client.getContext();
+  const registryId = await client.getRegistryId();
 
   // Step 1 — resolve the public key. This is a real mobile-api call and will
   // throw a ZolaApiError carrying status + path if it fails.
