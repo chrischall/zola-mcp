@@ -132,7 +132,7 @@ function collapseImageLinks(item: Record<string, unknown>): Record<string, unkno
 }
 
 export async function getGiftTracker(client: ZolaClient): Promise<ToolResult> {
-  const { registryId } = await client.getContext();
+  const registryId = await client.getRegistryId();
   const response = await client.requestMobile<MobileEnvelope<GiftTracker>>(
     'GET',
     `/v3/gift_tracker/${registryId}`

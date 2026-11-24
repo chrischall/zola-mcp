@@ -237,7 +237,7 @@ export interface ReconcileReport {
 }
 
 export async function reconcileRegistry(client: ZolaClient): Promise<ToolResult> {
-  const { registryId } = await client.getContext();
+  const registryId = await client.getRegistryId();
 
   // Registry read. Throws RegistryReadError with the failing step rather than
   // returning an empty collection — an empty read here is indistinguishable

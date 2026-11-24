@@ -315,7 +315,7 @@ describe('reconcile reads the whole registry, never a page', () => {
 
   function stubbedClient() {
     return {
-      getContext: vi.fn().mockResolvedValue({ registryId: 'registry-1' }),
+      getRegistryId: vi.fn().mockResolvedValue('registry-1'),
       requestMobile: vi.fn(async (_m: string, path: string) => {
         if (path.startsWith('/v3/registries/')) return { data: { key: 'k', public: true } };
         if (path.startsWith('/v3/gift_tracker/')) return { data: RAW_TRACKER };
